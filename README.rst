@@ -18,4 +18,4 @@ to domain shifts.
 - 📄 **Preprint**:
   Learnable latent embeddings for joint behavioral and neural analysis.
   *Steffen Schneider\*, Jin H Lee\* and Mackenzie W Mathis*,
-  [arxiv:XXXX:XXXXX](/#)
+  `arXiv:abs/2204.00673 <https://arxiv.org/abs/2204.00673>`_
