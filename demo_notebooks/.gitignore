@@ -1,0 +1,5 @@
+# model checkpoints
+*.h5
+
+# datasets
+data/
