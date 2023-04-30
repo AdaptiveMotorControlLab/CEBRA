@@ -1,3 +1,15 @@
+##
+## (c) All rights reserved. ECOLE POLYTECHNIQUE FÉDÉRALE DE LAUSANNE,
+## Switzerland, Laboratory of Prof. Mackenzie W. Mathis (UPMWMATHIS) and
+## original authors: Steffen Schneider, Jin H Lee, Mackenzie W Mathis. 2023.
+##
+## Source code:
+## https://github.com/AdaptiveMotorControlLab/CEBRA
+##
+## Please see LICENSE.md for the full license document:
+## https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
+##
+
 #NOTE: if you need to install piVAE, then you need to install tensorflow for apple. This is NOT required for cebra-only use. 
 #for M1/m2 chip, use miniconda3 (https://developer.apple.com/metal/tensorflow-plugin/)
 # Get the miniconda M1/M2 bash installer, as explained in

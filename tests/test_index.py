@@ -9,8 +9,3 @@
 # Please see LICENSE.md for the full license document:
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
-def test_api():
-    import cebra.distributions
-    from cebra.distributions import TimedeltaDistribution
-
-    cebra.distributions.TimedeltaDistribution

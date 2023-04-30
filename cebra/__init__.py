@@ -1,3 +1,14 @@
+#
+# (c) All rights reserved. ECOLE POLYTECHNIQUE FÉDÉRALE DE LAUSANNE,
+# Switzerland, Laboratory of Prof. Mackenzie W. Mathis (UPMWMATHIS) and
+# original authors: Steffen Schneider, Jin H Lee, Mackenzie W Mathis. 2023.
+#
+# Source code:
+# https://github.com/AdaptiveMotorControlLab/CEBRA
+#
+# Please see LICENSE.md for the full license document:
+# https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
+#
 """CEBRA is a library for estimating Consistent Embeddings of high-dimensional Recordings 
 using Auxiliary variables. It contains self-supervised learning algorithms implemented in
 PyTorch, and has support for a variety of different datasets common in biology and neuroscience.

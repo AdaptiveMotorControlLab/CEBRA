@@ -1,3 +1,14 @@
+#
+# (c) All rights reserved. ECOLE POLYTECHNIQUE FÉDÉRALE DE LAUSANNE,
+# Switzerland, Laboratory of Prof. Mackenzie W. Mathis (UPMWMATHIS) and
+# original authors: Steffen Schneider, Jin H Lee, Mackenzie W Mathis. 2023.
+#
+# Source code:
+# https://github.com/AdaptiveMotorControlLab/CEBRA
+#
+# Please see LICENSE.md for the full license document:
+# https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
+#
 """Data loaders use distributions and indices to make samples available for training.
 
 This package contains all helper functions and classes for defining and loading datasets

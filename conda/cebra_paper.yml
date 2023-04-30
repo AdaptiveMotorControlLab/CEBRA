@@ -1,3 +1,15 @@
+##
+## (c) All rights reserved. ECOLE POLYTECHNIQUE FÉDÉRALE DE LAUSANNE,
+## Switzerland, Laboratory of Prof. Mackenzie W. Mathis (UPMWMATHIS) and
+## original authors: Steffen Schneider, Jin H Lee, Mackenzie W Mathis. 2023.
+##
+## Source code:
+## https://github.com/AdaptiveMotorControlLab/CEBRA
+##
+## Please see LICENSE.md for the full license document:
+## https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
+##
+
 # This environment is the full requirements to reproduce the first cebra paper (although we recommend using docker).
 #This is NOT needed if you only intend to use cebra.
 #ubuntu and windows uers can simply install tensorflow=2.2.
