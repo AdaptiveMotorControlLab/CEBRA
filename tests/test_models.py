@@ -11,6 +11,7 @@ import cebra.registry
 
 def test_registry():
     assert cebra.registry.is_registry(cebra.models)
+    assert cebra.registry.is_registry(cebra.models, check_docs=True)
 
 
 @pytest.mark.parametrize(
@@ -51,6 +52,7 @@ def test_offset_models(model_name, batch_size, input_length):
         inputs = torch.randn((batch_size, 5, input_length))
         outputs = model.net(inputs)
         if isinstance(model, cebra.models.ResampleModelMixin):
+            assert outputs.shape == (
         else:
             assert outputs.shape == (batch_size, 3,
                                      input_length - len(offset) + 1)

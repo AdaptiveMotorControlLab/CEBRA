@@ -180,9 +180,16 @@ def iterate_models():
     assert isinstance(embedding, np.ndarray)
         assert embedding.shape == (len(X), 4)
     else:
+
 @pytest.mark.parametrize("model_architecture,device",
                          [("resample-model", "cpu"),
                           ("resample5-model", "cpu")])
+
+    # example dataset
+    X = torch.tensor(np.random.uniform(0, 1, (1000, 50)))
+    y_c1 = torch.tensor(np.random.uniform(0, 1, (1000, 5)))
+
+    assert output.shape == (250, 4)
 
 @pytest.mark.parametrize("model_architecture,device",
                          [("resample1-model", "cpu")])

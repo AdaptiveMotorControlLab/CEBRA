@@ -35,7 +35,9 @@ def _description(stats: Dict[str, float]):
     @property
     def average(self) -> float:
         """Return the average value of the tracked metric."""
+        if self._num_elements == 0:
             return float("nan")
+        return self._total / float(self._num_elements)
 
     @property
     def sum(self) -> float:

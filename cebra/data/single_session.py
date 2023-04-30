@@ -157,6 +157,7 @@ class ContinuousDataLoader(cebra_data.Loader):
     and become equivalent to time contrastive learning.
     )
     time_offset: int = dataclasses.field(default=10)
+    delta: float = dataclasses.field(default=0.1)
 
     def __post_init__(self):
         #            here might be sub-optimal. The final behavior should be determined after
@@ -182,6 +183,7 @@ class ContinuousDataLoader(cebra_data.Loader):
             elif self.conditional == "delta":
                 self.distribution = cebra.distributions.DeltaDistribution(
                     self.dataset.continuous_index,
+                    self.delta,
                     device=self.device)
             else:
                 raise ValueError(self.conditional)
@@ -272,21 +274,47 @@ class MixedDataLoader(cebra_data.Loader):
         return BatchIndex(
             reference=reference_idx,
             negative=self.distribution.sample_prior(num_samples),
+
+
+@dataclasses.dataclass
+class HybridDataLoader(cebra_data.Loader):
     """Contrastive learning using both time and behavior information.
+
     The dataloader combines two training modes implemented in
     :py:class:`ContinuousDataLoader` and combines time and behavior information
 
+    Args:
+        See dataclass fields.
+    """
+
     conditional: str = dataclasses.field(default="time_delta")
+    time_offset: int = dataclasses.field(default=10)
     delta: float = dataclasses.field(default=0.1)
+
+    @property
+    def index(self):
+        """The (continuous) dataset index."""
+        if self.dataset.continuous_index is not None:
+            return self.dataset.continuous_index
+        else:
+
+    def __post_init__(self):
+        #            here might be sub-optimal. The final behavior should be determined after
+        #            e.g. integrating the FAISS dataloader back in.
         super().__post_init__()
+        index = self.index.to(self.device)
+
         if self.conditional != "time_delta":
             raise NotImplementedError(
                 f"Hybrid training is currently only implemented using the ``time_delta`` "
                 f"continual distribution.")
 
+        self.time_distribution = cebra.distributions.TimeContrastive(
             time_offset=self.time_offset,
             num_samples=len(self.dataset.neural),
+        self.behavior_distribution = cebra.distributions.TimedeltaDistribution(
             self.dataset.continuous_index, self.time_offset, device=self.device)
+
     def get_indices(self, num_samples: int) -> BatchIndex:
         """Samples indices for reference, positive and negative examples.
 
@@ -310,6 +338,13 @@ class MixedDataLoader(cebra_data.Loader):
             Add the ``empirical`` vs. ``discrete`` sampling modes to this
             class.
         """
+        reference_idx = self.time_distribution.sample_prior(num_samples * 2)
+        negative_idx = reference_idx[num_samples:]
+        reference_idx = reference_idx[:num_samples]
+        behavior_positive_idx = self.behavior_distribution.sample_conditional(
+            reference_idx)
+        time_positive_idx = self.time_distribution.sample_conditional(
+            reference_idx)
 
 
 @dataclasses.dataclass

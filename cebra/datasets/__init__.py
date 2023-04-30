@@ -67,3 +67,4 @@ except ModuleNotFoundError as e:
                   f"For using the datasets, consider installing the "
                   f"[datasets] extension via pip.")
 
+cebra.registry.add_docstring(__name__)

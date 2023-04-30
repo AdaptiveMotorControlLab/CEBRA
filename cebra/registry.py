@@ -102,15 +102,18 @@ from typing import Any, Dict, List, Union
         else:
             return fnmatch.filter(options, pattern)[:limit]
 
+
     if isinstance(module, str):
         if module in sys.modules:
             return sys.modules[module]
         else:
             raise ValueError(
                 f"Invalid module name: Cannot find module with name "
+                f"{module} in sys.modules")
     if isinstance(module, types.ModuleType):
         return module
     raise TypeError(
+        f"Invalid type: Expected str or module, but got {type(module)}")
 
 
 def add_helper_functions(module: Union[types.ModuleType, str]):
@@ -135,6 +138,7 @@ def add_helper_functions(module: Union[types.ModuleType, str]):
                  override: bool = False,
                  deprecated: bool = False):
         """Decorator to add a new class type to the registry."""
+
         def _register(cls):
             _Registry.add(module,
                           name,
@@ -143,6 +147,7 @@ def add_helper_functions(module: Union[types.ModuleType, str]):
                           override=override,
                           deprecated=deprecated)
             return cls
+
         return _register
 
     def parametrize(pattern: str,
@@ -234,6 +239,7 @@ def add_helper_functions(module: Union[types.ModuleType, str]):
         raise RuntimeError(
             f"Registry could not be successfully registered: {module}.")
 
+
 def add_docstring(module: Union[types.ModuleType, str]):
     """Apply additional information about configuration options to registry modules.
 
@@ -243,7 +249,13 @@ def add_docstring(module: Union[types.ModuleType, str]):
     """
 
     def _shorten(text):
+        return textwrap.shorten(str(text),
+                                width=80,
+                                break_on_hyphens=False,
+
     def _wrap(text, indent: int):
+        return textwrap.fill(str(text),
+                             break_on_hyphens=False)
 
     module = _get_module(module)
 
@@ -257,6 +269,7 @@ def add_docstring(module: Union[types.ModuleType, str]):
     if not is_registry(module):
         raise ImportError(
             f"Cannot call {__name__}.add_docstring on module {module.__name__} which did"
+            f"not previously call {module.__name__}.add_helper_functions.")
 
     docstring = f"""\
     This module is a registry and currently contains the options
@@ -269,6 +282,7 @@ def add_docstring(module: Union[types.ModuleType, str]):
 
     """
     docstring = textwrap.dedent(docstring)
+
 
 
 def is_registry(module: Union[types.ModuleType, str],
@@ -293,4 +307,5 @@ def is_registry(module: Union[types.ModuleType, str],
         for option in module.get_options(limit=10):
             if option not in module.__doc__:
                 return False
+    return all(
         hasattr(module, name)

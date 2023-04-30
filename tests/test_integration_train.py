@@ -9,19 +9,38 @@ import cebra.config
 import cebra.data
 import cebra.datasets
 import cebra.helper
+import cebra.models
 import cebra.solver
 
 
 def _init_single_session_solver(loader, args):
     """Train a single session CEBRA model."""
+                              args.num_hidden_units, 3).to(args.device)
+    loader.dataset.configure_for(model)
+    criterion = cebra.models.InfoNCE()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    return cebra.solver.SingleSessionSolver(
+        model=model,
+        criterion=criterion,
+        optimizer=optimizer,
+    )
 
 
 def _init_multi_session_solver(loader, args):
     """Train a multi session CEBRA model."""
     model = nn.ModuleList([
+                          args.num_hidden_units, 3)
+        for dataset in loader.dataset.iter_sessions()
     ]).to(args.device)
+    for n, dataset in enumerate(loader.dataset.iter_sessions()):
+        dataset.configure_for(model[n])
+    criterion = cebra.models.InfoNCE()
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    return cebra.solver.MultiSessionSolver(
+        model=model,
+        criterion=criterion,
+        optimizer=optimizer,
+    )
 
 
 def _list_data_loaders():
@@ -50,6 +69,11 @@ def test_train(dataset_name, loader_type):
     if loader_type not in cebra.helper.get_loader_options(dataset):
         # skip this test, since the data/loader combination is not valid.
         pytest.skip("Not a valid dataset/loader combination.")
+    loader = loader_type(
+        dataset,
+        num_steps=args.num_steps,
+        batch_size=args.batch_size,
+    )
     if isinstance(dataset, cebra.data.SingleSessionDataset):
         solver = _init_single_session_solver(loader, args)
     else:

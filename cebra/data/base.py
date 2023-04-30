@@ -80,10 +80,26 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
         Note:
             Requires the :py:attr:`offset` to be set.
         """
+
+        # using non_blocking copy operation.
+        offset = torch.arange(-self.offset.left,
                               self.offset.right,
+        index = torch.clamp(index, self.offset.left,
+                            len(self) - self.offset.right)
+
+        return index[:, None] + offset[None, :]
+
+    def expand_index_in_trial(self, index, trial_ids, trial_borders):
+        """When the neural/behavior is in discrete trial, e.g) Monkey Reaching Dataset
 
         Todo:
             - rewrite
+        """
+
+        # using non_blocking copy operation.
+        offset = torch.arange(-self.offset.left,
+        return index[:, None] + offset[None, :]
+
     @abc.abstractmethod
     def __getitem__(self, index: torch.Tensor) -> torch.Tensor:
         """Return samples at the given time indices.
@@ -116,6 +132,7 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
             model: The model to configure the dataset for.
         """
         self.offset = model.get_offset()
+
 
 @dataclasses.dataclass
 class Loader(abc.ABC, cebra.io.HasDevice):

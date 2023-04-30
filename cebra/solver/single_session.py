@@ -52,10 +52,12 @@ class SingleSessionSolver(abc_.Solver):
 
 
 @register("single-session-aux")
+@dataclasses.dataclass
 class SingleSessionAuxVariableSolver(abc_.Solver):
     """
 
     _variant_name = "single-session-aux"
+    reference_model: torch.nn.Module = None
 
     def __post_init__(self):
         super().__post_init__()
@@ -72,8 +74,27 @@ class SingleSessionAuxVariableSolver(abc_.Solver):
         pos = self.model(batch.positive)
         neg = self.model(batch.negative)
         return cebra.data.Batch(ref, pos, neg)
+
+
 @register("single-session-hybrid")
 @dataclasses.dataclass
+class SingleSessionHybridSolver(abc_.MultiobjectiveSolver):
+    """Single session training, contrasting neural data against behavior."""
+
+    _variant_name = "single-session-hybrid"
+
+    def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
+        batch.to(self.device)
+        behavior_ref = self.model(batch.reference)[0]
+        behavior_pos = self.model(batch.positive[:int(len(batch.positive) //
+                                                      2)])[0]
+        behavior_neg = self.model(batch.negative)[0]
+        time_pos = self.model(batch.positive[int(len(batch.positive) // 2):])[1]
+        time_ref = self.model(batch.reference)[1]
+        time_neg = self.model(batch.negative)[1]
+        return cebra.data.Batch(behavior_ref, behavior_pos,
+                                behavior_neg), cebra.data.Batch(
+                                    time_ref, time_pos, time_neg)
 
 
 @register("single-session-full")

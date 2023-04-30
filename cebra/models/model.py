@@ -1,5 +1,18 @@
+"""Neural network models and criterions for training CEBRA models."""
+import abc
+
+import literate_dataclasses as dataclasses
+import torch
+import torch.nn.functional as F
+import tqdm
+from torch import nn
+
+import cebra.data
 import cebra.data.datatypes
 import cebra.models.layers as cebra_layers
+from cebra.models import register
+
+
 class Model(nn.Module):
     """Base model for CEBRA experiments.
 
@@ -42,6 +55,8 @@ class Model(nn.Module):
             )
         self.num_input: int = num_input
         self.num_output: int = num_output
+
+    @abc.abstractmethod
     def get_offset(self) -> cebra.data.datatypes.Offset:
         """Offset between input and output sequence caused by the receptive field.
 
@@ -56,6 +71,7 @@ class Model(nn.Module):
         """
         raise NotImplementedError()
 
+
     """Mixin for models that support operating on a time-series.
     The input for convolutional models should be ``batch, dim, time``
     and the convolution will be applied across the last dimension.
@@ -69,6 +85,7 @@ class Model(nn.Module):
     def resample_factor(self) -> float:
         """The factor by which the signal is downsampled."""
         return NotImplementedError()
+
 
     """Networks with an explicitly defined feature encoder."""
 
@@ -124,11 +141,18 @@ class ClassifierModel(Model, HasFeatureEncoder):
 
 class _OffsetModel(Model, HasFeatureEncoder):
 
+    def __init__(self,
+                 *layers,
+                 num_input=None,
+                 num_output=None,
+                 normalize=True):
         super().__init__(num_input=num_input, num_output=num_output)
 
+        if normalize:
         self.net = nn.Sequential(*layers)
         # TODO(stes) can this layer be removed? it is already added to
         # the self.net
+        self.normalize = normalize
 
     def forward(self, inp):
         """Compute the embedding given the input signal.
@@ -146,10 +170,25 @@ class _OffsetModel(Model, HasFeatureEncoder):
 
 
 class ParameterCountMixin:
+    """Add a parameter counter to a torch.nn.Module."""
+
+    @property
     def num_parameters(self) -> int:
+        """Total parameter count of the model."""
+        return sum(param.numel() for param in self.parameters())
+
+    @property
     def num_trainable_parameters(self) -> int:
+        """Number of trainable parameters."""
+        return sum(
+            param.numel() for param in self.parameters() if param.requires_grad)
+
+
+@register("offset10-model")
 class Offset10Model(_OffsetModel, ConvolutionalModelMixin):
     """CEBRA model with a 10 sample receptive field."""
+
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
         if num_units < 1:
             raise ValueError(
             )
@@ -157,26 +196,51 @@ class Offset10Model(_OffsetModel, ConvolutionalModelMixin):
     def get_offset(self) -> cebra.data.datatypes.Offset:
         return cebra.data.Offset(5, 5)
 
+
+@register("offset10-model-mse")
+class Offset10ModelMSE(Offset10Model):
     """Symmetric model with 10 sample receptive field, without normalization.
 
     Suitable for use with InfoNCE metrics for Euclidean space.
     """
 
+    def __init__(self, num_neurons, num_units, num_output, normalize=False):
+        super().__init__(num_neurons, num_units, num_output, normalize)
 
 
+@register("offset5-model")
 class Offset5Model(_OffsetModel, ConvolutionalModelMixin):
     """CEBRA model with a 5 sample receptive field and output normalization."""
+
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
+
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        return cebra.data.Offset(2, 3)
+
+
+@register("offset1-model-mse")
 class Offset0ModelMSE(_OffsetModel):
     """CEBRA model with a single sample receptive field, without output normalization."""
+
+    def __init__(self, num_neurons, num_units, num_output, normalize=False):
+
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        return cebra.data.Offset(0, 1)
+
+
+@register("offset1-model")
 class Offset0Model(_OffsetModel):
     """CEBRA model with a single sample receptive field, with output normalization."""
+
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
         if num_units < 2:
             raise ValueError(
                 f"Number of hidden units needs to be at least 2, but got {num_units}."
             )
+
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        return cebra.data.Offset(0, 1)
+
 
 @register("offset1-model-v2")
 class Offset0Modelv2(_OffsetModel):
@@ -185,6 +249,7 @@ class Offset0Modelv2(_OffsetModel):
     This is a variant of :py:class:`Offset0Model`.
     """
 
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
         if num_units < 2:
             raise ValueError(
                 f"Number of hidden units needs to be at least 2, but got {num_units}."
@@ -201,6 +266,7 @@ class Offset0Modelv3(_OffsetModel):
     This is a variant of :py:class:`Offset0Model`.
     """
 
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
         if num_units < 2:
             raise ValueError(
                 f"Number of hidden units needs to be at least 2, but got {num_units}."
@@ -217,6 +283,7 @@ class Offset0Modelv4(_OffsetModel):
     This is a variant of :py:class:`Offset0Model`.
     """
 
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
         if num_units < 2:
             raise ValueError(
                 f"Number of hidden units needs to be at least 2, but got {num_units}."
@@ -233,6 +300,7 @@ class Offset0Modelv5(_OffsetModel):
     This is a variant of :py:class:`Offset0Model`.
     """
 
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
         if num_units < 2:
             raise ValueError(
                 f"Number of hidden units needs to be at least 2, but got {num_units}."
@@ -241,28 +309,40 @@ class Offset0Modelv5(_OffsetModel):
     def get_offset(self) -> cebra.data.datatypes.Offset:
         return cebra.data.Offset(0, 1)
 
+
 @register("resample-model",
           deprecated=True)  # NOTE(stes) deprecated name for compatibility
 @register("offset40-model-4x-subsample")
 class ResampleModel(_OffsetModel, ConvolutionalModelMixin, ResampleModelMixin):
     """CEBRA model with 40 sample receptive field, output normalization and 4x subsampling."""
 
+    ##120Hz
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
 
     @property
     def resample_factor(self):
         return 4
+
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        return cebra.data.Offset(20, 20)
+
+
 @register("resample5-model", deprecated=True)
 @register("offset20-model-4x-subsample")
 class Resample5Model(_OffsetModel, ConvolutionalModelMixin, ResampleModelMixin):
     """CEBRA model with 20 sample receptive field, output normalization and 4x subsampling."""
 
     ##120Hz
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
 
     @property
     def resample_factor(self):
         return 4
+
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        return cebra.data.Offset(10, 10)
+
+
 @register("resample1-model", deprecated=True)
 @register("offset4-model-2x-subsample")
 class Resample1Model(_OffsetModel, ResampleModelMixin):
@@ -271,21 +351,44 @@ class Resample1Model(_OffsetModel, ResampleModelMixin):
     This model is not convolutional, and needs to be applied to fixed ``(N, d, 4)`` inputs.
     """
 
+    ##120Hz
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
+
     @property
     def resample_factor(self):
         return 2
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        return cebra.data.Offset(2, 2)
+
+
+@register("supervised10-model")
 class SupervisedNN10(ClassifierModel):
     """A supervised model with 10 sample receptive field."""
+
+    def __init__(self, num_neurons, num_units, num_output):
         super(SupervisedNN10, self).__init__(num_input=num_neurons,
                                              num_output=num_output)
+
+        self.net = nn.Sequential(
             cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
             cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
             cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+        self.num_output = num_output
+
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        return cebra.data.Offset(5, 5)
+
+
+@register("supervised1-model")
 class SupervisedNN1(ClassifierModel):
     """A supervised model with single sample receptive field."""
+
+    def __init__(self, num_neurons, num_units, num_output):
         super(SupervisedNN1, self).__init__(num_input=num_neurons,
                                             num_output=num_output)
+
+        self.num_output = num_output
+
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        return cebra.data.Offset(0, 1)

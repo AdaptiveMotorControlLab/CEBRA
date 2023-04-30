@@ -6,6 +6,7 @@ from torch import nn
 
 import cebra.data
 import cebra.datasets
+import cebra.models
 import cebra.solver
 
 device = "cpu"
@@ -15,8 +16,10 @@ for args in [
 ]:
     single_session_tests.append((*args, cebra.solver.SingleSessionSolver))
 
+single_session_hybrid_tests = []
     single_session_hybrid_tests.append(
         (*args, cebra.solver.SingleSessionHybridSolver))
+
 multi_session_tests = []
               cebra.data.ContinuousMultiSessionDataLoader)]:
     multi_session_tests.append((*args, cebra.solver.MultiSessionSolver))
@@ -42,6 +45,7 @@ def _make_behavior_model(dataset):
 def test_single_session(data_name, loader_initfunc, solver_initfunc):
     loader = _get_loader(data_name, loader_initfunc)
     model = _make_model(loader.dataset)
+    criterion = cebra.models.InfoNCE()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     solver = solver_initfunc(model=model,
@@ -64,6 +68,7 @@ def test_single_session_auxvar(data_name, loader_initfunc, solver_initfunc):
     model = _make_model(loader.dataset)
     behavior_model = _make_behavior_model(loader.dataset)
 
+    criterion = cebra.models.InfoNCE()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     solver = solver_initfunc(
@@ -80,15 +85,31 @@ def test_single_session_auxvar(data_name, loader_initfunc, solver_initfunc):
     solver.fit(loader)
 
 
+@pytest.mark.parametrize("data_name, loader_initfunc, solver_initfunc",
                          single_session_hybrid_tests)
+def test_single_session_hybrid(data_name, loader_initfunc, solver_initfunc):
+    loader = _get_loader(data_name, loader_initfunc)
                               32, 3)
+    criterion = cebra.models.InfoNCE()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    solver = solver_initfunc(model=model,
+                             criterion=criterion,
+                             optimizer=optimizer)
+
+    batch = next(iter(loader))
+    inference = solver._inference(batch)
+    assert len(inference) == 2
+    log = solver.step(batch)
     assert isinstance(log, dict)
 
     solver.fit(loader)
+
+
 @pytest.mark.parametrize("data_name, loader_initfunc, solver_initfunc",
                          multi_session_tests)
 def test_multi_session(data_name, loader_initfunc, solver_initfunc):
     loader = _get_loader(data_name, loader_initfunc)
+    criterion = cebra.models.InfoNCE()
     model = nn.ModuleList(
         [_make_model(dataset) for dataset in loader.dataset.iter_sessions()])
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)

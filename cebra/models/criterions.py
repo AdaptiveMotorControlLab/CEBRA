@@ -19,6 +19,8 @@ from torch import nn
 
 
 @torch.jit.script
+def dot_similarity(ref: torch.Tensor, pos: torch.Tensor,
+                   neg: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """Cosine similarity the ref, pos and negative pairs
     Args:
         ref: The reference samples of shape `(n, d)`.
@@ -34,6 +36,9 @@ from torch import nn
 
 
 @torch.jit.script
+def euclidean_similarity(
+        ref: torch.Tensor, pos: torch.Tensor,
+        neg: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """Negative L2 distance between the ref, pos and negative pairs
 
     Args:
@@ -48,7 +53,18 @@ from torch import nn
     ref_sq = torch.einsum("ni->n", ref**2)
     pos_sq = torch.einsum("ni->n", pos**2)
     neg_sq = torch.einsum("ni->n", neg**2)
+
     pos_cosine, neg_cosine = dot_similarity(ref, pos, neg)
+    pos_dist = -(ref_sq + pos_sq - 2 * pos_cosine)
+    neg_dist = -(ref_sq[:, None] + neg_sq[None] - 2 * neg_cosine)
+
+    return pos_dist, neg_dist
+
+
+@torch.jit.script
+def infonce(
+        pos_dist: torch.Tensor, neg_dist: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """InfoNCE implementation
 
     See :py:class:`BaseInfoNCE` for reference.
@@ -125,18 +141,33 @@ class BaseInfoNCE(ContrastiveLoss):
         pos_dist, neg_dist = self._distance(ref, pos, neg)
         return infonce(pos_dist, neg_dist)
 
+
 class FixedInfoNCE(BaseInfoNCE):
     """InfoNCE base loss with a fixed temperature.
+
+    Attributes:
         temperature:
             The softmax temperature
+    """
+
+    def __init__(self, temperature: float = 1.0):
+        super().__init__()
+        self.temperature = temperature
+
+
 class LearnableInfoNCE(BaseInfoNCE):
     """InfoNCE base loss with a learnable temperature.
+
+    Attributes:
         temperature:
             The current value of the learnable temperature parameter.
         min_temperature:
             The minimum temperature to use. Increase the minimum temperature
             if you encounter numerical issues during optimization.
+    """
+
     def __init__(self,
+                 min_temperature: Optional[float] = None):
         super().__init__()
         if min_temperature is None:
             self.max_inverse_temperature = math.inf
@@ -149,7 +180,14 @@ class LearnableInfoNCE(BaseInfoNCE):
     def _prepare_inverse_temperature(self) -> torch.Tensor:
         """Compute the current inverse temperature."""
         inverse_temperature = torch.exp(self.log_inverse_temperature)
+        inverse_temperature = torch.clamp(inverse_temperature,
+                                          max=self.max_inverse_temperature)
         return inverse_temperature
+
+    @property
+    def temperature(self) -> float:
+        with torch.no_grad():
+
 
 class FixedCosineInfoNCE(FixedInfoNCE):
     r"""Cosine similarity function with fixed temperature.
@@ -166,9 +204,11 @@ class FixedCosineInfoNCE(FixedInfoNCE):
     """
 
     @torch.jit.export
+    def _distance(self, ref: torch.Tensor, pos: torch.Tensor,
                   neg: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         pos_dist, neg_dist = dot_similarity(ref, pos, neg)
         return pos_dist / self.temperature, neg_dist / self.temperature
+
 
 class FixedEuclideanInfoNCE(FixedInfoNCE):
     r"""L2 similarity function with fixed temperature.
@@ -181,9 +221,11 @@ class FixedEuclideanInfoNCE(FixedInfoNCE):
     """
 
     @torch.jit.export
+    def _distance(self, ref: torch.Tensor, pos: torch.Tensor,
                   neg: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         pos_dist, neg_dist = euclidean_similarity(ref, pos, neg)
         return pos_dist / self.temperature, neg_dist / self.temperature
+
 
 class LearnableCosineInfoNCE(LearnableInfoNCE):
     r"""Cosine similarity function with a learnable temperature.
@@ -192,10 +234,12 @@ class LearnableCosineInfoNCE(LearnableInfoNCE):
     """
 
     @torch.jit.export
+    def _distance(self, ref: torch.Tensor, pos: torch.Tensor,
                   neg: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         inverse_temperature = self._prepare_inverse_temperature()
         pos, neg = dot_similarity(ref, pos, neg)
         return pos * inverse_temperature, neg * inverse_temperature
+
 
 class LearnableEuclideanInfoNCE(LearnableInfoNCE):
     r"""L2 similarity function with fixed temperature.
@@ -204,15 +248,18 @@ class LearnableEuclideanInfoNCE(LearnableInfoNCE):
     """
 
     @torch.jit.export
+    def _distance(self, ref: torch.Tensor, pos: torch.Tensor,
                   neg: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         inverse_temperature = self._prepare_inverse_temperature()
         pos, neg = euclidean_similarity(ref, pos, neg)
         return pos * inverse_temperature, neg * inverse_temperature
 
 
+# NOTE(stes): old aliases used in various locations in the codebase. Should be
 # deprecated at some point.
 InfoNCE = FixedCosineInfoNCE
 InfoMSE = FixedEuclideanInfoNCE
+
 
 class NCE(ContrastiveLoss):
     """Noise contrastive estimation (Gutman & Hyvarinen, 2012)

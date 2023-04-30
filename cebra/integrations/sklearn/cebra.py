@@ -1,4 +1,5 @@
 from typing import Callable, Iterable, List, Literal, Optional, Tuple, Union
+
 import numpy as np
 import torch
 from sklearn.base import BaseEstimator
@@ -74,12 +75,18 @@ class CEBRA(BaseEstimator, TransformerMixin):
                     return cebra.models.LearnableCosineInfoNCE(
                         temperature=self.temperature,
                 elif self.distance == "euclidean":
+                    return cebra.models.LearnableEuclideanInfoNCE(
                         temperature=self.temperature,
             elif self.temperature_mode == "constant":
                 if self.distance == "cosine":
+                    return cebra.models.FixedCosineInfoNCE(
+                        temperature=self.temperature,)
                 elif self.distance == "euclidean":
+                    return cebra.models.FixedEuclideanInfoNCE(
+                        temperature=self.temperature,)
 
         raise ValueError(f"Unknown similarity measure '{self.distance}' for "
+                         f"criterion '{self.criterion}'.")
 
 
         Args:

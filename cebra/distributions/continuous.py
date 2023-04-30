@@ -171,6 +171,7 @@ class TimedeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
                  time_delta: int = 1,
         abc_.HasGenerator.__init__(self, device=device, seed=seed)
         self.data = continuous
+        self.time_delta = time_delta
         self.time_difference = torch.zeros_like(self.data, device=self.device)
         self.index = cebra.distributions.ContinuousIndex(self.data)
         self.prior = Prior(self.data, device=device, seed=seed)
@@ -189,15 +190,40 @@ class TimedeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
         diff_idx = self.randint(len(self.time_difference), (num_samples,))
         query = self.data[reference_idx] + self.time_difference[diff_idx]
         return self.index.search(query)
+
+
 class DeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
+    """Define a conditional distribution based on behavioral changes over time.
     Takes a continuous index, and uses sample from Gaussian distribution to sample positive
+    Args:
+        continuous: The multidimensional, continuous index
         delta: Standard deviation of Gaussian distribution to sample positive pair
+
+    """
+
     def __init__(self,
                  delta: float = 0.1,
         abc_.HasGenerator.__init__(self, device=device, seed=seed)
+        self.data = continuous
+        self.std = delta
+        self.index = cebra.distributions.ContinuousIndex(self.data)
         self.prior = Prior(self.data, device=device, seed=seed)
+
         """See :py:meth:`.Prior.sample_prior`."""
+        return self.prior.sample_prior(num_samples)
+
+        """Return indices from the conditional distribution."""
+
+        if reference_idx.dim() != 1:
+            raise ValueError(
+                f"Reference indices have wrong shape: {reference_idx.shape}. "
+                "Pass a 1D array of indices of reference samples.")
+
         # TODO(stes): Set seed
+        query = torch.distributions.Normal(
+            self.data[reference_idx].squeeze(),
+
+        return self.index.search(query.unsqueeze(-1))
 
 
 class CEBRADistribution(abc_.JointDistribution):

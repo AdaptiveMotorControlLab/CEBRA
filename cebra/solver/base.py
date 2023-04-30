@@ -20,6 +20,7 @@ import tqdm
 import cebra
 import cebra.data
 import cebra.io
+import cebra.models
 from cebra.solver.util import Meter
 from cebra.solver.util import ProgressBar
 
@@ -46,28 +47,65 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     criterion: torch.nn.Module
     optimizer: torch.optim.Optimizer
     history: List = dataclasses.field(default_factory=list)
+    decode_history: List = dataclasses.field(default_factory=list)
     log: Dict = dataclasses.field(default_factory=lambda: ({
+    }))
+    tqdm_on: bool = True
 
     def __post_init__(self):
         cebra.io.HasDevice.__init__(self)
+
+    def state_dict(self) -> dict:
+        """Return a dictionary fully describing the current solver state.
+
+        Returns:
+            State dictionary, including the state dictionary of the models and
+            optimizer. Also contains the training history and the CEBRA version
+            the model was trained with.
+        """
+
         return {
             "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
             "loss": torch.tensor(self.history),
             "version": cebra.__version__,
             "log": self.log,
         }
 
+    def load_state_dict(self, state_dict: dict, strict: bool = True):
+        """Update the solver state with the given state_dict.
         Args:
+            state_dict: Dictionary with parameters for the `model`, `optimizer`,
+                and the past loss history for the solver.
+            strict: Make sure all states can be loaded. Set to `False` to allow
+                to partially load the state for all given keys.
         """
 
+        def _contains(key):
+            if key in state_dict:
+                return True
+            elif strict:
+                raise KeyError(
+                    f"Key {key} missing in state_dict. Contains: {list(state_dict.keys())}."
+                )
+            return False
 
+        def _get(key):
+            return state_dict.get(key)
 
+        if _contains("model"):
+            self.model.load_state_dict(_get("model"))
         if _contains("criterion"):
             self.criterion.load_state_dict(_get("criterion"))
+        if _contains("optimizer"):
+            self.optimizer.load_state_dict(_get("optimizer"))
         # TODO(stes): This will be deprecated at some point; the "log" attribute
         # holds the same information.
+        if _contains("loss"):
+            self.history = _get("loss").cpu().numpy().tolist()
 
     @property
+    def num_parameters(self) -> int:
         """Total number of parameters in the encoder and criterion."""
         return sum(p.numel() for p in self.parameters())
 
@@ -75,6 +113,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """Iterate over all parameters."""
         for parameter in self.model.parameters():
             yield parameter
+
         for parameter in self.criterion.parameters():
             yield parameter
 
@@ -97,12 +136,20 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     ):
         """Train model for the specified number of steps.
 
+        Args:
+            loader: Data loader, which is an iterator over `cebra.data.Batch` instances.
             valid_loader: Data loader used for validation of the model.
+            save_frequency: If not `None`, the frequency for automatically saving model checkpoints
+                to `logdir`.
             valid_frequency: The frequency for running validation on the ``valid_loader`` instance.
+            logdir:  The logging directory for writing model checkpoints. The checkpoints
+                can be read again using the `solver.load` function, or manually via loading the
+                state dict.
 
         TODO:
             * Refine the API here. Drop the validation entirely, and implement this via a hook?
         """
+
         self.to(loader.device)
 
         iterator = self._get_loader(loader)
@@ -127,8 +174,14 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 if save_hook is not None:
                     save_hook(num_steps, self)
 
+    def step(self, batch: cebra.data.Batch) -> dict:
+        """Perform a single gradient update.
+        Args:
+            batch: The input samples
 
+        Returns:
             Dictionary containing training metrics.
+        """
         self.optimizer.zero_grad()
         prediction = self._inference(batch)
         loss, align, uniform = self.criterion(prediction.reference,
@@ -137,12 +190,28 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         loss.backward()
         self.optimizer.step()
+        self.history.append(loss.item())
+        for key, value in stats.items():
             self.log[key].append(value)
+        return stats
 
         total_loss = Meter()
+        for _, batch in iterator:
+            prediction = self._inference(batch)
             total_loss.add(loss.item())
+        return total_loss.average
+
     @torch.no_grad()
+    def decoding(self, train_loader, valid_loader):
         """Deprecated since 0.0.2."""
+        train_x = self.transform(train_loader.dataset[torch.arange(
+            len(train_loader.dataset.neural))])
+        train_y = train_loader.dataset.index
+        valid_x = self.transform(valid_loader.dataset[torch.arange(
+            len(valid_loader.dataset.neural))])
+        valid_y = valid_loader.dataset.index
+        return decode_metric
+
     @torch.no_grad()
     def transform(self, inputs: torch.Tensor) -> torch.Tensor:
         """Compute the embedding.
@@ -164,10 +233,48 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         return self.model(inputs)
 
     @abc.abstractmethod
+    def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
+        """Given a batch of input examples, return the model outputs.
+
+        Args:
                 dimension. This means that ``batch.index`` specifies the map
                 between reference/positive samples, if not equal ``None``.
+
+        Returns:
+            Processed batch of data. While the input data might not be aligned
+            across the sample dimensions, the output data should be aligned and
             ``batch.index`` should be set to ``None``.
+        """
         raise NotImplementedError
+
+    def load(self, logdir, filename="checkpoint.pth"):
+        """Load the experiment from its checkpoint file.
+
+        Args:
+            filename (str): Checkpoint name for loading the experiment.
+        """
+
+        savepath = os.path.join(logdir, filename)
+        if not os.path.exists(savepath):
+            print("Did not find a previous experiment. Starting from scratch.")
+            return
+        checkpoint = torch.load(savepath, map_location=self.device)
+        self.load_state_dict(checkpoint, strict=True)
+
+    def save(self, logdir, filename="checkpoint_last.pth"):
+        """Save the model and optimizer params.
+
+        Args:
+            logdir: Logging directory for this model.
+            filename: Checkpoint name for saving the experiment.
+        """
+        if not os.path.exists(os.path.dirname(logdir)):
+            os.makedirs(logdir)
+        savepath = os.path.join(logdir, filename)
+        torch.save(
+            self.state_dict(),
+            savepath,
+        )
 
 
 @dataclasses.dataclass
@@ -201,7 +308,9 @@ class MultiobjectiveSolver(Solver):
     def __post_init__(self):
         super().__post_init__()
         self._check_dimensions()
+        self.model = cebra.models.MultiobjectiveModel(
             self.model,
+            dimensions=(self.num_behavior_features, self.model.num_output),
             output_mode=self.output_mode,
 
     def _check_dimensions(self):
@@ -248,6 +357,13 @@ class MultiobjectiveSolver(Solver):
             Dictionary containing training metrics.
         """
         self.optimizer.zero_grad()
+        prediction_behavior, prediction_time = self._inference(batch)
+
+        behavior_loss, behavior_align, behavior_uniform = self.criterion(
+
+        time_loss, time_align, time_uniform = self.criterion(
+
+        loss = behavior_loss + time_loss
         loss.backward()
         self.optimizer.step()
         self.history.append(loss.item())

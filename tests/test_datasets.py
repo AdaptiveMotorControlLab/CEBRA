@@ -1,16 +1,21 @@
 import numpy as np
 import pytest
 import torch
+import tqdm
 
 import cebra.data
 import cebra.datasets
 import cebra.registry
 from cebra.datasets import poisson
 
+
 def test_registry():
     """Check the registry: Are all functions defined and is the
     docstring correctly adapted?"""
     assert cebra.registry.is_registry(cebra.datasets)
+    assert cebra.registry.is_registry(cebra.datasets, check_docs=True)
+
+
 def test_factory():
     """Register a new dataset"""
     import cebra.datasets
@@ -28,18 +33,63 @@ def test_demo():
     dataset = cebra.datasets.init("demo-discrete")
     indices = torch.arange(0, 5)
     batch = dataset[indices]
+
     assert len(batch) == len(indices)
+
+
 @pytest.mark.requires_dataset
+def test_hippocampus():
     from cebra.datasets import hippocampus
 
     pytest.skip("Outdated")
+    dataset = cebra.datasets.init("rat-hippocampus-single")
+    loader = cebra.data.ContinuousDataLoader(
+        dataset=dataset,
+        num_steps=10,
+        batch_size=8,
+    )
+    for batch in loader:
+        break
+
+    dataset = cebra.datasets.init("rats-hippocampus-multisubjects")
+    loader = cebra.data.ContinuousMultiSessionDataLoader(
+        dataset=dataset,
+        num_steps=10,
+        batch_size=8,
+    )
+    for batch in loader:
+        for b in batch:
+        break
+
+
 @pytest.mark.requires_dataset
+def test_monkey():
     from cebra.datasets import monkey_reaching
     dataset = cebra.datasets.init(
+    indices = torch.randint(0, len(dataset), (10,))
+
+
 @pytest.mark.requires_dataset
+def test_allen():
     from cebra.datasets import allen
     pytest.skip("Test takes too long")
 
+    ca_loader = cebra.data.ContinuousDataLoader(
+        dataset=ca_dataset,
+        num_steps=10,
+        batch_size=8,
+    )
+    for batch in ca_loader:
+        break
+    joint_dataset = cebra.datasets.init(
+    joint_loader = cebra.data.ContinuousMultiSessionDataLoader(
+        dataset=joint_dataset,
+        num_steps=10,
+        batch_size=8,
+    )
+    for batch in joint_loader:
+        for b in batch:
+        break
 
 
 try:
@@ -47,13 +97,19 @@ except:
     options = []
 
 
+@pytest.mark.requires_dataset
                                                     expand_parametrized=False))
 def test_options(options):
     assert len(options) > 0
 
 
 @pytest.mark.requires_dataset
+def test_all(dataset):
     import cebra.datasets
+    data = cebra.datasets.init(dataset)
+    assert isinstance(data, cebra.data.base.Dataset)
+
+
 def _assert_histograms_close(values, histogram):
     max_counts = max(max(values), len(histogram))
 

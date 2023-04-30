@@ -124,6 +124,7 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
 
         if continuous:
             self._cindex = torch.cat(list(
+                self._iter_property("continuous_index")),
                                      dim=0)
         else:
             self._cindex = None

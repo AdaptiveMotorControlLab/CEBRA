@@ -28,8 +28,13 @@ class DemoDataset(cebra.data.SingleSessionDataset):
     def __len__(self):
         return len(self.neural)
 
+    @property
+    def rf(self):
+        return 10
+
     def __getitem__(self, index):
         assert index.dim() == 1, (index.dim(), index.shape)
+        index = self.expand_index(index)
         assert (index >= 0).all()
         assert (index < len(self)).all()
         return self.neural[index].transpose(2, 1)

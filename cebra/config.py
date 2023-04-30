@@ -24,6 +24,18 @@ class Config:
     CEBRA model.
     )
 
+
+
+
+
+        the chosen conditional distribution, but generally a higher time offset increases the difficulty of
+        the learning task, and (in a certain range) improves the quality of the representation. The time
+
+        """ Standard deviation of gaussian distribution if it is chossed to use 'delta' distribution.
+        The positive sample will be chosen by closest sample to a reference which is sampled from the defined gaussian
+
+        """Type of conditional distribution. Valid standard methods are "time_delta", "time", "delta", and more
+
     Number of total training steps. Note that training duration
     of CEBRA is independent of the dataset size. The total training
     examples seen will amount to ``num-steps x batch-size``,
@@ -36,6 +48,10 @@ class Config:
 
 
 
+
+
+
+
     @classmethod
     def _add_arguments(cls, parser, **override_kwargs):
         _metavars = {int: "N", float: "val"}
@@ -44,6 +60,16 @@ class Config:
             return json.dumps(self.__dict__)
 
         for field in dataclasses.fields(cls):
+            if field.type == list:
+                kwargs.update(override_kwargs.get(field.name, {}))
+                parser.add_argument("--" + field.name.replace("_", "-"),
+                                    **kwargs,
+                                    nargs="+")
+            else:
+                kwargs.update(override_kwargs.get(field.name, {}))
+                parser.add_argument("--" + field.name.replace("_", "-"),
+                                    **kwargs)
+
         return parser
 
     @classmethod
