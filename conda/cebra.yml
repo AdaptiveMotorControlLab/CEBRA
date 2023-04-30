@@ -1,1 +1,13 @@
+# This environment can be used to install cebra
+
+name: cebra
+channels:
+    - pytorch
+    - defaults
+dependencies:
+    - pip
+    - pytorch
+    - jupyter
+    - nb_conda
+    - pip:
         - cebra

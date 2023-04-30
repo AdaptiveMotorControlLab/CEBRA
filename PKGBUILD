@@ -3,6 +3,7 @@ pkgname=python-cebra
 _pkgname=cebra
 pkgver=0.1.0
 pkgrel=1
+pkgdesc="Consistent Embeddings of high-dimensional Recordings using Auxiliary variables"
 url="https://cebra.ai"
 depends=(
     python-joblib

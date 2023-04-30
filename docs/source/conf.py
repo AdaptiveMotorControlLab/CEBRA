@@ -85,6 +85,7 @@ html_theme = "pydata_sphinx_theme"
 # https://pydata-sphinx-theme.readthedocs.io/en/latest/user_guide/configuring.html
 html_theme_options = {
             "url": "https://github.com/AdaptiveMotorControlLab/CEBRA",
+            "url": "https://api.semanticscholar.org/CorpusID:247939478",
     "external_links": [
     ],
     "collapse_navigation": False,

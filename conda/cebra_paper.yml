@@ -1,1 +1,38 @@
+# This environment is the full requirements to reproduce the first cebra paper (although we recommend using docker).
+#This is NOT needed if you only intend to use cebra.
+#ubuntu and windows uers can simply install tensorflow=2.2.
+#Mac non-M1, also just install tensorflow=2.2
+#Mac M1 chip requires a rosetta compatible build.
+
+name: cebra_paper
+channels:
+    - pytorch-lts
+    - defaults
+dependencies:
+    - python==3.8
+    - pip
+    - pytorch
+    - nb_conda
+    - pip:
         - "cebra[dev,integrations,datasets,demos]"
+        - joblib
+        - literate-dataclasses
+        - sklearn
+        - scipy
+        - torch
+        - keras==2.3.1
+        - tensorflow==2.2
+        - umap-learn
+        - opentsne
+        - tqdm
+        - h5py
+        - pandas
+        - nlb_tools@ git+https://github.com/neurallatents/nlb_tools@065cb137ea3f9ecff4d237d2d404bf7a3c2890de
+        - pylint
+        - yapf
+        - isort
+        - nbconvert
+        - ipykernel
+        - jupyter
+        - matplotlib
+        - seaborn

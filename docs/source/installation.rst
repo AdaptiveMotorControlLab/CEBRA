@@ -8,6 +8,7 @@ System Requirements
 - Software dependencies and operating systems:
     - Linux or MacOS
 - Versions software has been tested on:
+    - Linux (Ubuntu 20.04, 18.04, MacOS 12.1-5)
 - Required non-standard hardware
     - GPU (optional)
 
@@ -22,9 +23,24 @@ We outline installation instructions for different systems.
     * ``[docs]``: This will install additional dependencies for building the package documentation.
     * ``[dev]``: This will install additional dependencies for development, unit and integration testing,
       code formatting, etc. Install this extension if you want to work on a pull request.
+    * ``[demos]``: This will install additional dependencies for running our demo notebooks.
     * ``[datasets]``: This extension will install additional dependencies to use the pre-installed datasets
 
 .. tabs::
+
+    .. tab:: Google Colab
+
+        CEBRA can also be installed and run on Google colaboratory. Please see the ``open in colab`` button at the top of each demo notebook for examples. 
+
+
+
+        A ``conda`` environment for running CEBRA is provided in the ``conda`` sub-directory.
+
+        .. code:: bash
+
+            $ conda env create -f conda/cebra.yml
+
+        recommend using Docker). Namely, you can run CEBRA, piVAE, tSNE and UMAP within this conda env. It is *NOT* needed if you only want to use CEBRA.
 
 
         Conda users should currently use ``pip`` for installation. The missing dependencies will be installed in the install process. A fresh conda environment can be created using 
@@ -50,6 +66,7 @@ We outline installation instructions for different systems.
 
         .. code:: bash
             $ pip install '.[dev]'
+            $ pip install '.[dev,docs,integrations,demos,datasets]'
 
         .. note::
 
@@ -63,6 +80,7 @@ We outline installation instructions for different systems.
             $ make docker 
             $ make interact 
             $ make test
+            
         Several arguments can be used to configure the docker container.
         ``docker-10.1-runtime-ubuntu18.04``, ``docker-10.2-runtime-ubuntu18.04`` and ``docker-11.1-runtime-ubuntu20.04``, but more images can be easily added by modifying the Dockerfile.
 
@@ -107,6 +125,10 @@ We outline installation instructions for different systems.
 Installation Troubleshooting
 ----------------------------
 
+If yopu have issues installing CEBRA, we recommend carefully checking the `traceback`_ which can help you look on `stackoverflow`_ or the popular-in-life-sciences, `Image Forum`_ for similar issues. If you cannot find a solution, please do post an issue on GitHub!
 
 .. _PyTorch Docs: https://pytorch.org/
 .. _virtual environment: https://packaging.python.org/en/latest/guides/installing-using-pip-and-virtual-environments/#creating-a-virtual-environment
+.. _traceback: https://realpython.com/python-traceback/
+.. _stackoverflow: https://stackoverflow.com/
+.. _Image Forum: https://forum.image.sc/

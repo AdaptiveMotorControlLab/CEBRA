@@ -1,6 +1,8 @@
 Contribution Guide
 ==================
 
+updates, etc, but please sign the `Contributor License Agreement (CLA) <https://forms.gle/SYbceYvot64ngNxJ9>`_
+and note that it was signed in your pull request.
 Development setup
 ^^^^^^^^^^^^^^^^^
 

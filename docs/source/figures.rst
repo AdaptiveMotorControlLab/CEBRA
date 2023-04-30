@@ -30,6 +30,7 @@ differ in minor typographic details.
 
 .. toctree::
    :caption: List of figures
+   :maxdepth: 1
 
    Figure 1 <cebra-figures/figures/Figure1.ipynb>
    Figure 2 <cebra-figures/figures/Figure2.ipynb>
@@ -37,7 +38,17 @@ differ in minor typographic details.
    Figure 4 <cebra-figures/figures/Figure4.ipynb>
    Figure 5 <cebra-figures/figures/Figure5.ipynb>
 
+   Extended Data Fig. 1 <cebra-figures/figures/ExtendedDataFigure1.ipynb>
+   Extended Data Fig. 2 <cebra-figures/figures/ExtendedDataFigure2.ipynb>
+   Extended Data Fig. 3 <cebra-figures/figures/ExtendedDataFigure3.ipynb>
    Extended Data Fig. 4 <cebra-figures/figures/ExtendedDataFigure4.ipynb>
+   Extended Data Fig. 5 <cebra-figures/figures/ExtendedDataFigure5.ipynb>
+   Extended Data Fig. 6 <cebra-figures/figures/ExtendedDataFigure6.ipynb>
+   Extended Data Fig. 7 <cebra-figures/figures/ExtendedDataFigure7.ipynb>
+   Extended Data Fig. 8 <cebra-figures/figures/ExtendedDataFigure8.ipynb>
+   Extended Data Fig. 9 <cebra-figures/figures/ExtendedDataFigure9.ipynb>
+   Extended Data Fig. 10 <cebra-figures/figures/ExtendedDataFigure10.ipynb>
+
    Supplementary Table S1 and S2 <cebra-figures/figures/SupplTableS1S2.ipynb>
    Supplementary Table S3 and S4 <cebra-figures/figures/SupplTableS3S4.ipynb>
    Supplementary Table 5 <cebra-figures/figures/SupplTableS5.ipynb>
@@ -45,3 +56,4 @@ differ in minor typographic details.
 
 
 
+.. _Schneider, Lee and Mathis (2022): https://arxiv.org/abs/2204.00673

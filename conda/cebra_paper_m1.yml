@@ -1,1 +1,45 @@
+#NOTE: if you need to install piVAE, then you need to install tensorflow for apple. This is NOT required for cebra-only use. 
+#for M1/m2 chip, use miniconda3 (https://developer.apple.com/metal/tensorflow-plugin/)
+# Get the miniconda M1/M2 bash installer, as explained in
+# https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html
+#
+# In the Terminal, run the following commands:
+# wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.12.0-MacOSX-arm64.sh -O ~/miniconda.sh
+# bash ~/miniconda.sh -b -p $HOME/miniconda
+# source ~/miniconda/bin/activate
+# conda init zsh
+
+name: piVAE_m1
+channels:
+    - apple
+    - pytorch-lts
+    - defaults
+dependencies:
+    - python==3.9
+    - pip
+    - pytorch
+    - tensorflow-deps
+    - nb_conda
+    - pip:
         - cebra
+        - tensorflow-macos
+        - tensorflow-metal
+        - joblib
+        - literate-dataclasses
+        - sklearn
+        - scipy
+        - torch
+        - umap-learn
+        - opentsne
+        - tqdm
+        - h5py
+        - pandas
+        - nlb_tools@ git+https://github.com/neurallatents/nlb_tools@065cb137ea3f9ecff4d237d2d404bf7a3c2890de
+        - pylint
+        - yapf
+        - isort
+        - nbconvert
+        - ipykernel
+        - jupyter
+        - matplotlib
+        - seaborn

@@ -10,5 +10,6 @@ the different components of the algorithm (models used for encoders, addition of
 sampling mechanisms, variations of the base loss function, etc.). It also allows to use 
 these components in other contexts and research code bases.
 
+   api/sklearn/metrics
 
 .. _Scikit-learn estimators: https://scikit-learn.org/stable/developers/develop.html

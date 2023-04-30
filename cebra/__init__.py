@@ -1,3 +1,6 @@
+"""CEBRA is a library for estimating Consistent Embeddings of high-dimensional Recordings 
+using Auxiliary variables. It contains self-supervised learning algorithms implemented in
+PyTorch, and has support for a variety of different datasets common in biology and neuroscience.
 """
 
 is_sklearn_available = False

@@ -7,7 +7,9 @@ References:
        hippocampal ensemble spike activity. Sci. Rep. 6, 32193.
     * Grosmark, A.D., Long J. and Buzsáki, G. (2016); Recordings from hippocampal area CA1, PRE, during and POST 
       novel spatial learning. CRCNS.org. http://dx.doi.org/10.6080/K0862DC5
+
 """
+
 import hashlib
 import os
 
@@ -32,6 +34,11 @@ _DEFAULT_DATADIR = get_datapath()
     "rat-hippocampus-single-{name}",
 )
 class SingleRatDataset(cebra.data.SingleSessionDataset):
+    """A single rat hippocampus tetrode recording while the rat navigates on a linear track.
+
+    Neural data is spike counts binned into 25ms time window and the continuous behavior label is position and the running driection (left, right) of a rat.
+    Args:
+        name: The name of the rat to use. Choose among 'achilles', 'buddy', 'cicero' and 'gatsby'.
     """
 
     def __init__(self, name="achilles", root=_DEFAULT_DATADIR):
@@ -62,6 +69,14 @@ class SingleRatDataset(cebra.data.SingleSessionDataset):
         return f"RatDataset(name: {self.name}, shape: {self.neural.shape})"
 
     def decode(self, x_train, y_train, x_test, y_test):
+        """kNN decoding function.
+        Perform a kNN decoding for n_neighbors = 1,4,9,26,25 with the given train set and test set.
+        Args:
+            x_train: The train set data
+            y_train: The train set label
+            x_test: The test set data
+            y_test: The test set label
+        """
 
         nn = np.power(np.linspace(1, 10, 6, dtype=int), 2)
         metric = {}
@@ -78,6 +93,12 @@ class SingleRatDataset(cebra.data.SingleSessionDataset):
 
 @register("rat-hippocampus-3fold-trial-split")
 class SingleRatTrialSplitDataset(SingleRatDataset):
+    """A single rat hippocampus tetrode recording while the rat navigates on a linear track with 3-fold splits.
+    Neural data is spike counts binned into 25ms time window and the behavior is position and the running driection (left, right) of a rat.
+    Args:
+        name: The name of a rat to use. Choose among 'achilles', 'buddy', 'cicero' and 'gatsby'.
+        split_no: The `k` for k-fold split. Choose among 0, 1, 2.
+        split: The split to use. Choose among 'train', 'valid', 'test', 'all', and 'wo_test'(all trials except test split).
     """
 
     def __init__(self,
@@ -89,8 +110,15 @@ class SingleRatTrialSplitDataset(SingleRatDataset):
         self.split_no = split_no
         self.split_name = split
         if split is not None:
+            self._split(split)
+
+    def _split(self, split, **kwargs):
+        """Split the dataset into 3-fold nested cross validation scheme.
+        The recordings are parsed into trials and split into a train, valid, test set with 3-fold nested cross validation scheme.
         Args:
+            split: The split to use. Choose among 'train', 'valid', 'test', 'all', and 'wo_test'(all trials except test split).
         """
+
         direction_change_idx = np.where(
             self.index[1:, 1] != self.index[:-1, 1])[0]
         trial_change_idx = np.append(
@@ -144,6 +172,10 @@ class SingleRatTrialSplitDataset(SingleRatDataset):
 
 
 class SingleRatCorruptDataset(SingleRatDataset):
+    """A single rat hippocampus tetrode recording while the rat navigates on a linear track with a shuffled behavior label.
+    Neural data is spike counts binned into 25ms time window and the behavior is position and the running driection (left, right) of a rat.
+        name: The name of the rat to use. Choose among 'achilles', 'buddy', 'cicero' and 'gatsby'.
+    """
 
     def __init__(self, name, seed, root=_DEFAULT_DATADIR):
         super().__init__(name=name, root=root)
@@ -157,6 +189,14 @@ class SingleRatCorruptDataset(SingleRatDataset):
 @parametrize("rat-hippocampus-multisubjects-3fold-trial-split-{split_no}",
              split_no=[0, 1, 2])
 class MultipleRatsTrialSplitDataset(cebra.data.DatasetCollection):
+    """4 rats hippocampus tetrode recording while the rat navigates on a linear track with 3-fold splits.
+    Neural and behavior recordings of 4 rats.
+    For each rat, neural data is spike counts binned into 25ms time window and the behavior is position and the running driection (left, right) of a rat.
+    The behavior label is structured as 3D array consists of position, right, and left.
+    Args:
+        split_no: The `k` for k-fold split. Choose among 0, 1, and 2.
+        split: The split to use. Choose among 'train', 'valid', 'test', 'all', and 'wo_test'(all trials except test split).
+    """
 
     def __init__(self, split_no=0, split=None):
         super().__init__(
