@@ -21,6 +21,7 @@ def device() -> str:
     return _device
 
 
+class HasDevice:
     """Base class for classes that use CPU/CUDA processing via PyTorch.
 
     If implementing this class, any derived instanced will track any attribute
@@ -64,6 +65,8 @@ def device() -> str:
         if not isinstance(device, str):
             device = device.type
         if device not in ("cpu", "cuda"):
+            if device.startswith("cuda"):
+                _, id_ = device.split(":")
                 if int(id_) >= torch.cuda.device_count():
                     raise ValueError(device)
             else:
@@ -85,6 +88,8 @@ def device() -> str:
         if not self._initialized:
             self._init(device=device)
         assert self._initialized
+        # if dataclasses.is_dataclass(self):
+        # else:
         #    raise RuntimeError(f"{self} not initialized. Did you call super().__init__?")
 
     @property
@@ -95,6 +100,7 @@ def device() -> str:
 
     def to(self, device: str) -> "HasDevice":
         """Moves the instance to the specified device.
+
         Args:
             device: The device (`cpu` or `cuda`) to move this instance to.
 
@@ -226,9 +232,13 @@ class FileKeyValueDataset:
 
     def _iterate_items(self):
         extension = self.path.split(".")[-1]
+        if extension in ["jl", "joblib"]:
             dataset = joblib.load(self.path)
+        elif extension in ["h5", "hdf", "hdf5"]:
             raise NotImplementedError()
+        elif extension in ["pth", "pt"]:
             dataset = torch.load(self.path)
+        elif extension in ["npz"]:
             dataset = np.load(self.path, allow_pickle=True)
         else:
             raise ValueError(f"Invalid file format: {extension} in {self.path}")

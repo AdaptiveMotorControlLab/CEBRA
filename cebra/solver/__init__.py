@@ -13,6 +13,7 @@ import cebra.registry
 
 cebra.registry.add_helper_functions(__name__)
 
+# pylint: disable=wrong-import-position
 from cebra.solver.base import *
 from cebra.solver.multi_session import *
 from cebra.solver.single_session import *

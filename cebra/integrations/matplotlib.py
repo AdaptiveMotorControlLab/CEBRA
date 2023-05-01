@@ -17,6 +17,7 @@ import torch
 
 from cebra import CEBRA
 
+
 def _register_colormap():
     """Register colormaps used in CEBRA plotting.
 

@@ -16,12 +16,16 @@ def pytest_addoption(parser):
     parser.addoption(
         "--runfast", action="store_true", default=False, help="don't run slow tests"
     )
+    parser.addoption(
+        "--runbenchmark", action="store_true", default=False, help="run benchmark test"
+    )
 
 
 def pytest_configure(config):
     """Describe customized markers."""
     config.addinivalue_line("markers", "slow: run tests with slow arguments")
     config.addinivalue_line("markers", "fast: run tests with fast arguments")
+    config.addinivalue_line("markers", "benchmark: run benchmark tests")
 
 def pytest_collection_modifyitems(config, items):
     """Select tests to skip based on current flag.
@@ -42,4 +46,11 @@ def pytest_collection_modifyitems(config, items):
         skip_fast = pytest.mark.skip(reason="test marked as fast, run only in --runfast mode")
         for item in items:
             if "fast" in item.keywords:
+                item.add_marker(skip_fast)
+
+    if not config.getoption("--runbenchmark"):
+        # --runbenchmark: run benchmark testing
+        skip_benchmark = pytest.mark.skip(reason="skip benchmark testing")
+        for item in items:
+            if "benchmark" in item.keywords:
                 item.add_marker(skip_benchmark)
