@@ -12,10 +12,12 @@ and the functions
 * ``init`` and
 * ``get_options``
 
+within this module. It also (implicitly and lazy) initializes a singleton
 registry object which holds all registered classes. Typically, the helper
 functions should be added in the first lines of a package ``__init__.py``
 module.
 
+Note that all functions carrying the respective decorators need to be discovered
 by the import system, otherwise they will not be available when calling ``get_options``
 or ``init``.
 """
@@ -34,6 +36,7 @@ from typing import Any, Dict, List, Union
     _instance: Dict = None
 
     @classmethod
+    def get_instance(cls, module: types.ModuleType) -> _Registry:
         if cls._instance is None:
             cls._instance = {}
         if module not in cls._instance:
@@ -103,6 +106,7 @@ from typing import Any, Dict, List, Union
             return fnmatch.filter(options, pattern)[:limit]
 
 
+def _get_module(module: Union[types.ModuleType, str]) -> types.ModuleType:
     if isinstance(module, str):
         if module in sys.modules:
             return sys.modules[module]
@@ -123,6 +127,9 @@ def add_helper_functions(module: Union[types.ModuleType, str]):
     functions ``register``, ``init`` and ``get_options`` to the
     module.
 
+    * ``register`` is a decorator for classes within the module. Each class will be added by a (unique) name and can be initialized with the ``init`` function.
+    * ``init`` takes a name as its argument and returns an instance of the specified class, with optional arguments.
+    * ``get_options`` returns a list of all registered names within the module.
 
     Args:
         module: The module for adding registry functions. This can be
@@ -216,6 +223,7 @@ def add_helper_functions(module: Union[types.ModuleType, str]):
                 filter the options. Optional argument, defaults to no filtering.
             limit: An optional maximum amount of options to return, in the order
                 of finding them with the given query.
+            expand_parametrized: Whether to list classes registered with the
                 ``parametrize`` decorator in the options.
 
         Returns:
@@ -275,11 +283,27 @@ def add_docstring(module: Union[types.ModuleType, str]):
     This module is a registry and currently contains the options
     {_wrap(options, 4)}.
 
+    To retrieve a list of options, call::
 
+        >>> print({module.__name__}.get_options())
+        {_shorten(options)}
 
+    To obtain an initialized instance, call ``{module.__name__}.init``, 
+    defined in :py:func:`cebra.registry.add_helper_functions`. 
+    The first parameter to provide is the {toplevel_name} name to use, 
+    which is one of the available options presented above.
+    Then the required positional arguments specific to the module are provided, if 
+    needed. 
 
+    You can register additional options by defining and registering
+    classes with a name. To do that, you can add a decorator on top of it: 
+    ``@{module.__name__}.register("my-{module.__name__.replace('.', '-')}")``.
 
+    Later, initialize your class similarly to the pre-defined options, using ``{module.__name__}.init``
+    with the {toplevel_name} name set to ``my-{module.__name__.replace('.', '-')}``.
 
+    Note that these customized options will not be automatically added to this
+    docstring.
     """
     docstring = textwrap.dedent(docstring)
 

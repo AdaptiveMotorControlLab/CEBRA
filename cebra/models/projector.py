@@ -1,5 +1,11 @@
 """Training CEBRA with projectors."""
 
+import torch
+from torch import nn
+
+import cebra
+import cebra.models.layers as cebra_models_layers
+from cebra.models import register
 
 
 class _Squeeze(nn.Module):
@@ -32,15 +38,18 @@ class PointwiseProjector(nn.Module):
         super().__init__()
         self.net = nn.Sequential(
             PointwiseLinear(num_inputs, 1, num_units),
+            cebra_models_layers._Skip(
                 PointwiseLinear(num_inputs, num_units, num_units),
                 nn.GELU(),
             ),
+            cebra_models_layers._Skip(
                 PointwiseLinear(num_inputs, num_units, num_units),
                 nn.GELU(),
             ),
             PointwiseLinear(num_inputs, num_units, 1),
         )
 
+        self.norm = cebra_models_layers._Norm()
 
     def forward(self, inputs):
         return self.norm(self.net(inputs[:, :, None]).squeeze(2))
@@ -52,6 +61,12 @@ class FeatureExtractor(nn.Sequential):
         super().__init__(
             nn.Conv1d(num_neurons, num_units, 2),
             nn.GELU(),
+            cebra_models_layers._Skip(nn.Conv1d(num_units, num_units, 3),
+                                      nn.GELU()),
+            cebra_models_layers._Skip(nn.Conv1d(num_units, num_units, 3),
+                                      nn.GELU()),
+            cebra_models_layers._Skip(nn.Conv1d(num_units, num_units, 3),
+                                      nn.GELU()),
             nn.Conv1d(num_units, num_output, 3),
             _Squeeze(),
         )
