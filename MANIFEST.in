@@ -1,7 +1,1 @@
 recursive-include tests *.py
-include pytest.ini
-recursive-exclude third_party *
-recursive-exclude docker *
-recursive-exclude docs *
-recursive-exclude demo_notebooks *
-exclude Makefile PKGBUILD *.sh

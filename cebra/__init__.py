@@ -37,10 +37,17 @@ except ImportError as e:
     pass
 
 from cebra.data.load import load as load_data
-from cebra.integrations.deeplabcut import load_deeplabcut
+
+is_load_deeplabcut_available = False
+try:
+    from cebra.integrations.deeplabcut import load_deeplabcut
+    is_load_deeplabcut_available = True
+except (ImportError, NameError):
+    pass
+
 import cebra.integrations.sklearn as sklearn
 
-__version__ = "0.1.0"
+__version__ = "0.2.0rc2"
 __all__ = ["CEBRA"]
 __allow_lazy_imports = False
 __lazy_imports = {}

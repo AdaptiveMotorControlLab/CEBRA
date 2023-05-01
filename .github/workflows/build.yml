@@ -4,11 +4,13 @@ on:
   push:
     branches:
       - main 
-      - 'main*'
+      - public
+      - dev
   pull_request:
     branches:
       - main 
-      - 'main*'
+      - public
+      - dev
 
 jobs:
   build:
@@ -57,3 +59,8 @@ jobs:
         timeout-minutes: 10
         run: |
           make test
+
+      - name: Check reinstall script
+        timeout-minutes: 10
+        run: |
+          ./reinstall.sh

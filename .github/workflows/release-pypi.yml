@@ -5,7 +5,10 @@ on:
     tags:
       - 'v*.*.*'
   pull_request:
-    branches: [ main ]
+    # TODO(stes): Update for release build
+    branches:
+      - main
+      - public
     types:
       - labeled
       - opened

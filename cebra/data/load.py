@@ -71,7 +71,8 @@ except ModuleNotFoundError:
 
 _IS_DLC_INTEGRATION_AVAILABLE = True
 try:
-    from cebra.integrations.deeplabcut import load_deeplabcut
+    if _IS_PANDAS_AVAILABLE:
+        from cebra.integrations.deeplabcut import load_deeplabcut
 except ModuleNotFoundError:
     _IS_DLC_INTEGRATION_AVAILABLE = False
     warnings.warn(
