@@ -12,6 +12,7 @@ def _description(stats: Dict[str, float]):
     return " ".join(stats_str)
 
 
+class Meter:
     """Track statistics of a metric."""
 
     __slots__ = ["_num_elements", "_total"]
@@ -22,6 +23,7 @@ def _description(stats: Dict[str, float]):
 
     def add(self, value: float, num_elements: int = 1):
         """Add the value to the meter.
+
         Args:
             value: The value to add to the meter.
             num_elements: Optional, if the value was already obtained
@@ -46,6 +48,7 @@ def _description(stats: Dict[str, float]):
 
 
 @dataclasses.dataclass
+class ProgressBar:
     "Log and display values during training."
 
     loader: Iterable
@@ -56,6 +59,7 @@ def _description(stats: Dict[str, float]):
     @property
     def use_tqdm(self) -> bool:
         """Display ``tqdm`` as the progress bar."""
+        return self.log_format == "tqdm"
 
     def __post_init__(self):
         if self.log_format not in self._valid_formats:

@@ -34,6 +34,7 @@ def _check_is_float_tensor(sender, tensor):
 
 class DistanceMatrix(cebra.io.HasDevice):
     """Compute shortest distances between dataset samples.
+
     Args:
         samples: The continuous values that will be used to index
             the dataset and specify the conditional distribution.
@@ -85,10 +86,12 @@ class OffsetDistanceMatrix(DistanceMatrix):
     for datasets and learning setups where multiple timesteps are fed into
     the network at once --- the samples close to the time-series boundary
     should be ignored in the sampling process in these cases.
+
     Args:
         samples: The continuous values that will be used to index
             the dataset and specify the conditional distribution.
         offset: The number of timesteps to ignored at each size of the
+            dataset
 
     TODO:
         * switch offset to `cebra.data.Offset`
@@ -129,12 +132,14 @@ class ContinuousIndex(cebra_distributions.Index, cebra.io.HasDevice):
 
 class ConditionalIndex(cebra_distributions.Index):
     """Index a dataset based on both continuous and discrete information.
+
     In contrast to the standard :py:class:`.base.Index` class, the :py:class:`ConditionalIndex`
     accept both discrete and continuous indexing information.
 
     This index considers the discrete indexing information first to
     identify possible positive pairs. Then among these candidate samples,
     behaves like an :py:class:`.base.Index` and returns the samples closest in terms of
+    the information in the continuous index.
 
     Args:
         discrete: The discrete indexing information, which should be
@@ -165,6 +170,7 @@ class ConditionalIndex(cebra_distributions.Index):
                 f"Discrete indexing information needs to be limited to a 1d "
                 f"array/tensor. Multi-dimensional discrete indices should be "
                 f"reformatted first.")
+            # TODO(stes): Once a helper function exists, the error message should
             #            mention it.
 
         self.discrete = discrete
@@ -203,6 +209,7 @@ class ConditionalIndex(cebra_distributions.Index):
         return self.search_naive(continuous, discrete)
 
     def __getitem__(self, value):
+        # TODO(stes): this function might not be used; consider removing
         #            for removing, tests should pass while this function
         #            returns a deprecation exception; it is unclear why
         #            this adds an overall value to the API.
@@ -255,6 +262,7 @@ class ConditionalIndex(cebra_distributions.Index):
 
 class MultiSessionIndex(cebra_distributions.Index):
     """Index multiple sessions.
+
     Args:
         indices: Indices for the different sessions. Indices of multi-session
             datasets should have matching feature dimension.
@@ -265,7 +273,9 @@ class MultiSessionIndex(cebra_distributions.Index):
 
     def search(self, query):
         """Return closest element in each of the datasets.
+
         Args:
+            query: The query which is applied to each index of
                 the dataset.
 
         Returns:

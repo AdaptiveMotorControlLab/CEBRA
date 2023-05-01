@@ -14,8 +14,10 @@ class PoissonNeuronTransform(nn.Module):
     """Transform spike rates into expected spike counts.
 
     This is an implementation for transforming arrays or tensors containing spike
+    rates into expected spike counts.
 
     Args:
+        num_neurons: The number of neurons to simulate. Needs to match the
             dimensions of the array passed to :py:meth:`__call__`.
         refractory_period: The neuron's absolute refractory period, in seconds.
             The absolute refactory period is the lower bound for the inter-spike
@@ -25,6 +27,7 @@ class PoissonNeuronTransform(nn.Module):
         https://neuronaldynamics.epfl.ch/online/Ch7.S3.html
     """
 
+    def __init__(self, num_neurons: int, refractory_period: float = 0.0):
         super().__init__()
         if refractory_period < 0:
             raise ValueError(
@@ -43,6 +46,7 @@ class PoissonNeuronTransform(nn.Module):
             spike_rates: The non-negative spike rates for each neuron, in a
                 tensor with shape ``neurons x trials x timesteps``. The number
                 of neurons needs to match :py:attr:`num_neurons`.
+
         Returns:
             A tensor of same shape as the input array, containing a sample
             of spike counts.
@@ -82,8 +86,10 @@ def _sample_batch(spike_rates: torch.Tensor, refractory_period: float = 0):
 
 
 def sample_parallel(spike_rates,
+                    refractory_period: float = 0.0,
                     n_jobs: int = 10):
     """Generate spike counts from the specified spike rates.
+
     Args:
         spike_rates: The (non-negative) spike rates, with shape ``neurons x trials x time.``
             The number of neurons needs to be divisible by ``n_jobs``.

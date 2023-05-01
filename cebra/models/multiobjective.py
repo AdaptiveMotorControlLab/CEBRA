@@ -40,6 +40,7 @@ class MultiobjectiveModel(nn.Module):
         output_mode: A mode as defined in ``MultiobjectiveModel.Mode``. Overlapping means that
             when ``dimensions`` are set to `(x0, x1, ...)``, features will be extracted from
             ``0:x0, 0:x1, ...``. When mode is set to separate, features are extracted from
+            ``x0:x1, x1:x2, ...``.
         append_last_dimension: Defaults to True, and will allow to omit the last dimension in
             the ``dimensions`` argument (which should be equal to the output dimension) of the
             given model.
@@ -74,6 +75,14 @@ class MultiobjectiveModel(nn.Module):
             """
             return mode in _ALL
 
+    def __init__(
+        self,
+        module: nn.Module,
+        dimensions: Tuple[int],
+        renormalize: bool = False,
+        output_mode: str = "overlapping",
+        append_last_dimension: bool = False,
+    ):
         super().__init__()
 
         if not isinstance(module, cebra.models.Model):

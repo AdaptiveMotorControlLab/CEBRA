@@ -11,12 +11,14 @@ class HasDeviceDummy(cebra.io.HasDevice):
         super().__init__()
         self.foo = torch.tensor([42])
         self.bar = torch.tensor([42])
+        self.baz = nn.Parameter(torch.tensor([42.0]))
 
 
 class Container(cebra.io.HasDevice):
 
     def __init__(self):
         super().__init__()
+        self.foo = nn.Parameter(torch.tensor([42.0]))
         self.bar = nn.Linear(3, 3)
         self.baz = HasDeviceDummy()
 
@@ -34,6 +36,7 @@ class MoveToDeviceImplicit(cebra.io.HasDevice):
 class MoveToDeviceExplicit(cebra.io.HasDevice):
 
     def __init__(self):
+        super().__init__("cuda")
         # sets the device to CPU
         self.move_to_cuda = torch.tensor([42], device="cpu")
         assert self.move_to_cuda.device.type == "cuda"

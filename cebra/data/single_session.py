@@ -18,6 +18,12 @@ from cebra.data.datatypes import Batch
 from cebra.data.datatypes import BatchIndex
 
 __all__ = [
+    "SingleSessionDataset",
+    "DiscreteDataLoader",
+    "ContinuousDataLoader",
+    "MixedDataLoader",
+    "HybridDataLoader",
+    "FullDataLoader",
 ]
 
 
@@ -68,12 +74,16 @@ class DiscreteDataLoader(cebra_data.Loader):
         See dataclass fields.
     """
 
+    prior: str = dataclasses.field(
+        default="empirical",
+        doc="""Re-sampling mode for the discrete index.
 
     The option `empirical` uses label frequencies as they appear in the dataset.
     The option `uniform` re-samples the dataset and adjust the frequencies of less
     common class labels.
     For balanced datasets, it is typically more accurate to stick to the `empirical`
     option.
+    """,
     )
 
     @property
@@ -151,15 +161,20 @@ class ContinuousDataLoader(cebra_data.Loader):
         See dataclass fields.
     """
 
+    conditional: str = dataclasses.field(
+        default="time_delta",
+        doc="""Information on how the positive samples should be acquired.
     Setting to ``time_delta`` computes the differences between adjacent samples
     in the dataset, and uses ``reference + diff`` as the query for collecting the
     positive pair. Setting to ``time`` will use adjacent pairs of samples only
     and become equivalent to time contrastive learning.
+    """,
     )
     time_offset: int = dataclasses.field(default=10)
     delta: float = dataclasses.field(default=0.1)
 
     def __post_init__(self):
+        # TODO(stes): Based on how to best handle larger scale datasets, copying the tensors
         #            here might be sub-optimal. The final behavior should be determined after
         #            e.g. integrating the FAISS dataloader back in.
         super().__post_init__()
@@ -170,6 +185,8 @@ class ContinuousDataLoader(cebra_data.Loader):
             self.distribution = cebra.distributions.TimeContrastive(
                 time_offset=self.time_offset,
                 num_samples=len(self.dataset.neural),
+                device=self.device,
+            )
         else:
             if self.dataset.continuous_index is None:
                 raise ValueError(
@@ -227,6 +244,7 @@ class MixedDataLoader(cebra_data.Loader):
     2. Positive pairs are drawn only based on their conditional,
        not discrete variable.
     """
+
     conditional: str = dataclasses.field(default="time_delta")
     time_offset: int = dataclasses.field(default=10)
 
@@ -274,6 +292,8 @@ class MixedDataLoader(cebra_data.Loader):
         return BatchIndex(
             reference=reference_idx,
             negative=self.distribution.sample_prior(num_samples),
+            positive=self.distribution.sample_conditional(reference_idx),
+        )
 
 
 @dataclasses.dataclass
@@ -282,6 +302,7 @@ class HybridDataLoader(cebra_data.Loader):
 
     The dataloader combines two training modes implemented in
     :py:class:`ContinuousDataLoader` and combines time and behavior information
+    into a joint embedding.
 
     Args:
         See dataclass fields.
@@ -297,8 +318,10 @@ class HybridDataLoader(cebra_data.Loader):
         if self.dataset.continuous_index is not None:
             return self.dataset.continuous_index
         else:
+            raise ValueError("No continuous variable exist")
 
     def __post_init__(self):
+        # TODO(stes): Based on how to best handle larger scale datasets, copying the tensors
         #            here might be sub-optimal. The final behavior should be determined after
         #            e.g. integrating the FAISS dataloader back in.
         super().__post_init__()
@@ -312,6 +335,8 @@ class HybridDataLoader(cebra_data.Loader):
         self.time_distribution = cebra.distributions.TimeContrastive(
             time_offset=self.time_offset,
             num_samples=len(self.dataset.neural),
+            device=self.device,
+        )
         self.behavior_distribution = cebra.distributions.TimedeltaDistribution(
             self.dataset.continuous_index, self.time_offset, device=self.device)
 
@@ -345,6 +370,11 @@ class HybridDataLoader(cebra_data.Loader):
             reference_idx)
         time_positive_idx = self.time_distribution.sample_conditional(
             reference_idx)
+        return BatchIndex(
+            reference=reference_idx,
+            positive=torch.cat([behavior_positive_idx, time_positive_idx]),
+            negative=negative_idx,
+        )
 
 
 @dataclasses.dataclass
@@ -381,6 +411,11 @@ class FullDataLoader(ContinuousDataLoader):
         """
         assert num_samples is None
 
+        reference_idx = torch.arange(
+            self.offset.left,
+            len(self.dataset.neural) - len(self.dataset.offset) - 1,
+            device=self.device,
+        )
         negative_idx = reference_idx[torch.randperm(len(reference_idx))]
         positive_idx = self.distribution.sample_conditional(reference_idx)
 

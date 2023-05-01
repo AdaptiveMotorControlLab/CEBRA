@@ -392,9 +392,35 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 "supervised" not in option)
         ]
 
+    def __init__(
+        self,
+        model_architecture: str = "offset1-model",
+        device: str = "cuda_if_available",
+        criterion: str = "infonce",
+        distance: str = "cosine",
+        conditional: str = None,
+        temperature: float = 1.0,
+        temperature_mode: Literal["constant", "auto"] = "constant",
+        min_temperature: Optional[float] = 0.1,
+        time_offsets: int = 1,
+        delta: float = None,
+        max_iterations: int = 10000,
         max_adapt_iterations: int = 500,
+        batch_size: int = None,
+        learning_rate: float = 3e-4,
         optimizer: str = "adam",
+        output_dimension: int = 8,
+        verbose: bool = False,
+        num_hidden_units: int = 32,
+        pad_before_transform: bool = True,
         hybrid: bool = False,
+        optimizer_kwargs: Tuple[Tuple[str, object], ...] = (
+            ("betas", (0.9, 0.999)),
+            ("eps", 1e-08),
+            ("weight_decay", 0),
+            ("amsgrad", False),
+        ),
+    ):
         self.__dict__.update(locals())
 
         if self.optimizer != "adam":
@@ -518,6 +544,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
     def _compute_offset(self) -> cebra.data.Offset:
         """Compute the offset from a mock cebra model."""
+        # TODO(stes): workaround to get the offset - should be removed again
         #            once a better solution is implemented in cebra.models
         return cebra.models.init(self.model_architecture,
                                  num_neurons=1,
@@ -535,8 +562,23 @@ class CEBRA(BaseEstimator, TransformerMixin):
         Returns:
             A data loader.
         """
+        return _init_loader(
+            is_cont=dataset.continuous_index is not None,
+            is_disc=dataset.discrete_index is not None,
+            is_hybrid=self.hybrid,
+            is_full=self.batch_size is None,
             is_multi=is_multisession,
+            shared_kwargs=dict(
+                dataset=dataset,
+                batch_size=self.batch_size,
                 num_steps=max_iterations,
+            ),
+            extra_kwargs=dict(
+                time_offsets=self.time_offsets,
+                conditional=self.conditional,
+                delta=self.delta,
+            ),
+        )
 
     def _prepare_criterion(self):
         """Prepare criterion based on :py:attr:`self.criterion`.
@@ -549,9 +591,13 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 if self.distance == "cosine":
                     return cebra.models.LearnableCosineInfoNCE(
                         temperature=self.temperature,
+                        min_temperature=self.min_temperature,
+                    )
                 elif self.distance == "euclidean":
                     return cebra.models.LearnableEuclideanInfoNCE(
                         temperature=self.temperature,
+                        min_temperature=self.min_temperature,
+                    )
             elif self.temperature_mode == "constant":
                 if self.distance == "cosine":
                     return cebra.models.FixedCosineInfoNCE(
@@ -969,8 +1015,14 @@ class CEBRA(BaseEstimator, TransformerMixin):
                           callback_frequency=callback_frequency)
         return self
 
+    def fit(
+        self,
         X: Union[List[Iterable], Iterable],
+        *y,
         adapt: bool = False,
+        callback: Callable[[int, cebra.solver.Solver], None] = None,
+        callback_frequency: int = None,
+    ) -> "CEBRA":
         """Fit the estimator to the given dataset, either by initializing a new model or
         by adapting the existing trained model.
 
@@ -994,7 +1046,9 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 The parameters for all other layers are fixed and the first reinitialized layer is re-trained for
                 :py:attr:`cebra.CEBRA.max_adapt_iterations`.
             callback: If a function is passed here with signature ``callback(num_steps, solver)``,
+                the function will be regularly called at the specified ``callback_frequency``.
             callback_frequency: Specify the number of iterations that need to pass before triggering
+                the specified ``callback``,
 
         Returns:
             ``self``, to allow chaining of operations.
@@ -1030,6 +1084,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
                   X: Union[npt.NDArray, torch.Tensor],
                   session_id: Optional[int] = None) -> npt.NDArray:
         """Transform an input sequence and return the embedding.
+
         Args:
             X: A numpy array or torch tensor of size ``time x dimension``.
             session_id: The session ID, an :py:class:`int` between 0 and :py:attr:`num_sessions` for
@@ -1073,6 +1128,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 # Standard evaluation, (T, C, dt)
                 output = model(X).cpu().numpy()
 
+        if input_dtype == "float64":
             return output.astype(input_dtype)
 
         return output
@@ -1122,6 +1178,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
     def _more_tags(self):
         # NOTE(stes): This tag is needed as seeding is not fully implemented in the
         # current version of CEBRA.
+        return {"non_deterministic": True}
 
     def save(self, filename: str, backend: Literal["torch"] = "torch"):
         """Save the model to disk.

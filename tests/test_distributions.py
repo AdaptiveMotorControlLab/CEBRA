@@ -189,6 +189,7 @@ def test_discrete_uniform_discrete():
     """Functional test for empirical/uniform modes"""
     np.random.seed(0)
     N = 10000
+    probs = [0.3, 0.1, 0.6]
     samples = np.random.choice([0, 1, 2], p=probs, size=(N,))
     dist = cebra_distr.Discrete(samples)
     resample_uni = samples[dist.sample_uniform(N)]
@@ -206,6 +207,7 @@ def test_discrete_uniform_discrete():
         np.bincount(resample_emp) / N, np.array([0.2969, 0.098, 0.6051]))
 
 
+@pytest.mark.parametrize("time_offset", [1, 5, 10])
 def test_single_session_time_contrastive(time_offset):
     """Single session time-contrastive learning.
 
@@ -225,6 +227,7 @@ def test_single_session_time_contrastive(time_offset):
     assert positive.shape == (num_samples,)
 
 
+@pytest.mark.parametrize("index_difference", [1, 5, 10])
 def test_single_session_time_delta(index_difference):
     index = torch.cumsum(torch.ones(100) * index_difference,
                          dim=0).unsqueeze(1).float()
@@ -237,6 +240,8 @@ def test_single_session_time_delta(index_difference):
     positive = distribution.sample_conditional(sample)
     assert positive.shape == (num_samples,)
 
+    assert not torch.eq(positive, sample).all(
+    ), "No samples have time delta of 1, hence all indices should be different"
 
     sample = index[sample]
     positive = index[positive]

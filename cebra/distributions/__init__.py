@@ -27,4 +27,19 @@ from cebra.distributions.mixed import *
 from cebra.distributions.multisession import *
 
 __all__ = [
+    "Index",
+    "Offset",
+    "DistanceMatrix",
+    "OffsetDistanceMatrix",
+    "ConditionalIndex",
+    "MultiSessionIndex",
+    "Prior",
+    "TimeContrastive",
+    "TimedeltaDistribution",
+    "MultiSessionTimeDelta",
+    "Discrete",
+    "DiscreteUniform",
+    "DiscreteEmpirical",
+    "MultivariateDiscrete",
+    "MultisessionSampler",
 ]

@@ -33,6 +33,7 @@ import warnings
 from typing import Any, Dict, List, Union
 
 
+class _Registry:
     _instance: Dict = None
 
     @classmethod
@@ -83,6 +84,14 @@ from typing import Any, Dict, List, Union
         return cls_(*args, **kwargs)
 
     @classmethod
+    def get_options(
+        cls,
+        module,
+        *,
+        pattern: str = None,
+        limit: int = None,
+        expand_parametrized: bool = True,
+    ):
         instance = cls.get_instance(module)
         if expand_parametrized:
             filter_ = lambda k, v: True
@@ -230,6 +239,14 @@ def add_helper_functions(module: Union[types.ModuleType, str]):
             All matching names. If a ``limit`` was specified, the maximum length
             is given by the limit.
         """
+        return _Registry.get_options(
+            module,
+            pattern=pattern,
+            limit=limit,
+            expand_parametrized=expand_parametrized,
+        )
+
+    names = ["register", "init", "get_options", "parametrize"]
     for name in names:
         if hasattr(module, name):
             raise RuntimeError(
@@ -260,19 +277,24 @@ def add_docstring(module: Union[types.ModuleType, str]):
         return textwrap.shorten(str(text),
                                 width=80,
                                 break_on_hyphens=False,
+                                placeholder=" ...]")
 
     def _wrap(text, indent: int):
         return textwrap.fill(str(text),
+                             subsequent_indent=" " * 4,
                              break_on_hyphens=False)
 
     module = _get_module(module)
 
     options = module.get_options(limit=10)
+    toplevel_name = module.__name__.split(".")[-1]
 
     if len(options) < 1:
         warnings.warn(
             f"Called {__name__}.add_docstring inside the module {module.__name__} which does not register",
             "any classes. Did you import submodules using the registration decorator?",
+            ImportWarning,
+        )
 
     if not is_registry(module):
         raise ImportError(
@@ -307,6 +329,7 @@ def add_docstring(module: Union[types.ModuleType, str]):
     """
     docstring = textwrap.dedent(docstring)
 
+    module.__doc__ = "\n\n".join([module.__doc__, docstring])
 
 
 def is_registry(module: Union[types.ModuleType, str],
@@ -333,3 +356,4 @@ def is_registry(module: Union[types.ModuleType, str],
                 return False
     return all(
         hasattr(module, name)
+        for name in ["register", "parametrize", "init", "get_options"])

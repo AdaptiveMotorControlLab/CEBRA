@@ -53,6 +53,10 @@ def test_offset_models(model_name, batch_size, input_length):
         outputs = model.net(inputs)
         if isinstance(model, cebra.models.ResampleModelMixin):
             assert outputs.shape == (
+                batch_size,
+                3,
+                (input_length - len(offset)) // model.resample_factor + 1,
+            )
         else:
             assert outputs.shape == (batch_size, 3,
                                      input_length - len(offset) + 1)
@@ -83,10 +87,12 @@ def test_multiobjective():
     multi_model_overlap = cebra.models.MultiobjectiveModel(
         model,
         dimensions=(4, 6),
+        output_mode="overlapping",
         append_last_dimension=True)
     multi_model_separate = cebra.models.MultiobjectiveModel(
         model,
         dimensions=(4, 6),
+        output_mode="separate",
         append_last_dimension=True)
 
     x = torch.randn(5, 10)

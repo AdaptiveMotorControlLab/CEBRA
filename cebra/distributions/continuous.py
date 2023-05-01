@@ -13,8 +13,10 @@ from cebra.data.datatypes import Offset
 
 class Prior(abc_.PriorDistribution, abc_.HasGenerator):
     """An empirical prior distribution for continuous datasets.
+
     Given the index, uniformly sample across time steps, i.e.,
     sample from the empirical distribution.
+
     Args:
         continuous: The multi-dimensional continuous index.
     """
@@ -31,6 +33,7 @@ class Prior(abc_.PriorDistribution, abc_.HasGenerator):
                      num_samples: int,
                      offset: Optional[Offset] = None) -> torch.Tensor:
         """Return uniformly sampled indices.
+
         Args:
             num_samples: The number of samples to draw from the prior
                 distribution. This will be the length of the returned
@@ -39,6 +42,7 @@ class Prior(abc_.PriorDistribution, abc_.HasGenerator):
                 to be respected when sampling indices. The minimum index
                 sampled will be ``offset.left`` (inclusive), the maximum
                 index will be the index length minus ``offset.right``
+                (exclusive).
 
         Returns:
             An integer tensor of shape ``num_samples`` containing
@@ -62,6 +66,7 @@ class TimeContrastive(abc_.JointDistribution, abc_.HasGenerator):
 
     Positive samples will have a distance of exactly :py:attr:`time_offset`
     samples in time.
+
     Attributes:
         continuous: The multi-dimensional continuous index.
         time_offset: The time delay between samples that form a positive pair
@@ -75,10 +80,14 @@ class TimeContrastive(abc_.JointDistribution, abc_.HasGenerator):
         by sampling the time offset in the conditional distribution.
     """
 
+    def __init__(
+        self,
         continuous: Optional[torch.Tensor] = None,
+        time_offset: int = 1,
         num_samples: Optional[int] = None,
         device: Literal["cpu", "cuda"] = "cpu",
         seed: Optional[int] = None,
+    ):
         abc_.HasGenerator.__init__(self, device=device, seed=seed)
         if continuous is None and num_samples is None:
             raise ValueError(
@@ -103,10 +112,12 @@ class TimeContrastive(abc_.JointDistribution, abc_.HasGenerator):
                      num_samples: int,
                      offset: Optional[Offset] = None) -> torch.Tensor:
         """Return a random index sample, respecting the given time offset.
+
         Prior samples are uniformly sampled from ``[0, T - t)`` where ``T`` is the total
         number of samples in the index, and ``t`` is the time offset used for sampling.
 
         Args:
+            num_samples: Number of time steps to draw uniformly from the
                 number of available time steps in the dataset
             offset: The model offset to respect for sampling from the prior.
                 TODO not yet implemented
@@ -125,6 +136,7 @@ class TimeContrastive(abc_.JointDistribution, abc_.HasGenerator):
 
     def sample_conditional(self, reference_idx: torch.Tensor) -> torch.Tensor:
         """Return samples from the time-contrastive conditional distribution.
+
         The returned indices will be given by incrementing the reference indices
         by the specified :py:attr:`time_offset`. When the reference indices are
         sampled with :py:meth:`sample_prior`, it is ensured that the indices all
@@ -136,11 +148,13 @@ class TimeContrastive(abc_.JointDistribution, abc_.HasGenerator):
         Returns:
             A ``(len(reference_idx),)`` shaped tensor containing time indices from the
             time-contrastive conditional distribution. The samples will be simply
+            offset by :py:attr:`time_offset` from ``reference_idx``.
         """
         return reference_idx + self.time_offset
 
 
 class DirectTimedeltaDistribution(TimeContrastive, abc_.HasGenerator):
+    """Look up indices with
 
     Todo:
         - This class is work in progress.
@@ -158,18 +172,24 @@ class DirectTimedeltaDistribution(TimeContrastive, abc_.HasGenerator):
         """
         query_idx = super().sample_conditional(reference_idx)
         query = self.index[query_idx]
+        # TODO(stes): This will by default simply return the query_idx. This should
+        # be covered by a test and fixed for a future release.
         return self.index.search(query)
 
 
 class TimedeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
     """Define a conditional distribution based on behavioral changes over time.
+
     Takes a continuous index, and uses the empirical distribution of differences
+    between samples in this index.
+
     Args:
         continuous: The multidimensional, continuous index
         time_delta: The time delay between samples that should form a positive
             pair.
         device: TODO
         seed: TODO
+
     Note:
         For best results, the given continuous index should contain independent
         factors; positive pairs will be formed by adding a _random_ difference
@@ -188,6 +208,8 @@ class TimedeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
         self.data = continuous
         self.time_delta = time_delta
         self.time_difference = torch.zeros_like(self.data, device=self.device)
+        self.time_difference[time_delta:] = (self.data[time_delta:] -
+                                             self.data[:-time_delta])
         self.index = cebra.distributions.ContinuousIndex(self.data)
         self.prior = Prior(self.data, device=device, seed=seed)
 
@@ -211,7 +233,9 @@ class TimedeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
 
 class DeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
     """Define a conditional distribution based on behavioral changes over time.
+
     Takes a continuous index, and uses sample from Gaussian distribution to sample positive
+
     Args:
         continuous: The multidimensional, continuous index
         delta: Standard deviation of Gaussian distribution to sample positive pair
@@ -244,15 +268,19 @@ class DeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
         # TODO(stes): Set seed
         query = torch.distributions.Normal(
             self.data[reference_idx].squeeze(),
+            torch.ones_like(reference_idx, device=self.device) * self.std,
+        ).sample()
 
         return self.index.search(query.unsqueeze(-1))
 
 
 class CEBRADistribution(abc_.JointDistribution):
     """Use CEBRA embeddings for defining a conditional distribution.
+
     TODO:
         - This class is not implemented yet. Contributions welcome!
     """
+
     pass
 
 

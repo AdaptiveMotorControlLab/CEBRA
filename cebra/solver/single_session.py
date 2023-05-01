@@ -19,6 +19,7 @@ from cebra.solver import register
 @register("single-session")
 class SingleSessionSolver(abc_.Solver):
     """Single session training with a symmetric encoder.
+
     This solver assumes that reference, positive and negative samples
     are processed by the same features encoder.
     """
@@ -185,3 +186,8 @@ class BatchSingleSessionSolver(SingleSessionSolver):
         idc = batch.positive - self.offset.left >= len(outputs)
         batch.positive[idc] = batch.reference[idc]
 
+        return cebra.data.Batch(
+            outputs[batch.reference - self.offset.left],
+            outputs[batch.positive - self.offset.left],
+            outputs[batch.negative - self.offset.left],
+        )

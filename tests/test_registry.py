@@ -13,6 +13,7 @@ def _make_module():
 
 def _make_class():
 
+    class Foo:
 
         def __init__(self, x=42):
             self.x = x
@@ -46,6 +47,8 @@ def test_register():
 def test_get_options():
     test_module = _make_registry()
 
+    @test_module.parametrize("foo-{bar}", bar=range(100))
+    class Foo:
 
         def __init__(self, bar=None):
             pass
@@ -55,7 +58,10 @@ def test_get_options():
     # test limit option
     assert len(test_module.get_options(limit=5)) == 5
     # test that output is sorted
+    assert test_module.get_options(limit=2) == ["foo-0", "foo-1"]
     # test filtering
+    assert len(test_module.get_options("foo-*0")) == 10
+    assert test_module.get_options("foo-1*", limit=2) == ["foo-1", "foo-10"]
 
 
 def test_double_registration_error():

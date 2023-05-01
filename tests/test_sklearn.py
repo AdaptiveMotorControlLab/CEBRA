@@ -14,7 +14,9 @@ import cebra.integrations.sklearn.dataset as cebra_sklearn_dataset
 import cebra.models
 
 if torch.cuda.is_available():
+    _DEVICES = "cpu", "cuda"
 else:
+    _DEVICES = ("cpu",)
 
 
 def test_imports():
@@ -136,6 +138,8 @@ def test_init_loader(is_cont, is_disc, is_full, is_multi, is_hybrid):
             is_multi=is_multi,
             is_hybrid=is_hybrid,
             shared_kwargs=shared_kwargs,
+            extra_kwargs=extra_kwargs,
+        )
         assert isinstance(loader, cebra.data.Loader)
         assert isinstance(solver, str)
     except Exception as e:
@@ -147,6 +151,9 @@ def iterate_models():
     # architecture checks
     for model_architecture, device, distance in itertools.product(
             cebra_sklearn_cebra.CEBRA.supported_model_architectures(),
+            _DEVICES,
+        ["euclidean", "cosine"],
+    ):
         yield cebra_sklearn_cebra.CEBRA(
             model_architecture=model_architecture,
             pad_before_transform=
@@ -155,11 +162,28 @@ def iterate_models():
             distance=distance,
             time_offsets=5,
             max_iterations=5,
+            batch_size=10,
+        )
 
     # parameter checks
+    for (
+            model_architecture,
+            device,
+            distance,
+            temperature_mode,
+            min_temperature,
+            temperature,
+    ) in itertools.product(
         [
             "offset10-model", "offset10-model-mse", "offset1-model",
             "resample-model"
+        ],
+            _DEVICES,
+        ["euclidean", "cosine"],
+        ["auto", "constant"],
+        [None, 0.1],
+        [0.1, 1.0],
+    ):
         yield cebra_sklearn_cebra.CEBRA(
             model_architecture=model_architecture,
             pad_before_transform=
@@ -170,6 +194,8 @@ def iterate_models():
             temperature_mode=temperature_mode,
             time_offsets=5,
             max_iterations=5,
+            batch_size=10,
+        )
 
 
 @_util.parametrize_with_checks_slow(
@@ -183,6 +209,7 @@ def test_api(estimator, check):
     if (check.func == sklearn.utils.estimator_checks.
             check_methods_sample_order_invariance):
         num_retries = 1000
+    # if estimator.model_architecture == 'offset5-model':
     #    if check.func == sklearn.utils.estimator_checks.check_methods_sample_order_invariance:
     #        pytest.skip(
     #            "Output of fully convolutional models is not permutation invariant."
@@ -235,7 +262,15 @@ def test_api(estimator, check):
 def test_sklearn(model_architecture, device):
     output_dimension = 4
     cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture=model_architecture,
+        time_offsets=10,
+        learning_rate=3e-4,
+        max_iterations=5,
+        device=device,
         output_dimension=output_dimension,
+        batch_size=42,
+        verbose=True,
+    )
 
     # example dataset
     X = np.random.uniform(0, 1, (1000, 50))
@@ -362,6 +397,8 @@ def test_sklearn(model_architecture, device):
                                    len(cebra_model.model_.get_offset()) + 1, 4)
 
     for key in [
+            "model", "optimizer", "loss", "decode", "criterion", "version",
+            "log"
     ]:
         assert key in cebra_model.state_dict_, cebra_model.state_dict_.keys()
 
@@ -620,6 +657,16 @@ def test_sklearn_adapt(model_architecture, device):
 )
 def test_sklearn_full(model_architecture, device, pad_before_transform):
     cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture=model_architecture,
+        time_offsets=10,
+        learning_rate=3e-4,
+        max_iterations=5,
+        device=device,
+        pad_before_transform=pad_before_transform,
+        output_dimension=4,
+        batch_size=None,
+        verbose=True,
+    )
 
     # example dataset
     X = np.random.uniform(0, 1, (1000, 50))
@@ -660,6 +707,15 @@ def test_sklearn_full(model_architecture, device, pad_before_transform):
                           ("resample5-model", "cpu")])
 def test_sklearn_resampling_model(model_architecture, device):
     cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture=model_architecture,
+        time_offsets=10,
+        learning_rate=3e-4,
+        max_iterations=5,
+        device=device,
+        output_dimension=4,
+        batch_size=128,
+        verbose=True,
+    )
 
     # example dataset
     X = torch.tensor(np.random.uniform(0, 1, (1000, 50)))

@@ -47,8 +47,11 @@ def test_hippocampus():
         dataset=dataset,
         num_steps=10,
         batch_size=8,
+        conditional="time_delta",
     )
     for batch in loader:
+        assert (len(batch.reference) == len(batch.positive)) and (len(
+            batch.positive) == len(batch.negative))
         break
 
     dataset = cebra.datasets.init("rats-hippocampus-multisubjects")
@@ -56,57 +59,81 @@ def test_hippocampus():
         dataset=dataset,
         num_steps=10,
         batch_size=8,
+        conditional="time_delta",
     )
     for batch in loader:
         for b in batch:
+            assert (len(b.reference) == len(b.positive)) and (len(
+                b.positive) == len(b.negative))
         break
 
 
 @pytest.mark.requires_dataset
 def test_monkey():
     from cebra.datasets import monkey_reaching
+
     dataset = cebra.datasets.init(
+        "area2-bump-pos-active-passive",
+        path=cebra.datasets.get_datapath("monkey_reaching_preload_smth_40/"),
+    )
     indices = torch.randint(0, len(dataset), (10,))
+    assert len(indices) == len(dataset[indices])
 
 
 @pytest.mark.requires_dataset
 def test_allen():
     from cebra.datasets import allen
+
     pytest.skip("Test takes too long")
 
+    ca_dataset = cebra.datasets.init("allen-movie-one-ca-VISp-100-train-10-111")
     ca_loader = cebra.data.ContinuousDataLoader(
         dataset=ca_dataset,
         num_steps=10,
         batch_size=8,
+        conditional="time_delta",
     )
     for batch in ca_loader:
+        assert (len(batch.reference) == len(batch.positive)) and (len(
+            batch.positive) == len(batch.negative))
         break
     joint_dataset = cebra.datasets.init(
+        "allen-movie-one-ca-neuropixel-VISp-100-train-10-111")
     joint_loader = cebra.data.ContinuousMultiSessionDataLoader(
         dataset=joint_dataset,
         num_steps=10,
         batch_size=8,
+        conditional="time_delta",
     )
     for batch in joint_loader:
         for b in batch:
+            assert (len(b.reference) == len(b.positive)) and (len(
+                b.positive) == len(b.negative))
         break
 
 
 try:
+    options = cebra.datasets.get_options("*")
 except:
     options = []
 
 
 @pytest.mark.requires_dataset
+@pytest.mark.parametrize("options",
+                         cebra.datasets.get_options("*",
                                                     expand_parametrized=False))
 def test_options(options):
     assert len(options) > 0
 
 
 @pytest.mark.requires_dataset
+@pytest.mark.parametrize("dataset", options)
 def test_all(dataset):
     import cebra.datasets
+
     data = cebra.datasets.init(dataset)
+    assert (data.continuous_index is not None) or (data.discrete_index
+                                                   is not None)
     assert isinstance(data, cebra.data.base.Dataset)
 
 
@@ -124,10 +151,17 @@ def _assert_histograms_close(values, histogram):
     value_histogram = value_histogram / float(value_histogram.sum())
     histogram = histogram / float(histogram.sum())
     if len(histogram) < len(value_histogram):
+        histogram = np.pad(
+            histogram,
+            pad_width=[(0, len(value_histogram) - len(histogram))],
+            mode="constant",
+            constant_values=(0, 0),
+        )
 
     assert value_histogram.shape == histogram.shape
     # NOTE(stes) while the relative tolerance here is quite high (20%), this is a tradeoff vs. speed.
     # For lowering the tolerance, the number of samples drawn in the test methods needs to be increased.
+    assert np.allclose(value_histogram, histogram, atol=0.05, rtol=0.25)
 
 
 def test_poisson_reference_implementation():
@@ -154,6 +188,7 @@ def test_poisson_reference_implementation():
     _check_histogram(bins, hist)
 
 
+@pytest.mark.parametrize("spike_rate", 10**np.linspace(0, 2.0))
 def test_homogeneous_poisson_sampling(spike_rate):
     torch.manual_seed(0)
     np.random.seed(0)
@@ -169,6 +204,11 @@ def test_homogeneous_poisson_sampling(spike_rate):
     _assert_histograms_close(spike_counts.flatten().numpy(), reference_counts)
 
 
+@pytest.mark.parametrize(
+    "spike_rate,refractory_period",
+    [[10, 0.02], [30, 0.01], [50, 0.0], [80, 0.1], [100, 0.01], [1, 0.001],
+     [2, 0.0]],
+)
 def test_poisson_sampling(spike_rate, refractory_period):
     torch.manual_seed(0)
     np.random.seed(0)

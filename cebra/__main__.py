@@ -15,6 +15,7 @@ import cebra.distributions as cebra_distr
 
 def train(parser, kwargs):
     """Train a new CEBRA model, potentially starting from a checkpoint."""
+    parser.add_argument("--variant", choices=cebra.CEBRA.get_variants())
     args, kwargs = parser.parse_known_args()
     cebra_cls = cebra.CEBRA.get_variant(args.variant)
 
@@ -22,6 +23,12 @@ def train(parser, kwargs):
     args, kwargs = parser.parse_known_args(kwargs)
     experiment = cebra_cls.from_args(args=args)
 
+    parser.add_argument(
+        "--override",
+        "-r",
+        action="store_true",
+        help="Override an existing checkpoint (don't load).",
+    )
     args, kwargs = parser.parse_known_args(kwargs)
 
     if not args.override:

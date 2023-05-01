@@ -19,7 +19,9 @@ import cebra.io
 
 class HasGenerator(cebra.io.HasDevice):
     """Base class for all distributions implementing seeding.
+
     Args:
+        device: The device the instance resides on, can be ``cpu`` or ``cuda``.
         seed: The seed to use for initializing the random number generator.
 
     Note:
@@ -32,6 +34,7 @@ class HasGenerator(cebra.io.HasDevice):
         super().__init__(device=device)
         self._device = device
         # TODO temporary
+        # if seed is None:
         self._seed = None
         self._seed = self.generator.seed()
 
@@ -59,12 +62,14 @@ class HasGenerator(cebra.io.HasDevice):
         try:
             self._generator.set_state(state.to(device))
         except (TypeError, RuntimeError) as e:
+            # TODO(https://discuss.pytorch.org/t/cuda-rng-state-does-not-change-when-re-seeding-why-is-that/47917/3)
             self._generator.manual_seed(self.seed)
 
         return super().to(device)
 
     def randint(self, *args, **kwargs) -> torch.Tensor:
         """Generate random integers.
+
         See docs of ``torch.randint`` for information on the arguments.
         """
         return torch.randint(*args,
@@ -75,6 +80,7 @@ class HasGenerator(cebra.io.HasDevice):
     @property
     def device(self) -> str:
         """The device of all attributes.
+
         Can be ``cpu`` or ``cuda``.
         """
         return self._device
@@ -82,6 +88,8 @@ class HasGenerator(cebra.io.HasDevice):
 
 class Index(abc.ABC, cebra.io.HasDevice):
     """Base class for indexed datasets.
+
+    Indexes contain functionality to pass a query vector, and
     return the indices of the closest matches within the index.
     """
 
@@ -104,6 +112,7 @@ class Index(abc.ABC, cebra.io.HasDevice):
 
 class PriorDistribution(abc.ABC):
     """Mixin for all prior distributions.
+
     Prior distributions return a batch of indices. Indexing
     the dataset with these indices will return samples from
     the prior distribution.
@@ -115,6 +124,7 @@ class PriorDistribution(abc.ABC):
 
         Args:
             num_samples: The batch size
+
         Returns:
             A tensor of indices. Indexing the dataset with these
             indices will return samples from the desired prior
@@ -125,6 +135,7 @@ class PriorDistribution(abc.ABC):
 
 class ConditionalDistribution(abc.ABC):
     """Mixin for all conditional distributions.
+
     Conditional distributions return a batch of indices, based on
     a given batch of indices. Indexing the dataset with these indices
     will return samples from the conditional distribution.
@@ -139,6 +150,7 @@ class ConditionalDistribution(abc.ABC):
 
         Returns:
             A tensor of indices. Indexing the dataset with these
+            indices will return samples from the desired conditional
             distribution.
         """
         raise NotImplementedError()
@@ -152,6 +164,7 @@ class JointDistribution(PriorDistribution, ConditionalDistribution):
 
         Args:
             num_samples: Desired batch size
+
         Returns:
             tuple containing indices of the reference and positive samples
         """

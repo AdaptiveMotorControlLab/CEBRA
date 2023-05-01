@@ -59,6 +59,7 @@ def test_full():
     model = cebra.CEBRA("offset10-model",
                         output_dimension=3,
                         time_offsets=(10,),
+                        conditional="time_delta",
                         batch_size=300,
                         **_default_kwargs())
     _run_test(model)
@@ -69,6 +70,7 @@ def test_hybrid():
     model = cebra.CEBRA("offset10-model",
                         output_dimension=3,
                         time_offsets=(10,),
+                        conditional="time_delta",
                         batch_size=300,
                         hybrid=True,
                         **_default_kwargs())
@@ -105,6 +107,7 @@ _args = list(
 
 
 @pytest.mark.parametrize(
+    "leave_out,args",
     [(leave_out, args) for args in _args for leave_out in args.keys()])
 def test_leave_arg_out(leave_out, args):
     model = cebra.CEBRA(**{k: v for k, v in args.items() if k != leave_out},
@@ -151,6 +154,8 @@ def test_incompatible():
         model.fit([X, X])
 
 
+# @pytest.mark.timeout(3)
+# def test_no_cuda():
 #    # Then initializing a new model can be done by running:
 #    #if torch.cuda.is_available():
 #    #    pytest.skip("Test only useful when running on CPU.")

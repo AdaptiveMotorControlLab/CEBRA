@@ -39,3 +39,5 @@ def test_demo_notebook(filename):
         nb = nbformat.read(f, as_version=4)
     nb = _decrease_max_iterations(nb)
     nb = _change_file_path(nb)
+    ep = ExecutePreprocessor(timeout=600, kernel_name="python3")
+    ep.preprocess(nb, {"metadata": {}})

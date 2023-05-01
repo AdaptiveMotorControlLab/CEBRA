@@ -15,6 +15,7 @@ import cebra.solver
 
 def _init_single_session_solver(loader, args):
     """Train a single session CEBRA model."""
+    model = cebra.models.init("offset5-model", loader.dataset.input_dimension,
                               args.num_hidden_units, 3).to(args.device)
     loader.dataset.configure_for(model)
     criterion = cebra.models.InfoNCE()
@@ -29,6 +30,7 @@ def _init_single_session_solver(loader, args):
 def _init_multi_session_solver(loader, args):
     """Train a multi session CEBRA model."""
     model = nn.ModuleList([
+        cebra.models.init("offset5-model", dataset.input_dimension,
                           args.num_hidden_units, 3)
         for dataset in loader.dataset.iter_sessions()
     ]).to(args.device)
@@ -46,8 +48,12 @@ def _init_multi_session_solver(loader, args):
 def _list_data_loaders():
     """Yield (data/loader) pairs."""
     loaders = [
+        cebra.data.ContinuousDataLoader,
+        cebra.data.DiscreteDataLoader,
+        cebra.data.MixedDataLoader,
         cebra.data.HybridDataLoader,
         cebra.data.FullDataLoader,
+        cebra.data.ContinuousMultiSessionDataLoader,
     ]
     # TODO limit this to the valid combinations---however this
     # requires to adapt the dataset API slightly; it is currently
@@ -56,6 +62,7 @@ def _list_data_loaders():
     for dataset_name, loader in itertools.product(cebra.datasets.get_options(),
                                                   loaders):
         yield dataset_name, loader
+        prefix = dataset_name.split("_", 1)[0]
         if prefix in prefixes:
             # TODO(stes) include all datasets again
             return

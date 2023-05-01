@@ -68,12 +68,15 @@ class Discrete(abc_.ConditionalDistribution, abc_.HasGenerator):
 
     def sample_uniform(self, num_samples: int) -> torch.Tensor:
         """Draw samples from the uniform distribution over values.
+
         This will change the likelihood of values depending on the values
         in the given (discrete) index. When reindexing the dataset with
         the returned indices, all values in the index will appear with
         equal probability.
+
         Args:
             num_samples: Number of uniform samples to be drawn.
+
         Returns:
             A batch of indices from the distribution. Reindexing the
             index samples of this instance with the returned in indices
@@ -85,8 +88,10 @@ class Discrete(abc_.ConditionalDistribution, abc_.HasGenerator):
 
     def sample_empirical(self, num_samples: int) -> torch.Tensor:
         """Draw samples from the empirical distribution.
+
         Args:
             num_samples: Number of samples to be drawn.
+
         Returns:
             A batch of indices from the empirical distribution,
             which is the uniform distribution over ``[0, N-1]``.
@@ -96,9 +101,12 @@ class Discrete(abc_.ConditionalDistribution, abc_.HasGenerator):
 
     def sample_conditional(self, reference_index: torch.Tensor) -> torch.Tensor:
         """Draw samples conditional on template samples.
+
         Args:
+            samples: batch of indices, typically drawn from a
                 prior distribution. Conditional samples will match
                 the values of these indices
+
         Returns:
             batch of indices, whose values match the values
             corresponding to the given indices.

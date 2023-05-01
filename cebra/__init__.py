@@ -10,6 +10,7 @@ try:
     from cebra.integrations.sklearn.cebra import CEBRA
     from cebra.integrations.sklearn.decoder import KNNDecoder
     from cebra.integrations.sklearn.decoder import L1LinearRegressor
+
     is_sklearn_available = True
 except ImportError as e:
     # silently fail for now
@@ -46,10 +47,12 @@ def allow_lazy_imports():
 def __getattr__(key):
     """Lazy import of cebra submodules and -packages.
 
+    Once :py:mod:`cebra` is imported, it is possible to lazy import
 
     """
     if key == "CEBRA":
         from cebra.integrations.sklearn.cebra import CEBRA
+
         return CEBRA
     elif key == "KNNDecoder":
         from cebra.integrations.sklearn.decoder import KNNDecoder
@@ -62,6 +65,7 @@ def __getattr__(key):
     elif not key.startswith("_"):
         import importlib
         import warnings
+
         if key not in __lazy_imports:
             # NOTE(celia): condition needed when testing the string examples
             # so that the function doesn't try to import the testing packages
@@ -72,6 +76,7 @@ def __getattr__(key):
                 import pytest
 
                 return importlib.import_module(pytest)
+            __lazy_imports[key] = importlib.import_module(f"{__name__}.{key}")
             if not __allow_lazy_imports:
                 warnings.warn(
                     f"Your code triggered a lazy import of {__name__}.{key}. "

@@ -46,9 +46,13 @@ class TensorDataset(cebra_data.SingleSessionDataset):
 
     """
 
+    def __init__(
+        self,
         neural: Union[torch.Tensor, npt.NDArray],
         continuous: Union[torch.Tensor, npt.NDArray] = None,
         discrete: Union[torch.Tensor, npt.NDArray] = None,
+        offset: int = 1,
+    ):
         super().__init__()
         self.neural = self._to_tensor(neural, torch.FloatTensor).float()
         self.continuous = self._to_tensor(continuous, torch.FloatTensor)
@@ -95,6 +99,7 @@ class TensorDataset(cebra_data.SingleSessionDataset):
 
 class DatasetCollection(cebra_data.MultiSessionDataset):
     """Multi session dataset made up of a list of datasets.
+
     Args:
         *datasets: Collection of datasets to add to the collection. The order
             will be maintained for indexing.
@@ -117,6 +122,7 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
         """Check if obj.key exists.
 
         Returns:
+            ``True`` if the key exists and is not ``None``. ``False`` if
             either the key does not exist, the attribute has value ``None``
             or the access raises a ``NotImplementedError``.
         """
@@ -134,6 +140,7 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
         if len(datasets) == 0:
             raise ValueError("Need to supply at least one dataset.")
         elif len(datasets) == 1:
+            (dataset_generator,) = datasets
             if isinstance(dataset_generator, types.GeneratorType):
                 return list(dataset_generator)
             else:
@@ -143,6 +150,10 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
         else:
             return datasets
 
+    def __init__(
+        self,
+        *datasets: cebra_data.SingleSessionDataset,
+    ):
         super().__init__()
         self._datasets: List[
             cebra_data.SingleSessionDataset] = self._unpack_dataset_arguments(

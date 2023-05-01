@@ -13,6 +13,7 @@
 import os
 import sys
 
+sys.path.insert(0, os.path.abspath("."))
 
 import datetime
 import cebra
@@ -21,10 +22,15 @@ import cebra
 def get_years(start_year=2021):
     year = datetime.datetime.now().year
     if year > start_year:
+        return f"{start_year} - {year}"
     else:
+        return f"{year}"
 
 
 # -- Project information -----------------------------------------------------
+project = "cebra"
+copyright = f"""{get_years(2021)}, Steffen Schneider, Jin H Lee, Mackenzie Mathis"""
+author = "Steffen Schneider, Jin H Lee, Mackenzie Mathis"
 # The full version, including alpha/beta/rc tags
 release = cebra.__version__
 
@@ -34,6 +40,15 @@ release = cebra.__version__
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    "sphinx.ext.autodoc",
+    "sphinx.ext.napoleon",
+    "sphinx.ext.intersphinx",
+    "sphinx_autodoc_typehints",
+    "sphinx_copybutton",
+    "sphinx.ext.todo",
+    "nbsphinx",
+    "sphinx_tabs.tabs",
+    "sphinx.ext.mathjax",
     "IPython.sphinxext.ipython_console_highlighting",
     # "sphinx_panels", # Note: package to avoid: no longer maintained.
     "sphinx_design",
@@ -65,7 +80,10 @@ napoleon_use_param = True
 napoleon_attr_annotations = True
 
 intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "torch": ("https://pytorch.org/docs/master/", None),
     "sklearn": ("https://scikit-learn.org/stable", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "pandas": ("http://pandas.pydata.org/pandas-docs/dev", None),
     "scipy": ("http://docs.scipy.org/doc/scipy/reference/", None),
@@ -77,6 +95,7 @@ copybutton_prompt_text = r">>> |\$ "
 copybutton_prompt_is_regexp = True
 copybutton_only_copy_prompt_lines = True
 
+autodoc_member_order = "bysource"
 autodoc_mock_imports = [
     "torch",
     "nlb_tools",
@@ -85,13 +104,20 @@ autodoc_mock_imports = [
     "pandas",
     "matplotlib",
 ]
+# autodoc_typehints = "none"
 
 # Add any paths that contain templates here, relative to this directory.
+templates_path = ["_templates"]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
+    "**/todo",
+    "**/src",
+    "cebra-figures/figures.rst",
+    "cebra-figures/*.rst",
+    "*/cebra-figures/*.rst",
     "demo_notebooks/README.rst"
 ]
 
@@ -104,19 +130,41 @@ html_theme = "pydata_sphinx_theme"
 # More info on theme options:
 # https://pydata-sphinx-theme.readthedocs.io/en/latest/user_guide/configuring.html
 html_theme_options = {
+    "icon_links": [
+        {
+            "name": "Github",
             "url": "https://github.com/AdaptiveMotorControlLab/CEBRA",
+            "icon": "fab fa-github",
+        },
+        {
+            "name": "Twitter",
+            "url": "https://twitter.com/cebraAI",
+            "icon": "fab fa-twitter",
+        },
         # {
         #     "name": "DockerHub",
         #     "url": "https://hub.docker.com/r/stffsc/cebra",
         #     "icon": "fab fa-docker",
         # },
+        {
+            "name": "PyPI",
+            "url": "https://pypi.org/project/cebra/",
+            "icon": "fab fa-python",
+        },
+        {
+            "name": "How to cite CEBRA",
             "url": "https://api.semanticscholar.org/CorpusID:247939478",
+            "icon": "fas fa-graduation-cap",
+        },
+    ],
     "external_links": [
+        # {"name": "Mathis Lab", "url": "http://www.mackenziemathislab.org/"},
     ],
     "collapse_navigation": False,
     "navigation_depth": 4,
     "show_nav_level": 2,
     "navbar_align": "content",
+    "show_prev_next": False,
 }
 
 html_context = {"default_mode": "dark"}
@@ -125,6 +173,7 @@ html_logo = "_static/img/logo_large.png"
 
 # Remove the search field for now
 html_sidebars = {
+    "**": ["search-field.html", "sidebar-nav-bs.html"],
 }
 
 # Disable links for embedded images
@@ -133,6 +182,7 @@ html_scaled_image_link = False
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
+html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
 
 # See discussion here: https://github.com/sphinx-doc/sphinx/issues/6895#issuecomment-570759798

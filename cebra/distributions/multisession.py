@@ -123,6 +123,7 @@ class MultisessionSampler(cebra_distr.PriorDistribution,
     def __init__(self, dataset, time_offset):
         self.dataset = dataset
 
+        # TODO(stes): implement in pytorch
         self.all_data = self.dataset.continuous_index.cpu().numpy()
         self.session_lengths = np.array(self.dataset.session_lengths)
 
@@ -130,6 +131,7 @@ class MultisessionSampler(cebra_distr.PriorDistribution,
         self.lengths[1:] = self.lengths[:-1]
         self.lengths[0] = 0
 
+        # TODO(stes): unify naming
         time_delta = time_offset
         self.time_difference = (torch.cat(
             [

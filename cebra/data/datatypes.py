@@ -5,10 +5,12 @@ import torch
 
 __all__ = ["Batch", "BatchIndex", "Offset"]
 
+# Batch = collections.namedtuple(
 #    'batch', ['reference', 'positive', 'negative', 'index', 'index_reversed'],
 #    defaults=(None, None))
 
 
+class Batch:
     """A batch of reference, positive, negative samples and an optional index.
 
     Attributes:
@@ -23,6 +25,7 @@ __all__ = ["Batch", "BatchIndex", "Offset"]
         index_reversed: TODO(stes), see docs for multisession training distributions
     """
 
+    __slots__ = ["reference", "positive", "negative", "index", "index_reversed"]
 
     def __init__(self,
                  reference,
@@ -44,11 +47,17 @@ __all__ = ["Batch", "BatchIndex", "Offset"]
         # TODO(stes): Unclear if the indices should also be best represented by
         # torch.Tensors vs. np.ndarrays---this should probably be updated once
         # the GPU implementation of the multi-session sampler is fully ready.
+        # if self.index is not None:
         #    self.index = self.index.to(device)
+        # if self.index_reversed is not None:
         #    self.index_reversed = self.index_reversed.to(device)
 
 
 BatchIndex = collections.namedtuple(
+    "BatchIndex",
+    ["reference", "positive", "negative", "index", "index_reversed"],
+    defaults=(None, None),
+)
 
 
 class Offset:
@@ -69,6 +78,7 @@ class Offset:
 
     """
 
+    __slots__ = ["left", "right"]
 
     def __init__(self, *offset):
         if len(offset) == 1:

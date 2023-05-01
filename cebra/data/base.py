@@ -47,6 +47,7 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
         positive and/or negative samples.
 
         Returns:
+            Tensor of shape ``(N,d)``, representing the
             index for all ``N`` samples in the dataset.
         """
         return None
@@ -55,8 +56,10 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
     def discrete_index(self) -> torch.Tensor:
         """The discrete index, if available.
 
+        The discrete index can be used for making an embedding invariant to
         a variable for to restrict positive samples to share the same index variable.
         To implement more complicated indexing operations (such as modeling similiarities
+        between indices), it is better to transform a discrete into a continuous index.
 
         Returns:
             Tensor of shape ``(N,)``, representing the index
@@ -81,6 +84,7 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
             Requires the :py:attr:`offset` to be set.
         """
 
+        # TODO(stes) potential room for speed improvements by pre-allocating these tensors/
         # using non_blocking copy operation.
         offset = torch.arange(-self.offset.left,
                               self.offset.right,
@@ -93,15 +97,29 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
 
     def expand_index_in_trial(self, index, trial_ids, trial_borders):
         """When the neural/behavior is in discrete trial, e.g) Monkey Reaching Dataset
+        the slice should be defined within the trial.
+        trial_ids is in size of a length of self.index and indicate the trial id of the index belong to.
+        trial_borders is in size of a length of self.idnex and indicate the border of each trial.
 
         Todo:
             - rewrite
         """
 
+        # TODO(stes) potential room for speed improvements by pre-allocating these tensors/
         # using non_blocking copy operation.
         offset = torch.arange(-self.offset.left,
                               self.offset.right,
                               device=index.device)
+        index = torch.tensor(
+            [
+                torch.clamp(
+                    i,
+                    trial_borders[trial_ids[i]] + self.offset.left,
+                    trial_borders[trial_ids[i] + 1] - self.offset.right,
+                ) for i in index
+            ],
+            device=self.device,
+        )
         return index[:, None] + offset[None, :]
 
     @abc.abstractmethod
@@ -144,6 +162,8 @@ class Loader(abc.ABC, cebra.io.HasDevice):
 
     Args:
         See dataclass fields.
+
+    Yields:
         Batches of the specified size from the given dataset object.
 
     Note:
@@ -153,10 +173,19 @@ class Loader(abc.ABC, cebra.io.HasDevice):
         drawing samples.
     """
 
+    dataset: Dataset = dataclasses.field(
+        default=None,
+        doc="""A dataset instance specifying a ``__getitem__`` function.""",
     )
 
+    num_steps: int = dataclasses.field(
+        default=None,
+        doc=
+        """The total number of batches when iterating over the dataloader.""",
     )
 
+    batch_size: int = dataclasses.field(default=None,
+                                        doc="""The total batch size.""")
 
     def __post_init__(self):
         if self.num_steps is None or self.num_steps <= 0:
@@ -183,6 +212,7 @@ class Loader(abc.ABC, cebra.io.HasDevice):
 
         The elements of the returned `BatchIndex` will be used to index the
         `dataset` of this data loader.
+
         Args:
             num_samples: The size of each of the reference, positive and
                 negative samples.

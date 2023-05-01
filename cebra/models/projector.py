@@ -24,15 +24,24 @@ class PointwiseLinear(nn.Module):
             r = torch.rand(size)
             return r * (b - a) + a
 
+        weight = uniform(
+            -(num_inputs**0.5),
+            num_inputs**0.5,
+            size=(num_parallel, num_inputs, num_outputs),
+        )
+        bias = uniform(-(num_inputs**0.5),
+                       num_inputs**0.5,
                        size=(1, 1, num_outputs))
 
         self.weight = nn.Parameter(weight)
         self.bias = nn.Parameter(bias)
 
     def forward(self, inputs):
+        return torch.einsum("ndi,dij->ndj", inputs, self.weight) + self.bias
 
 
 class PointwiseProjector(nn.Module):
+    """Projector, applied pointwise to feature output"""
 
     def __init__(self, num_inputs, num_units):
         super().__init__()
@@ -72,6 +81,7 @@ class FeatureExtractor(nn.Sequential):
         )
 
 
+class ModelView:
 
     def __init__(self, model, index):
         self.model = model

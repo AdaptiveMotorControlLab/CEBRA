@@ -13,16 +13,22 @@ device = "cpu"
 
 single_session_tests = []
 for args in [
+    ("demo-discrete", cebra.data.DiscreteDataLoader),
+    ("demo-continuous", cebra.data.ContinuousDataLoader),
+    ("demo-mixed", cebra.data.MixedDataLoader),
 ]:
     single_session_tests.append((*args, cebra.solver.SingleSessionSolver))
 
 single_session_hybrid_tests = []
+for args in [("demo-continuous", cebra.data.HybridDataLoader)]:
     single_session_hybrid_tests.append(
         (*args, cebra.solver.SingleSessionHybridSolver))
 
 multi_session_tests = []
+for args in [("demo-continuous-multisession",
               cebra.data.ContinuousMultiSessionDataLoader)]:
     multi_session_tests.append((*args, cebra.solver.MultiSessionSolver))
+    # multi_session_tests.append((*args, cebra.solver.MultiSessionAuxVariableSolver))
 
 print(single_session_tests)
 
@@ -35,9 +41,19 @@ def _get_loader(data_name, loader_initfunc):
 
 
 def _make_model(dataset):
+    # TODO flexible input dimension
+    return nn.Sequential(
+        nn.Conv1d(dataset.input_dimension, 5, kernel_size=10),
+        nn.Flatten(start_dim=1, end_dim=-1),
+    )
 
 
 def _make_behavior_model(dataset):
+    # TODO flexible input dimension
+    return nn.Sequential(
+        nn.Conv1d(dataset.input_dimension, 5, kernel_size=10),
+        nn.Flatten(start_dim=1, end_dim=-1),
+    )
 
 
 @pytest.mark.parametrize("data_name, loader_initfunc, solver_initfunc",
@@ -63,6 +79,7 @@ def test_single_session(data_name, loader_initfunc, solver_initfunc):
 @pytest.mark.parametrize("data_name, loader_initfunc, solver_initfunc",
                          single_session_tests)
 def test_single_session_auxvar(data_name, loader_initfunc, solver_initfunc):
+    return  # TODO
 
     loader = _get_loader(data_name, loader_initfunc)
     model = _make_model(loader.dataset)
@@ -89,6 +106,7 @@ def test_single_session_auxvar(data_name, loader_initfunc, solver_initfunc):
                          single_session_hybrid_tests)
 def test_single_session_hybrid(data_name, loader_initfunc, solver_initfunc):
     loader = _get_loader(data_name, loader_initfunc)
+    model = cebra.models.init("offset10-model", loader.dataset.input_dimension,
                               32, 3)
     criterion = cebra.models.InfoNCE()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)

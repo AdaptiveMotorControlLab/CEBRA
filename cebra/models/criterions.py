@@ -22,10 +22,12 @@ from torch import nn
 def dot_similarity(ref: torch.Tensor, pos: torch.Tensor,
                    neg: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """Cosine similarity the ref, pos and negative pairs
+
     Args:
         ref: The reference samples of shape `(n, d)`.
         pos: The positive samples of shape `(n, d)`.
         neg: The negative samples of shape `(n, d)`.
+
     Returns:
         The similarity between reference samples and positive samples of shape `(n,)`, and
         the similarities between reference samples and negative samples of shape `(n, n)`.
@@ -103,6 +105,8 @@ class BaseInfoNCE(ContrastiveLoss):
     r"""Base class for all InfoNCE losses.
 
     Given a similarity measure :math:`\phi` which will be implemented by the subclasses
+    of this class, the generalized InfoNCE loss is computed as
+
     .. math::
 
         \sum_{i=1}^n - \phi(x_i, y^{+}_i) + \log \sum_{j=1}^{n} e^{\phi(x_i, y^{-}_{ij})}
@@ -124,6 +128,8 @@ class BaseInfoNCE(ContrastiveLoss):
 
         Returns:
             The distance between reference samples and positive samples of shape `(n,)`, and
+            the distances between reference samples and negative samples of shape `(n, n)`.
+
         """
         raise NotImplementedError()
 
@@ -135,6 +141,7 @@ class BaseInfoNCE(ContrastiveLoss):
             ref: The reference samples of shape `(n, d)`.
             pos: The positive samples of shape `(n, d)`.
             neg: The negative samples of shape `(n, d)`.
+
         See Also:
             :py:class:`BaseInfoNCE`.
         """
@@ -167,12 +174,16 @@ class LearnableInfoNCE(BaseInfoNCE):
     """
 
     def __init__(self,
+                 temperature: float = 1.0,
                  min_temperature: Optional[float] = None):
         super().__init__()
         if min_temperature is None:
             self.max_inverse_temperature = math.inf
         else:
+            self.max_inverse_temperature = 1.0 / min_temperature
         start_tempearture = float(temperature)
+        log_inverse_temperature = torch.tensor(
+            math.log(1.0 / float(temperature)))
         self.log_inverse_temperature = nn.Parameter(log_inverse_temperature)
         self.min_temperature = min_temperature
 
@@ -187,10 +198,13 @@ class LearnableInfoNCE(BaseInfoNCE):
     @property
     def temperature(self) -> float:
         with torch.no_grad():
+            return 1.0 / self._prepare_inverse_temperature().item()
 
 
 class FixedCosineInfoNCE(FixedInfoNCE):
     r"""Cosine similarity function with fixed temperature.
+
+    The similarity metric is given as
 
     .. math ::
 
@@ -213,6 +227,8 @@ class FixedCosineInfoNCE(FixedInfoNCE):
 class FixedEuclideanInfoNCE(FixedInfoNCE):
     r"""L2 similarity function with fixed temperature.
 
+    The similarity metric is given as
+
     .. math ::
 
         \phi(x, y) =  - \| x - y \| / \tau
@@ -229,6 +245,7 @@ class FixedEuclideanInfoNCE(FixedInfoNCE):
 
 class LearnableCosineInfoNCE(LearnableInfoNCE):
     r"""Cosine similarity function with a learnable temperature.
+
     Like :py:class:`FixedCosineInfoNCE`, but with a learnable temperature
     parameter :math:`\tau`.
     """
@@ -243,6 +260,7 @@ class LearnableCosineInfoNCE(LearnableInfoNCE):
 
 class LearnableEuclideanInfoNCE(LearnableInfoNCE):
     r"""L2 similarity function with fixed temperature.
+
     Like :py:class:`FixedEuclideanInfoNCE`, but with a learnable temperature
     parameter :math:`\tau`.
     """
@@ -285,6 +303,7 @@ class NCE(ContrastiveLoss):
             ref: The reference samples of shape `(n, d)`.
             pos: The positive samples of shape `(n, d)`.
             neg: The negative samples of shape `(n, d)`.
+
         See Also:
             :py:class:`NCE`.
         """

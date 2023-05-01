@@ -13,6 +13,7 @@ from typing import Union
 import cebra.registry
 
 cebra.registry.add_helper_functions(__name__)
+__DATADIR = os.environ.get("CEBRA_DATADIR", "data")
 
 
 def get_data_root() -> str:
@@ -42,6 +43,7 @@ def set_datapath(path: str = None, update_environ: bool = True):
         raise FileExistsError(
             f"The specified path {path} is a file, not a directory.")
     __DATADIR = path
+    os.environ["CEBRA_DATADIR"] = __DATADIR
 
 
 def get_datapath(path: str = None) -> str:
@@ -49,8 +51,10 @@ def get_datapath(path: str = None) -> str:
 
     The data directory is given by ``{root}/{path}``. The root
     directory can be specified through the environment variable
+    ``CEBRA_DATADIR``.
 
     Args:
+        path: The path as a ``str`` or ``pathlib.Path`` object.
             The path is relative to the system data directory.
 
     Returns:
@@ -62,8 +66,10 @@ def get_datapath(path: str = None) -> str:
     return os.path.join(get_data_root(), path)
 
 
+# pylint: disable=wrong-import-position
 import warnings
 from cebra.datasets.demo import *
+
 try:
     from cebra.datasets.allen import *
     from cebra.datasets.gaussian_mixture import *
@@ -71,6 +77,7 @@ try:
     from cebra.datasets.monkey_reaching import *
 except ModuleNotFoundError as e:
     import warnings
+
     warnings.warn(f"Could not initialize one or more datasets: {e}. "
                   f"For using the datasets, consider installing the "
                   f"[datasets] extension via pip.")
