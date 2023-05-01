@@ -125,6 +125,11 @@ def test_allen():
 
 try:
     options = cebra.datasets.get_options("*")
+    multisubject_options = cebra.datasets.get_options(
+        "allen-movie1-ca-multi-session-*")
+    multisubject_options.extend(
+        cebra.datasets.get_options(
+            "rat-hippocampus-multisubjects-3fold-trial-split*"))
 except:
     options = []
 
@@ -135,6 +140,7 @@ except:
                                                     expand_parametrized=False))
 def test_options(options):
     assert len(options) > 0
+    assert len(multisubject_options) > 0
 
 
 @pytest.mark.requires_dataset
@@ -146,6 +152,41 @@ def test_all(dataset):
     assert (data.continuous_index is not None) or (data.discrete_index
                                                    is not None)
     assert isinstance(data, cebra.data.base.Dataset)
+
+
+@pytest.mark.requires_dataset
+@pytest.mark.parametrize("dataset", multisubject_options)
+def test_all_multisubject(dataset):
+    # NOTE(stes) In theory a duplicate of test_all, but allows to quickly double check #611 won't re-appear
+    # in the future. Will keep it in, but fine to remove at a later point once dataset tests are optimized.
+    import cebra.datasets
+    data = cebra.datasets.init(dataset)
+    assert (data.continuous_index is not None) or (data.discrete_index
+                                                   is not None)
+    assert isinstance(data, cebra.data.base.Dataset)
+
+
+@pytest.mark.requires_dataset
+@pytest.mark.parametrize("dataset", [
+    "allen-movie1-ca-multi-session-leave2out-repeat-0-train",
+    "allen-movie1-ca-multi-session-decoding-repeat-1-test",
+    "rat-hippocampus-multisubjects-3fold-trial-split",
+    "rat-hippocampus-multisubjects-3fold-trial-split-0"
+])
+def test_compat_fix611(dataset):
+    """Check that confirm the fix applied in internal PR #611
+
+    The PR removed the explicit continuous and discrete args from the 
+    datasets used to parametrize this function. We manually check that
+    the continuous index is available, and no discrete index is set.
+
+    https://github.com/AdaptiveMotorControlLab/CEBRA-dev/pull/613
+    """
+    import cebra.datasets
+    data = cebra.datasets.init(dataset)
+    assert (data.continuous_index is not None)
+    assert (data.discrete_index is None)
+    assert isinstance(data, cebra.data.datasets.DatasetCollection)
 
 
 def _assert_histograms_close(values, histogram):

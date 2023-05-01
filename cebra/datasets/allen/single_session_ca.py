@@ -323,9 +323,7 @@ class MultiSessionAllenCaDecoding(cebra.data.DatasetCollection):
                 init(
                     f"allen-movie1-ca-single-session-decoding-{session_id}-repeat-{repeat_no}-{split_flag}"
                 ) for session_id in range(4)
-            ],
-            continuous=True,
-        )
+            ],)
 
 
 @parametrize(
@@ -341,9 +339,7 @@ class MultiSessionAllenCaLeave2Out(cebra.data.DatasetCollection):
                 init(
                     f"allen-movie1-ca-single-session-leave2out-{session_id}-repeat-{repeat_no}-{split_flag}"
                 ) for session_id in range(4)
-            ],
-            continuous=True,
-        )
+            ],)
 
 
 @parametrize(

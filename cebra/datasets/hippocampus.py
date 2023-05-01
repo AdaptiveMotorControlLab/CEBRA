@@ -255,10 +255,7 @@ class MultipleRatsTrialSplitDataset(cebra.data.DatasetCollection):
                 init(f"rat-hippocampus-{name}-3fold-trial-split-{split_no}",
                      split=split)
                 for name in ["achilles", "buddy", "cicero", "gatsby"]
-            ],
-            continuous=True,
-            discrete=False,
-        )
+            ],)
         self.names = [dataset.name for dataset in self._datasets]
         self.shapes = [dataset.neural.shape for dataset in self._datasets]
         self._split = split
