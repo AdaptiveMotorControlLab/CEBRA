@@ -1,0 +1,4 @@
+Integrations
+============
+
+.. automodule:: cebra.integrations

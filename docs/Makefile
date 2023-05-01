@@ -1,0 +1,46 @@
+# Minimal makefile for Sphinx documentation
+#
+
+# You can set these variables from the command line, and also
+# from the environment for the first two.
+SPHINXOPTS    ?=
+SPHINXBUILD   ?= sphinx-build
+SOURCEDIR     = source
+BUILDDIR      = build
+
+# Put it first so that "make" without argument is like "make help".
+help:
+	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+.PHONY: help page page_rebuild figures
+
+# Build the API documentation using sphinx
+html:
+	PYTHONPATH=.. $(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+# Remove the current temp folder and page build
+clean:
+	rm -rf build
+	rm -rf page
+
+# Checkout the source repository for CEBRA figures. Note that this requires SSH access
+# and might prompt you for an SSH key.
+source/cebra-figures:
+	git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-figures.git source/cebra-figures
+
+# Update the figures. Note that this might prompt you for an SSH key
+figures: source/cebra-figures
+	cd source/cebra-figures &&	git pull --ff-only origin main
+
+# Build the page with pre-built figures
+page: source/cebra-figures html
+	mkdir -p page/
+	mkdir -p page/docs
+	mkdir -p page/staging/docs
+	cp -a root/. page/
+	cp -r build/html/* page/docs/
+	cp -r build/html/* page/staging/docs/
+
+# Do a full rebuild, starting from a clean build and page directory, checking that the
+# figure repo is up-to-date, and starting the page build
+page_rebuild: clean figures page

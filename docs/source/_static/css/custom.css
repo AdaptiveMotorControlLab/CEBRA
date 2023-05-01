@@ -1,0 +1,88 @@
+:root {
+    --pst-font-size-base: 14px;
+    --pst-font-family-base: 'Open Sans', var(--pst-font-family-base-system);
+    --pst-font-family-heading: 'Open Sans', var(--pst-font-family-base-system);
+    --pst-font-family-monospace: 'IBM Plex Mono', var(--pst-font-family-monospace-system);
+    --pst-color-inline-code: 23, 23, 23;
+}
+
+/* Justify text */
+p {
+    text-align: justify !important;
+}
+
+code {
+    font-size: 87.5%;
+}
+
+/* signature formatting:
+- change fonts to plex mono
+- adapt the font weight
+- add formatting to the signatures, light background and
+  highlighting line at the start of the box.
+*/
+.sig {
+    font-style: normal;
+    color: var(--pst-color-primary);
+}
+
+.sig-name {
+    color: var(--pst-color-primary);
+}
+
+dt {
+    font-weight: 600;
+    font-size: 87.5%;
+    color: var(--pst-color-primary);
+}
+
+em.sig-param {
+    font-style: normal;
+    color: rgb(23, 23, 23); 
+}
+
+dt.sig.sig-object.py {
+    background-color: rgb(243, 243, 243);
+    padding: 5px 5px 5px 10px;
+    border-radius: 4px;
+    border-left: solid 3px rgba(var(--pst-color-primary))
+}
+
+/* Info boxes:
+- remove highlighting border line for note boxes etc.
+*/
+.admonition {
+    border-left: none;
+    box-shadow: none;
+}
+
+.admonition .admonition-title {
+    background-color: transparent;
+}
+
+.admonition.note .admonition-title {
+    background-color: transparent;
+}
+
+/* Code boxes:
+- remove horizontal lines between the "example" heading and the box
+- remove box shadows and lines
+*/
+
+p.rubric {
+    border-bottom: none;
+    margin-top: 10px;
+}
+
+pre {
+    border: none;
+    box-shadow: none;
+    border-radius: 4px;
+}
+
+/* Center the first heading */
+.heading-center h1 {
+    text-align: center;
+}
+
+}

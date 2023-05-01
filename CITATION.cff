@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Schneider"
+  given-names: "Steffen"
+- family-names: "Lee"
+  given-names: "Jin H"
+- family-names: "Mathis"
+  given-names: "Mackenzie W"
+title: "Learnable latent embeddings for joint behavioral and neural analysis"
+doi: abs/2204.00673
+date-released: 2022-04-01
+url: "https://arxiv.org/abs/2204.00673"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Schneider"
+    given-names: "Steffen"
+  - family-names: "Lee"
+    given-names: "Jin H"
+  - family-names: "Mathis"
+    given-names: "Mackenzie W"
+  doi: abs/2204.00673
+  journal: "CoRR"
+  month: 04
+  title: "Learnable latent embeddings for joint behavioral and neural analysis"
+  volume: abs/2204.00673
+  year: 2022
+

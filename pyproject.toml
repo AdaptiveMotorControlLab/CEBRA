@@ -1,0 +1,14 @@
+[build-system]
+requires = [
+    "setuptools>=43",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.docformatter]
+recursive = 1
+wrap-summaries = 0
+wrap-descriptions = 72
+pre-summary-space = false
+blank = false
+single_line_exclusions = ['typing']

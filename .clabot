@@ -1,0 +1,6 @@
+{
+  "contributors": "https://script.google.com/macros/s/AKfycbxMTfPIVni3XIT1gWJyt6ujOe3xMw3kdWpFbVQ6zZ1MS4eLiJCB2Jth3a1mrkoYHTIW/exec",
+  "message": "Thank you for your contribution. We require contributors to sign our Contributor License Agreement (CLA). We do not have a signed CLA on file for you. In order for us to review and merge your code, please sign our CLA [here](https://forms.gle/o5F7YiLCZ96vfhQ18). After you signed, you can comment on this PR with `@cla-bot check` to trigger another check.",
+  "label": "CLA signed",
+  "recheckComment": "Thanks for tagging me. I looked for a signed form under your signature again, and updated the status on this PR. If the check was successful, no further action is needed. If the check was unsuccessful, please see the instructions in my first comment."
+}

@@ -1,0 +1,51 @@
+name: Update internal release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  pull_request:
+    branches: [ main ]
+    types:
+      - labeled
+      - opened
+      - edited
+      - synchronize
+      - reopened
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Cache dependencies
+        id: pip-cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Build and publish to Test PyPI
+        if: ${{ (github.ref != 'refs/heads/main') && (github.event.label.name == 'release') }}
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
+        run: |
+          make dist
+          ls dist/
+          tar tvf dist/cebra-*.tar.gz
+          python3 -m twine upload --repository testpypi dist/*
+
+      - name: Build and publish to PyPI
+        if: ${{ github.event_name == 'push' }}
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          make dist
+          ls dist/
+          tar tvf dist/cebra-*.tar.gz
+          python3 -m twine upload dist/*

@@ -1,0 +1,35 @@
+{% extends "pydata_sphinx_theme/layout.html" %}
+
+{% block fonts %}
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300&display=swap" rel="stylesheet">
+
+{% endblock %}
+
+{% block docs_sidebar %}
+    {% if sidebars %}
+    <!-- Only show if we have sidebars configured, else just a small margin  -->
+    <div class="col-12 col-md-3 bd-sidebar">
+        <!-- The "On this page" section is shown on the right by default; we moved it to the left sidebar-->
+        {% if meta is defined and not (meta is not none and 'notoc' in meta) %}
+            {% for toc_item in theme_page_sidebar_items %}
+            <div class="toc-item">
+            {% include toc_item %}
+            </div>
+            {% endfor %}
+        {% endif %}
+        {%- for sidebartemplate in sidebars %}
+        {%- include sidebartemplate %}
+        {%- endfor %}
+    </div>
+    {% else %}
+        <div class="col-12 col-md-1 col-xl-2 bd-sidebar no-sidebar"></div>
+    {% endif %}
+{% endblock %}
+
+<!-- The "On this page" section is shown on the right by default; we moved it to the left sidebar-->
+{% block docs_toc %}
+<div class="d-none d-xl-block col-xl-2 bd-toc"></div>
+{% endblock %}

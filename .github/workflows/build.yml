@@ -1,0 +1,48 @@
+name: Python package
+
+on:
+  push:
+    branches:
+      - main 
+      - 'main*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.8]
+        include:
+          - os: ubuntu-latest
+            path: ~/.cache/pip
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip setuptools wheel
+          
+      - name: Run the formatter
+        run: |
+          make format
+
+      - name: Check that no binary files have been added to repo
+        run: |
+          make check_for_binary
+
+      - name: Build package
+        run: |
+          make build
+
+        run: |
+          make test
