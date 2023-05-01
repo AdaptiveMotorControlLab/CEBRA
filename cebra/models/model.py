@@ -98,6 +98,7 @@ class ClassifierModel(Model, HasFeatureEncoder):
     """Base model for classifiers.
 
     Adds an additional :py:attr:`classifier` layer to the model which is lazily
+    initialized after calling :py:meth:`set_output_num`.
 
     Args:
         num_input: The number of input units
@@ -115,6 +116,7 @@ class ClassifierModel(Model, HasFeatureEncoder):
 
     @abc.abstractmethod
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         raise NotImplementedError
 
     def set_output_num(self, label_num: int, override: bool = False):
@@ -191,9 +193,11 @@ class Offset10Model(_OffsetModel, ConvolutionalModelMixin):
     def __init__(self, num_neurons, num_units, num_output, normalize=True):
         if num_units < 1:
             raise ValueError(
+                f"Hidden dimension needs to be at least 1, but got {num_units}."
             )
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(5, 5)
 
 
@@ -215,6 +219,7 @@ class Offset5Model(_OffsetModel, ConvolutionalModelMixin):
     def __init__(self, num_neurons, num_units, num_output, normalize=True):
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(2, 3)
 
 
@@ -225,6 +230,7 @@ class Offset0ModelMSE(_OffsetModel):
     def __init__(self, num_neurons, num_units, num_output, normalize=False):
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(0, 1)
 
 
@@ -239,6 +245,7 @@ class Offset0Model(_OffsetModel):
             )
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(0, 1)
 
 
@@ -256,6 +263,7 @@ class Offset0Modelv2(_OffsetModel):
             )
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(0, 1)
 
 
@@ -273,6 +281,7 @@ class Offset0Modelv3(_OffsetModel):
             )
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(0, 1)
 
 
@@ -290,6 +299,7 @@ class Offset0Modelv4(_OffsetModel):
             )
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(0, 1)
 
 
@@ -307,6 +317,7 @@ class Offset0Modelv5(_OffsetModel):
             )
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(0, 1)
 
 
@@ -324,6 +335,7 @@ class ResampleModel(_OffsetModel, ConvolutionalModelMixin, ResampleModelMixin):
         return 4
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(20, 20)
 
 
@@ -340,6 +352,7 @@ class Resample5Model(_OffsetModel, ConvolutionalModelMixin, ResampleModelMixin):
         return 4
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(10, 10)
 
 
@@ -359,6 +372,7 @@ class Resample1Model(_OffsetModel, ResampleModelMixin):
         return 2
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(2, 2)
 
 
@@ -377,6 +391,7 @@ class SupervisedNN10(ClassifierModel):
         self.num_output = num_output
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(5, 5)
 
 
@@ -391,4 +406,116 @@ class SupervisedNN1(ClassifierModel):
         self.num_output = num_output
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(0, 1)
+
+
+@register("offset36-model")
+class Offset36(_OffsetModel, ConvolutionalModelMixin):
+    """CEBRA model with a 10 sample receptive field."""
+
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
+        if num_units < 1:
+            raise ValueError(
+                f"Hidden dimension needs to be at least 1, but got {num_units}."
+            )
+        super().__init__(
+            nn.Conv1d(num_neurons, num_units, 2),
+            nn.GELU(),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            nn.Conv1d(num_units, num_output, 3),
+            num_input=num_neurons,
+            num_output=num_output,
+            normalize=normalize,
+        )
+
+    def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See `:py:meth:Model.get_offset`"""
+        return cebra.data.Offset(18, 18)
+
+
+@register("offset36-model-dropout")
+class Offset36Dropout(_OffsetModel, ConvolutionalModelMixin):
+    """CEBRA model with a 10 sample receptive field."""
+
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
+        if num_units < 1:
+            raise ValueError(
+                f"Hidden dimension needs to be at least 1, but got {num_units}."
+            )
+        super().__init__(
+            nn.Conv1d(num_neurons, num_units, 2),
+            torch.nn.Dropout1d(p=0.1),
+            nn.GELU(),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            cebra_layers._Skip(nn.Conv1d(num_units, num_units, 3), nn.GELU()),
+            nn.Conv1d(num_units, num_output, 3),
+            num_input=num_neurons,
+            num_output=num_output,
+            normalize=normalize,
+        )
+
+    def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See `:py:meth:Model.get_offset`"""
+        return cebra.data.Offset(18, 18)
+
+
+@register("offset36-model-more-dropout")
+class Offset36Dropoutv2(_OffsetModel, ConvolutionalModelMixin):
+    """CEBRA model with a 10 sample receptive field."""
+
+    def _make_layers(self, num_units, p, n):
+        return [
+            cebra_layers._Skip(torch.nn.Dropout1d(p=p),
+                               nn.Conv1d(num_units, num_units, 3), nn.GELU())
+            for _ in range(n)
+        ]
+
+    def __init__(self, num_neurons, num_units, num_output, normalize=True):
+        if num_units < 1:
+            raise ValueError(
+                f"Hidden dimension needs to be at least 1, but got {num_units}."
+            )
+        super().__init__(
+            nn.Conv1d(num_neurons, num_units, 2),
+            torch.nn.Dropout1d(p=0.1),
+            nn.GELU(),
+            *self._make_layers(num_units, 0.1, 16),
+            nn.Conv1d(num_units, num_output, 3),
+            num_input=num_neurons,
+            num_output=num_output,
+            normalize=normalize,
+        )
+
+    def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See `:py:meth:Model.get_offset`"""
+        return cebra.data.Offset(18, 18)
