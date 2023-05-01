@@ -151,6 +151,7 @@ class PoissonNeuron:
         if latest_spike_time < self.time_interval:
             raise ValueError(
                 f"The simulated number of spikes were not sufficient to complete the simulation. "
+                f"You specified a time interval of {self.time_interval}s, but the last spike occurred "
                 f"at {latest_spike_time}s. We simulated {max_spike_count} spikes in total. "
                 f"Try to either increase data_range_sigmas (={self.data_range_sigmas}) or to decrease "
                 f"the time_interval.")

@@ -331,6 +331,15 @@ class MonkeyReachingDataset():
         return self.neural[index]
 
     def expand_index_in_trial(self, index, trial_ids, trial_borders):
+        """When the data is in discrete trials, the slice is defined within the trial. 
+        
+        e.g) Monkey Reaching Dataset
+        
+        Args:
+            trial_ids: the trial ids of each index of the data. It is the same length as the 
+                ``data`` to fetch the ``index`` in. 
+            trial_borders: the start index of each trial. It contains {n_trials} elements, one for 
+                each trial.
         """
         offset = np.arange(-self.offset_left, self.offset_right)
         index = np.array([

@@ -4,6 +4,7 @@ Installation Guide
 System Requirements
 -------------------
 
+CEBRA is written in Python (3.8+) and PyTorch. CEBRA is most effective when used with a GPU, but CPU-only support is provided. We provide instructions to run CEBRA on your system directly using Anaconda or Docker.  The instructions below were tested on different compute setups with Ubuntu 18.04 or 20.04, using Nvidia GTX 2080, A4000, and V100 cards. Other setups are possible (including Windows), as long as CUDA 10.2+ support is guaranteed.
 
 - Software dependencies and operating systems:
     - Linux or MacOS
@@ -17,7 +18,10 @@ Installation Guide
 ------------------
 
 We outline installation instructions for different systems. 
+CEBRA will be installed via ``pip``. Its dependencies can be installed using ``pip``, ``conda`` or
+``docker`` and we outline different options below.
 
+Most users can only install the **minimal install**. 🚀 For more advanced users, CEBRA has different extra install options that you can select based on your usecase:
 
     * ``[integrations]``: This will install (experimental) support for our streamlit and jupyter integrations.
     * ``[docs]``: This will install additional dependencies for building the package documentation.
@@ -25,6 +29,7 @@ We outline installation instructions for different systems.
       code formatting, etc. Install this extension if you want to work on a pull request.
     * ``[demos]``: This will install additional dependencies for running our demo notebooks.
     * ``[datasets]``: This extension will install additional dependencies to use the pre-installed datasets
+      in ``cebra.datasets``. Note that installing this extension *will not* download the data, which is available on `FigShare <https://figshare.com/s/60adb075234c2cc51fa3>`_.
 
 .. tabs::
 
@@ -33,15 +38,43 @@ We outline installation instructions for different systems.
         CEBRA can also be installed and run on Google colaboratory. Please see the ``open in colab`` button at the top of each demo notebook for examples. 
 
 
+    .. tab:: Supplied conda (CEBRA)
 
         A ``conda`` environment for running CEBRA is provided in the ``conda`` sub-directory.
+        To built the env, please run from the CEBRA repo root directory:
 
         .. code:: bash
 
             $ conda env create -f conda/cebra.yml
 
-        recommend using Docker). Namely, you can run CEBRA, piVAE, tSNE and UMAP within this conda env. It is *NOT* needed if you only want to use CEBRA.
 
+    .. tab:: Supplied conda (paper reproduction)
+        
+        We provide a ``conda`` environment with the full requirements needed to reproduce the first CEBRA paper (although we 
+        recommend using Docker). Namely, you can run CEBRA, piVAE, tSNE and UMAP within this conda env. It is *NOT* needed if you only want to use CEBRA.
+        
+        * For all platforms except MacOS with M1/2 chipsets, create the full environment using ``cebra_paper.yml``, by running the following from the CEBRA repo root directory:
+        
+            .. code:: bash
+
+                $ conda env create -f conda/cebra_paper.yml
+        
+        * If you are a MacOS M1 or M2 user and want to reproduce the paper, use the ``cebra_paper_m1.yml`` instead. You'll need to install tensorflow. For that, use `miniconda3 <https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html>`_ and follow the setup instructions for tensorflow listed in the `Apple developer docs <https://developer.apple.com/metal/tensorflow-plugin/>`_. In the Terminal, run the following commands:
+
+            .. code:: bash
+
+                wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.12.0-MacOSX-arm64.sh -O ~/miniconda.sh
+                bash ~/miniconda.sh -b -p $HOME/miniconda
+                source ~/miniconda/bin/activate
+                conda init zsh
+                
+            Then, you can build the full environment from the root directory:
+
+            .. code:: bash
+
+                $ conda env create -f conda/cebra_paper_m1.yml
+
+    .. tab:: conda
 
         Conda users should currently use ``pip`` for installation. The missing dependencies will be installed in the install process. A fresh conda environment can be created using 
 
@@ -50,28 +83,59 @@ We outline installation instructions for different systems.
             $ conda create -n cebra python==3.8
             $ conda activate cebra
 
+        .. rubric:: Install PyTorch separately
+
         It is recommended to install PyTorch manually given your system setup. To select the right version, head to
+        the "Install PyTorch" instructions in the official `PyTorch Docs`_. Select your desired PyTorch build, operating system,
+        select ``conda`` as your package manager and ``Python`` as the language. Select your compute platform (either a CUDA version or
         CPU only). Then, use the command to install the PyTorch package. Below are a few possible examples (as of 23/8/22):
 
         .. code:: bash
 
             # CPU only version of pytorch, using the latest version
             $ conda install pytorch cpuonly -c pytorch
+
+        .. code:: bash
+
             # GPU version of pytorch for CUDA 11.3
             $ conda install pytorch cudatoolkit=11.3 -c pytorch
+
+        .. code:: bash
+
             # CPU only version of pytorch, using the pytorch LTS version
             $ conda install pytorch cpuonly -c pytorch-lts
 
+        .. rubric:: Install CEBRA using ``pip``
+
         Once PyTorch is set up, the remaining dependencies can be installed via ``pip``. Select the correct feature
+        set based on your usecase: 
+
+        * Regular usage
 
         .. code:: bash
+            
+            $ pip install cebra
+
+        * Inference and development tools only
+
+        .. code:: bash
+
             $ pip install '.[dev]'
+
+        * Full feature set
+
+        .. code:: bash
+
             $ pip install '.[dev,docs,integrations,demos,datasets]'
 
+        Note that, similarly to that last command, you can select the specific install options of interest based on their description above and on your usecase.
+
         .. note::
+            On windows systems, you will need to drop the quotation marks and install via ``pip install .[dev]``.
 
     .. tab:: Docker
 
+        A ``Dockerfile`` for running CEBRA is provided in the ``docker/`` sub-directory.
         It is possible to start a full development environment by running ``make interact``.
         Alternatively, the container can be build locally. Refer to ``make docker`` in the ``Makefile``.
 
@@ -82,6 +146,7 @@ We outline installation instructions for different systems.
             $ make test
             
         Several arguments can be used to configure the docker container.
+        The currently supported docker images for different CUDA versions installed locally are:
         ``docker-10.1-runtime-ubuntu18.04``, ``docker-10.2-runtime-ubuntu18.04`` and ``docker-11.1-runtime-ubuntu20.04``, but more images can be easily added by modifying the Dockerfile.
 
         A particular version can be built and run by executing
@@ -96,30 +161,55 @@ We outline installation instructions for different systems.
     .. tab:: pip
 
         .. note::
+            Consider using a `virtual environment`_ when installing the package via ``pip``.
+        
+        *(Optional)* Create the virtual environment by running 
+
         .. code:: bash
             
+            $ virtualenv .env && source .env/bin/activate
 
+        We recommend that you install ``PyTorch`` before CEBRA by selecting the correct version in the `PyTorch Docs`_. Select your desired PyTorch build, operating 
+        system, select ``pip`` as your package manager and ``Python`` as the language. Select your compute platform (either a 
+        CUDA version or CPU only). Then, use the command to install the PyTorch package. See the ``conda`` tab for examples.
 
+        Then you can install  CEBRA, by running one of these lines, depending on your usage, in the root directory. 
 
+        * For **regular usage**, the PyPi package can be installed using
 
+        .. code:: bash
+
+            $ pip install cebra
+
+        * For a minimal install, use
 
         .. code:: bash
 
             $ pip install .
 
+        * For a full install, run
 
         .. code:: bash
 
             $ pip install -e '.[dev,docs,integrations,datasets]'
 
+        Note that, similarly to that last command, you can select the specific install options of interest based on their description above and on your usecase.
+
 ..
 
 
 
+.. Post-Installation
+.. -----------------
 
+.. After installing CEBRA using any of the guides above, please verify the installation by running the test suite.
 
+.. .. code:: bash
 
+..     $ make test
 
+.. No tests should fail.
+.. If this is the case, the installation was successful.
 
 
 Installation Troubleshooting

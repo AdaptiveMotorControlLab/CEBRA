@@ -17,6 +17,7 @@
 [![Downloads](https://static.pepy.tech/badge/cebra)](https://pepy.tech/project/cebra)
 [![Downloads](https://static.pepy.tech/badge/cebra/month)](https://pepy.tech/project/cebra)
 [![PyPI version](https://badge.fury.io/py/cebra.svg)](https://badge.fury.io/py/cebra)
+![License: Non-Commercial](https://img.shields.io/badge/License-Non--commercial-lightgrey)
 ![Codecov](https://img.shields.io/codecov/c/github/AdaptiveMotorControlLab/CEBRA)
 [![Twitter Follow](https://img.shields.io/twitter/follow/CEBRAAI.svg?label=CEBRAai&style=social)](https://twitter.com/CEBRAAI)
 

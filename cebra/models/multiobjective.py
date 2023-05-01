@@ -39,6 +39,7 @@ class MultiobjectiveModel(nn.Module):
             on the cosine distance or dot product.
         output_mode: A mode as defined in ``MultiobjectiveModel.Mode``. Overlapping means that
             when ``dimensions`` are set to `(x0, x1, ...)``, features will be extracted from
+            ``0:x0, 0:x1, ...``. When mode is set to separate, features are extracted from
         append_last_dimension: Defaults to True, and will allow to omit the last dimension in
             the ``dimensions`` argument (which should be equal to the output dimension) of the
             given model.

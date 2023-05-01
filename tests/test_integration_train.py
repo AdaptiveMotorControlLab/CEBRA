@@ -46,6 +46,8 @@ def _init_multi_session_solver(loader, args):
 def _list_data_loaders():
     """Yield (data/loader) pairs."""
     loaders = [
+        cebra.data.HybridDataLoader,
+        cebra.data.FullDataLoader,
     ]
     # TODO limit this to the valid combinations---however this
     # requires to adapt the dataset API slightly; it is currently

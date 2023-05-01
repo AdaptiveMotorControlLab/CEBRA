@@ -1,10 +1,14 @@
+.. _Models and Criteria:
+
 Models and Criteria
+-------------------
 
 .. automodule:: cebra.models
    :members:
    :show-inheritance:
 
 Registration and initialization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: init
 
@@ -14,7 +18,9 @@ Registration and initialization
 
 .. autofunction:: parametrize 
 
+
 Models
+~~~~~~~
 
 .. automodule:: cebra.models.model
    :members:
@@ -22,6 +28,7 @@ Models
    :show-inheritance:
 
 Criterions
+~~~~~~~~~~~
 
 .. automodule:: cebra.models.criterions
    :members:
@@ -29,12 +36,14 @@ Criterions
    :show-inheritance:
 
 Layers and model building blocks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: cebra.models.layers
    :members:
    :show-inheritance:
 
 Multi-objective models
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: cebra.models.multiobjective
    :members:

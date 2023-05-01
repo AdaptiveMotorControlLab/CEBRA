@@ -1,3 +1,11 @@
+"""Pre-defined demo and benchmark datasets.
+
+This package contains actual implementations of datasets. If you want to add a commonly used (and
+public dataset) to CEBRA, this is the right package to do it. Datasets here can be loaded e.g. for testing,
+reproducing reference results and benchmarking. When contributing to this package, you should ensure
+that the data is publicly available under a suitable license.
+
+"""
 
 import os
 import pathlib

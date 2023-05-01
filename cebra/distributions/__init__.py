@@ -1,5 +1,14 @@
 """Distributions and indexing helper functions for training CEBRA models.
 
+This package contains classes for sampling and indexing of datasets.
+Typically, the functionality of
+classes in this module is guided by the auxiliary variables of CEBRA. A dataset would pass auxiliary
+variables to a sampler, and within the sampler the *indices* of reference, negative and positive 
+samples will be sampled based on the auxiliary information. Custom ways of sampling should therefore
+be implemented in this package. Functionality in this package is fully agnostic to the actual signal
+to be analysed, and only considers the auxiliary information of a dataset (called "index").
+
+
 Distributions take data samples and allow to sample or re-sample from the
 dataset. Sampling from the prior distribution is done via "sample_prior",
 sampling from the conditional distribution via "sample_conditional".
@@ -15,6 +24,7 @@ from cebra.distributions.continuous import *
 from cebra.distributions.discrete import *
 from cebra.distributions.index import *
 from cebra.distributions.mixed import *
+from cebra.distributions.multisession import *
 
 __all__ = [
 ]

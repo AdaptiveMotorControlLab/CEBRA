@@ -46,6 +46,13 @@ class MultiSessionDataset(cebra_data.Dataset):
 
     @property
     @abc.abstractmethod
+    def input_dimension(self):
+        raise NotImplementedError(
+            "Input dimension property not defined in for multisession. Use {get_input_dimension(session_id)} instead."
+        )
+
+    @abc.abstractmethod
+    def get_input_dimension(self, session_index):
         """The feature dimension of a given session."""
         raise NotImplementedError
 
@@ -90,6 +97,7 @@ class MultiSessionLoader(cebra_data.Loader):
 
     The loader will enforce a uniform distribution across the sessions.
     Note that if samples within different sessions share the same feature
+    dimension, it is better to use a :py:class:`cebra.data.single_session.MixedDataLoader`.
     """
 
     time_offset: int = dataclasses.field(default=10)

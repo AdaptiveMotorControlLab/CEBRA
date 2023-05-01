@@ -5,6 +5,10 @@ on:
     branches:
       - main 
       - 'main*'
+  pull_request:
+    branches:
+      - main 
+      - 'main*'
 
 jobs:
   build:
@@ -31,10 +35,15 @@ jobs:
       - name: Install package
         run: |
           python -m pip install --upgrade pip setuptools wheel
+          pip install '.[dev,demos,datasets]'
           
       - name: Run the formatter
         run: |
           make format
+
+      - name: Run the spelling detector
+        run: |
+          make codespell
 
       - name: Check that no binary files have been added to repo
         run: |
@@ -44,5 +53,7 @@ jobs:
         run: |
           make build
 
+      - name: Run pytest tests
+        timeout-minutes: 10
         run: |
           make test

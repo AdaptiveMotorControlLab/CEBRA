@@ -1,5 +1,11 @@
 """Data loaders use distributions and indices to make samples available for training.
 
+This package contains all helper functions and classes for defining and loading datasets
+in the various usage modes of CEBRA, e.g. single- and multi-session datasets.
+It is non-specific to a particular dataset (see :py:mod:`cebra.datasets` for actual dataset
+implementations). However, the base classes for all datasets are defined here, as well as helper
+functions to interact with datasets.
+  
 CEBRA supports different dataset types out-of-the box:
 
 - :py:class:`cebra.data.single_session.SingleSessionDataset` is the abstract base class for a single session dataset. Single session datasets
@@ -10,6 +16,7 @@ CEBRA supports different dataset types out-of-the box:
   auxiliary variable dimension needs to match across the sessions, which allows alignment of multiple sessions.
   The dimensionality of the signal variable can vary arbitrarily between sessions.
 
+Note that the actual implementation of datasets (e.g. for benchmarking) is done in the :py:mod:`cebra.datasets`
 package.
 
 """
@@ -23,3 +30,5 @@ from cebra.data.single_session import *
 from cebra.data.multi_session import *
 
 from cebra.data.datasets import *
+
+from cebra.data.helper import *

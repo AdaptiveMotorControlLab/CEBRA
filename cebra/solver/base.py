@@ -44,6 +44,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         tqdm_on: Use ``tqdm`` for showing a progress bar during training.
     """
 
+    model: torch.nn.Module
     criterion: torch.nn.Module
     optimizer: torch.optim.Optimizer
     history: List = dataclasses.field(default_factory=list)
@@ -195,9 +196,29 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             self.log[key].append(value)
         return stats
 
+    def validation(self,
+                   loader: cebra.data.Loader,
+                   session_id: Optional[int] = None):
+        """Compute score of the model on data.
+
+        Args:
+            loader: Data loader, which is an iterator over `cebra.data.Batch` instances.
+                Each batch contains reference, positive and negative input samples.
+            session_id: The session ID, an integer between 0 and the number of sessions in the
+                multisession model, set to None for single session.
+
+        Returns:
+            Loss averaged over iterations on data batch.
+        """
+        assert (session_id is None) or (session_id == 0)
+        iterator = self._get_loader(loader)
         total_loss = Meter()
+        self.model.eval()
         for _, batch in iterator:
             prediction = self._inference(batch)
+            loss, _, _ = self.criterion(prediction.reference,
+                                        prediction.positive,
+                                        prediction.negative)
             total_loss.add(loss.item())
         return total_loss.average
 
@@ -236,7 +257,9 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
         """Given a batch of input examples, return the model outputs.
 
+        TODO: make this a public function?
         Args:
+            batch: The input data, not necessarily aligned across the batch
                 dimension. This means that ``batch.index`` specifies the map
                 between reference/positive samples, if not equal ``None``.
 
@@ -281,6 +304,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 class MultiobjectiveSolver(Solver):
     """Train models to satisfy multiple learning objectives.
 
+    This variant of the standard :py:class:`cebra.solver.base.Solver` implements multi-objective
     or "hybrid" training.
 
     Attributes:

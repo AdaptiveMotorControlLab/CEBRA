@@ -84,6 +84,8 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
         # using non_blocking copy operation.
         offset = torch.arange(-self.offset.left,
                               self.offset.right,
+                              device=index.device)
+
         index = torch.clamp(index, self.offset.left,
                             len(self) - self.offset.right)
 
@@ -98,6 +100,8 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
 
         # using non_blocking copy operation.
         offset = torch.arange(-self.offset.left,
+                              self.offset.right,
+                              device=index.device)
         return index[:, None] + offset[None, :]
 
     @abc.abstractmethod
@@ -163,6 +167,7 @@ class Loader(abc.ABC, cebra.io.HasDevice):
             raise ValueError(
                 f"Batch size has to be None, or a non-negative value. Got {self.batch_size}."
             )
+
     def __len__(self):
         """The number of batches returned when calling as an iterator."""
         return self.num_steps

@@ -2,6 +2,7 @@
 
 import joblib
 import numpy as np
+import sklearn.decomposition
 import torch
 from torch import nn
 
@@ -74,6 +75,7 @@ def device() -> str:
         """
 
         ``True`` if the instance was either initialized upon creation via
+        passing the ``device`` option to the constructor, or later by setting
         any attribute of the instance. The device of the instance will then
         be set to the first element's device.
         """
@@ -168,6 +170,7 @@ def reduce(data, *, ratio=None, num_components=None):
         raise ValueError(
             "Specify either a threshold on the explained variance, or a maximum"
             "number of principle components")
+    pca = sklearn.decomposition.PCA(num_components)
     data = data.reshape(len(data), -1)
     pca.fit(data)
     if ratio is None:
@@ -191,9 +194,15 @@ class FileKeyValueDataset:
             ``npz``.
 
     Example:
+
+        >>> import cebra.io
         >>> import joblib
         >>> joblib.dump({'foo' : 42}, '/tmp/test.jl')
+        ['/tmp/test.jl']
+        >>> data = cebra.io.FileKeyValueDataset('/tmp/test.jl')
+        >>> data.foo
         42
+
     """
 
     def __init__(self, path: str):

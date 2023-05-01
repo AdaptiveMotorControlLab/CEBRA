@@ -1,6 +1,7 @@
 """Distributions for sampling from continuously indexed datasets."""
 
 from typing import Literal, Optional
+
 import numpy as np
 import torch
 
@@ -18,12 +19,17 @@ class Prior(abc_.PriorDistribution, abc_.HasGenerator):
         continuous: The multi-dimensional continuous index.
     """
 
+    def __init__(self,
+                 continuous: torch.Tensor,
+                 device: Literal["cpu", "cuda"] = "cpu",
+                 seed: int = 0):
         abc_.HasGenerator.__init__(self, device=device, seed=seed)
         self.continuous = continuous
         self.num_samples = len(self.continuous)
 
     def sample_prior(self,
                      num_samples: int,
+                     offset: Optional[Offset] = None) -> torch.Tensor:
         """Return uniformly sampled indices.
         Args:
             num_samples: The number of samples to draw from the prior
@@ -69,6 +75,10 @@ class TimeContrastive(abc_.JointDistribution, abc_.HasGenerator):
         by sampling the time offset in the conditional distribution.
     """
 
+        continuous: Optional[torch.Tensor] = None,
+        num_samples: Optional[int] = None,
+        device: Literal["cpu", "cuda"] = "cpu",
+        seed: Optional[int] = None,
         abc_.HasGenerator.__init__(self, device=device, seed=seed)
         if continuous is None and num_samples is None:
             raise ValueError(
@@ -91,6 +101,7 @@ class TimeContrastive(abc_.JointDistribution, abc_.HasGenerator):
 
     def sample_prior(self,
                      num_samples: int,
+                     offset: Optional[Offset] = None) -> torch.Tensor:
         """Return a random index sample, respecting the given time offset.
         Prior samples are uniformly sampled from ``[0, T - t)`` where ``T`` is the total
         number of samples in the index, and ``t`` is the time offset used for sampling.
@@ -135,9 +146,11 @@ class DirectTimedeltaDistribution(TimeContrastive, abc_.HasGenerator):
         - This class is work in progress.
     """
 
+    def __init__(self, continuous: torch.Tensor, time_offset: int = 1):
         super().__init__(continuous=continuous, time_offset=time_offset)
         self.index = cebra.distributions.ContinuousIndex(self.data)
 
+    def sample_conditional(self, reference_idx: torch.Tensor) -> torch.Tensor:
         """Samples from the conditional distribution.
 
         Todo:
@@ -169,6 +182,8 @@ class TimedeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
     def __init__(self,
                  continuous,
                  time_delta: int = 1,
+                 device: Literal["cpu", "cuda"] = "cpu",
+                 seed: Optional[int] = None):
         abc_.HasGenerator.__init__(self, device=device, seed=seed)
         self.data = continuous
         self.time_delta = time_delta
@@ -176,9 +191,11 @@ class TimedeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
         self.index = cebra.distributions.ContinuousIndex(self.data)
         self.prior = Prior(self.data, device=device, seed=seed)
 
+    def sample_prior(self, num_samples: int) -> torch.Tensor:
         """See :py:meth:`.Prior.sample_prior`."""
         return self.prior.sample_prior(num_samples)
 
+    def sample_conditional(self, reference_idx: torch.Tensor) -> torch.Tensor:
         """Return indices from the conditional distribution."""
 
         if reference_idx.dim() != 1:
@@ -202,16 +219,21 @@ class DeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
     """
 
     def __init__(self,
+                 continuous: torch.Tensor,
                  delta: float = 0.1,
+                 device: Literal["cpu", "cuda"] = "cpu",
+                 seed: Optional[int] = None):
         abc_.HasGenerator.__init__(self, device=device, seed=seed)
         self.data = continuous
         self.std = delta
         self.index = cebra.distributions.ContinuousIndex(self.data)
         self.prior = Prior(self.data, device=device, seed=seed)
 
+    def sample_prior(self, num_samples: int) -> torch.Tensor:
         """See :py:meth:`.Prior.sample_prior`."""
         return self.prior.sample_prior(num_samples)
 
+    def sample_conditional(self, reference_idx: torch.Tensor) -> torch.Tensor:
         """Return indices from the conditional distribution."""
 
         if reference_idx.dim() != 1:

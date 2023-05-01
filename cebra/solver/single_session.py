@@ -25,6 +25,19 @@ class SingleSessionSolver(abc_.Solver):
 
     _variant_name = "single-session"
 
+    def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
+        """Given a batch of input examples, computes the feature representation/embedding.
+
+        Args:
+            batch: The input data, not necessarily aligned across the batch
+                dimension. This means that ``batch.index`` specifies the map
+                between reference/positive samples, if not equal ``None``.
+
+        Returns:
+            Processed batch of data. While the input data might not be aligned
+            across the sample dimensions, the output data should be aligned and
+            ``batch.index`` should be set to ``None``.
+        """
         batch.to(self.device)
         ref = self.model(batch.reference)
         pos = self.model(batch.positive)
@@ -34,6 +47,12 @@ class SingleSessionSolver(abc_.Solver):
     def get_embedding(self, data: torch.Tensor) -> torch.Tensor:
         """Return the embedding of the given input data.
 
+        Note:
+            This function assumes that the input data is sliced
+            according to the receptive field of the model. The input data
+            needs to match ``batch x dims x len(self.model.get_offset())``
+            which is internally reduced to ``batch x dims x 1``. The last
+            dimension is squeezed, and the output is of shape ``time x features``.
 
         This function does *not* perform checks for correctness of the
         input.
@@ -54,6 +73,18 @@ class SingleSessionSolver(abc_.Solver):
 @register("single-session-aux")
 @dataclasses.dataclass
 class SingleSessionAuxVariableSolver(abc_.Solver):
+    """Single session training for reference and positive/negative samples.
+
+    This solver processes reference samples with a model different from 
+    processing the positive and
+    negative samples. Requires that the ``reference_model`` is initialized
+    to be different from the ``model`` used to process the positive and 
+    negative samples.
+
+    Besides using an asymmetric encoder for the same modality, this solver 
+    also allows for e.g. time-contrastive learning across modalities, by 
+    using a reference model on modality A, and a different model processing 
+    the signal from modality B.
     """
 
     _variant_name = "single-session-aux"
@@ -116,6 +147,7 @@ class BatchSingleSessionSolver(SingleSessionSolver):
                 raise ValueError("Configure dataset, no offset found.")
             self._mode = "convolutional"
         else:
+            self.offset = cebra.data.Offset(0, 1)
             self._mode = "fully_connected"
         super().fit(loader, *args, **kwargs)
 

@@ -1,3 +1,9 @@
+import sklearn.neighbors
+
+import cebra.data
+import cebra.datasets
+import cebra.models
+import cebra.solver
     "n_neurons": 120,
     "hidden_size": 64,
     "output_size": 32,
@@ -17,6 +23,11 @@ lower_bound_score = {"r2_score": 30, "median_error": 1.5}
         label_train.numpy(),
         label_test.numpy(),
     )
+def _decode(emb_train, emb_test, label_train, label_test, n_neighbors=36):
+    pos_decoder = sklearn.neighbors.KNeighborsRegressor(n_neighbors,
+                                                        metric="cosine")
+    dir_decoder = sklearn.neighbors.KNeighborsClassifier(n_neighbors,
+                                                         metric="cosine")
     emb_train = solver.transform(train_set[torch.arange(
         len(train_set))]).numpy()
 def _train(train_set, loader_initfunc, solver_initfunc):

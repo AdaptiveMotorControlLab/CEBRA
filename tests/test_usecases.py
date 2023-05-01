@@ -15,6 +15,7 @@ import pytest
 import torch
 
 import cebra
+import cebra.integrations.sklearn.dataset as cebra_sklearn_dataset
 
 
 def _default_kwargs():
@@ -119,10 +120,15 @@ def test_defaults():
 def test_dataset():
     X = np.zeros((100, 3))
     y = np.zeros((100, 3))
+    cebra_sklearn_dataset.SklearnDataset(X, y=())
     with pytest.raises(ValueError):
+        cebra_sklearn_dataset.SklearnDataset(X, y=None)
     with pytest.raises(ValueError):
+        cebra_sklearn_dataset.SklearnDataset(X, (y,), device="foo")
     with pytest.raises(ValueError):
+        cebra_sklearn_dataset.SklearnDataset(X=None, y=(y,))
 
+    dataset = cebra_sklearn_dataset.SklearnDataset(X, y=(y,))
     assert dataset.input_dimension == X.shape[1]
     assert torch.allclose(dataset.continuous_index, torch.from_numpy(y).float())
     assert dataset.continuous_index_dimensions == y.shape[1]
@@ -141,6 +147,7 @@ def test_incompatible():
     # multisession training is not possible without passing
     # an index
     model = cebra.CEBRA()
+    with pytest.raises(RuntimeError):
         model.fit([X, X])
 
 

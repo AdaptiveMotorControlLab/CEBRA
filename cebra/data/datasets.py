@@ -7,6 +7,7 @@ from typing import List, Tuple, Union
 
 import literate_dataclasses as dataclasses
 import numpy as np
+import numpy.typing as npt
 import torch
 from numpy.typing import NDArray
 
@@ -19,16 +20,35 @@ from cebra.data.datatypes import BatchIndex
 class TensorDataset(cebra_data.SingleSessionDataset):
     """Discrete and/or continuously indexed dataset based on torch/numpy arrays.
 
+    If dealing with datasets sufficiently small to fit :py:func:`numpy.array` or :py:class:`torch.Tensor`, this
+    dataset is sufficient---the sampling auxiliary variable should be specified with a dataloader.
+    Based on whether `continuous` and/or `discrete` auxiliary variables are provided, this class
     can be used with the discrete, continuous and/or mixed data loader classes.
 
     Args:
         neural:
+            Array of dtype ``float`` or float Tensor of shape ``(N, D)``, containing neural activity over time.
         continuous:
+            Array of dtype ```float`` or float Tensor of shape ``(N, d)``, containing the continuous behavior
             variables over the same time dimension.
         discrete:
+            Array of dtype ```int64`` or integer Tensor of shape ``(N, d)``, containing the discrete behavior
             variables over the same time dimension.
+
+    Example:
+
+        >>> import cebra.data
+        >>> import torch
+        >>> data = torch.randn((100, 30))
+        >>> index1 = torch.randn((100, 2))
+        >>> index2 = torch.randint(0,5,(100, ))
+        >>> dataset = cebra.data.datasets.TensorDataset(data, continuous=index1, discrete=index2)
+
     """
 
+        neural: Union[torch.Tensor, npt.NDArray],
+        continuous: Union[torch.Tensor, npt.NDArray] = None,
+        discrete: Union[torch.Tensor, npt.NDArray] = None,
         super().__init__()
         self.neural = self._to_tensor(neural, torch.FloatTensor).float()
         self.continuous = self._to_tensor(continuous, torch.FloatTensor)
@@ -76,8 +96,20 @@ class TensorDataset(cebra_data.SingleSessionDataset):
 class DatasetCollection(cebra_data.MultiSessionDataset):
     """Multi session dataset made up of a list of datasets.
     Args:
+        *datasets: Collection of datasets to add to the collection. The order
             will be maintained for indexing.
 
+    Example:
+
+        >>> import cebra.data
+        >>> import torch
+        >>> session1 = torch.randn((100, 30))
+        >>> session2 = torch.randn((100, 50))
+        >>> index1 = torch.randn((100, 4))
+        >>> index2 = torch.randn((100, 4)) # same index dim as index1
+        >>> dataset = cebra.data.DatasetCollection(
+        ...               cebra.data.TensorDataset(session1, continuous=index1),
+        ...               cebra.data.TensorDataset(session2, continuous=index2))
 
     """
 
@@ -96,6 +128,9 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
             return False
         return False
 
+    def _unpack_dataset_arguments(
+        self, datasets: Tuple[cebra_data.SingleSessionDataset]
+    ) -> List[cebra_data.SingleSessionDataset]:
         if len(datasets) == 0:
             raise ValueError("Need to supply at least one dataset.")
         elif len(datasets) == 1:
@@ -109,11 +144,16 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
             return datasets
 
         super().__init__()
+        self._datasets: List[
+            cebra_data.SingleSessionDataset] = self._unpack_dataset_arguments(
+                datasets)
 
         continuous = all(
             self._has_not_none_attribute(session, "continuous_index")
+            for session in self.iter_sessions())
         discrete = all(
             self._has_not_none_attribute(session, "discrete_index")
+            for session in self.iter_sessions())
 
         if not (continuous or discrete):
             raise ValueError(
@@ -129,15 +169,34 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
         else:
             self._cindex = None
         if discrete:
+            raise NotImplementedError(
+                "Multisession implementation does not support discrete index yet."
+            )
         else:
             self._dindex = None
 
     @property
+    def num_sessions(self) -> int:
         """The number of sessions in the dataset."""
         return len(self._datasets)
 
     @property
+    def input_dimension(self):
+        return super().input_dimension
 
+    def get_input_dimension(self, session_id: int) -> int:
+        """Get the feature dimension of the required session.
+
+        Args:
+            session_id: The session ID, an integer between 0 and
+                :py:attr:`num_sessions`.
+
+        Returns:
+            A single session input dimension for the requested session id.
+        """
+        return self.get_session(session_id).input_dimension
+
+    def get_session(self, session_id: int) -> cebra_data.SingleSessionDataset:
         """Get the dataset for the specified session.
 
         Args:
@@ -151,11 +210,15 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
         return self._datasets[session_id]
 
     @property
+    def continuous_index(self) -> torch.Tensor:
         return self._cindex
 
     @property
+    def discrete_index(self) -> torch.Tensor:
         return self._dindex
 
     def _apply(self, func):
+        return (func(data) for data in self.iter_sessions())
 
     def _iter_property(self, attr):
+        return (getattr(data, attr) for data in self.iter_sessions())

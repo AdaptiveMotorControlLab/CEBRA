@@ -1,3 +1,5 @@
+"""Datasets to be used as part of the sklearn framework."""
+
 from typing import Iterable, Optional
 
 import numpy as np
@@ -5,6 +7,7 @@ import numpy.typing as npt
 import torch
 
 import cebra.data
+import cebra.integrations.sklearn.utils as cebra_sklearn_utils
 import cebra.models
 import cebra.solver
 
@@ -16,10 +19,21 @@ class SklearnDataset(cebra.data.SingleSessionDataset):
     of labels ``y``, which can include continuous and up to one discrete index.
     All input arrays are checked and converted for use with CEBRA.
 
+    Attributes:
         X: array-like of shape ``(N, d)``.
         y: A list of multiple array-like of shape ``(N, k[i])`` for continual
             inputs, including up to one discrete array-like of shape ``(N,)``.
         device: Compute device, can be ``cpu`` or ``cuda``.
+
+    Example:
+
+        >>> import cebra.integrations.sklearn.dataset as cebra_sklearn_dataset
+        >>> import numpy as np
+        >>> data = np.random.uniform(0, 1, (100, 30))
+        >>> index1 = np.random.uniform(0, 10, (100, ))
+        >>> index2 = np.random.uniform(0, 10, (100, 2))
+        >>> dataset = cebra_sklearn_dataset.SklearnDataset(data, (index1, index2))
+
     """
 
     def __init__(self, X: npt.NDArray, y: tuple, device="cpu"):
@@ -73,13 +87,16 @@ class SklearnDataset(cebra.data.SingleSessionDataset):
         # NOTE(stes) in practice this value should be much higher, but more than
         # one sample is a conservative default here to ensure that sklearn tests
         # passes with the correct error messages.
+        X = cebra_sklearn_utils.check_input_array(X, min_samples=2)
         self.neural = torch.from_numpy(X).float().to(self.device)
 
+    def _parse_labels(self, labels: Optional[tuple]):
         """Check labels validity and convert to torch.Tensor
 
         Args:
             labels: Tuple containing the sets of labels, either continuous or discrete.
         """
+        # Check that labels are provided in a tuple format
         if labels is None:
             raise ValueError("Labels cannot be None.")
         if not isinstance(labels, tuple):
@@ -92,6 +109,10 @@ class SklearnDataset(cebra.data.SingleSessionDataset):
         continuous_index = []
         discrete_index = []
         for y in labels:
+            # Validate the set of index format
+            y = cebra_sklearn_utils.check_label_array(y,
+                                                      min_samples=len(
+                                                          self.neural))
             if y is None:
                 raise ValueError("Labels cannot be None.")
             if not isinstance(y, np.ndarray):
@@ -128,6 +149,7 @@ class SklearnDataset(cebra.data.SingleSessionDataset):
             (self._discrete_index,) = discrete_index
             self._discrete_index = self._discrete_index.to(self.device)
 
+    def __getitem__(self, index: Iterable) -> npt.NDArray:
         """
 
         Args:
@@ -139,4 +161,6 @@ class SklearnDataset(cebra.data.SingleSessionDataset):
         index = self.expand_index(index).to(self.device)
         return self.neural[index].transpose(2, 1)
 
+    def __len__(self) -> int:
+        """Number of samples in the neural data."""
         return len(self.neural)

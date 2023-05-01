@@ -1,3 +1,4 @@
+import _util
 import torch
 from torch import nn
 
@@ -20,6 +21,7 @@ class Container(cebra.io.HasDevice):
         self.baz = HasDeviceDummy()
 
 
+class MoveToDeviceImplicit(cebra.io.HasDevice):
 
     def __init__(self):
         super().__init__()
@@ -29,6 +31,7 @@ class Container(cebra.io.HasDevice):
         assert self.move_to_cpu.device.type == "cpu"
 
 
+class MoveToDeviceExplicit(cebra.io.HasDevice):
 
     def __init__(self):
         # sets the device to CPU
@@ -36,10 +39,14 @@ class Container(cebra.io.HasDevice):
         assert self.move_to_cuda.device.type == "cuda"
 
 
+@_util.requires_cuda
 def test_move_to_device_implicit():
+    MoveToDeviceImplicit()
 
 
+@_util.requires_cuda
 def test_move_to_device_explicit():
+    MoveToDeviceExplicit()
 
 
 def _assert_device(obj, device):
@@ -50,6 +57,7 @@ def _assert_device(obj, device):
         assert obj.device.type == device
 
 
+@_util.requires_cuda
 def test_has_device():
     dummy = HasDeviceDummy()
     assert dummy.device == "cpu"
@@ -62,6 +70,7 @@ def test_has_device():
     assert dummy.baz.device.type == "cuda"
 
 
+@_util.requires_cuda
 def test_has_device_nested():
     container = Container()
     assert container.device == "cpu"

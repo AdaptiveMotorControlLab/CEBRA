@@ -2,6 +2,7 @@
 
 Indexing operations---in contrast to data distributions---exhibit deterministic behavior
 by returning an element closest in the dataset to a given query sample. This module contains
+helper functions for mixed and continuously indexed datasets (i.e., containing discrete and/or
 continuous data).
 
 Discrete data has to come in the format of a single label for each datapoint. Multidimensional
@@ -128,6 +129,7 @@ class ContinuousIndex(cebra_distributions.Index, cebra.io.HasDevice):
 
 class ConditionalIndex(cebra_distributions.Index):
     """Index a dataset based on both continuous and discrete information.
+    In contrast to the standard :py:class:`.base.Index` class, the :py:class:`ConditionalIndex`
     accept both discrete and continuous indexing information.
 
     This index considers the discrete indexing information first to

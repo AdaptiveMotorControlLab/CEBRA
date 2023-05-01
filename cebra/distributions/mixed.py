@@ -4,6 +4,7 @@ TODO:
     * API in this package is not yet fully stable, and the docs are quite
       sparse because of this. Extend docs/finalize API.
 """
+from typing import Literal
 
 import numpy as np
 import torch
@@ -37,6 +38,9 @@ class ConfigurableDistribution:
         """Not implemented yet."""
         pass
 
+    def configure_prior(self,
+                        distribution: Literal["empirical",
+                                              "uniform"] = "empirical"):
         """Not implemented yet."""
         pass
 
@@ -51,6 +55,7 @@ class Mixed(cebra.io.HasDevice):
     Class combines sampling across continuous and discrete variables.
     """
 
+    def __init__(self, discrete: torch.Tensor, continuous: torch.Tensor):
         self.uniform_prior = False
         self.prior = DiscreteUniform(discrete)
         self.conditional = ConditionalIndex(discrete, continuous)

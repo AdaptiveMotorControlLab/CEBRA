@@ -127,6 +127,7 @@ def _assert_histograms_close(values, histogram):
 
     assert value_histogram.shape == histogram.shape
     # NOTE(stes) while the relative tolerance here is quite high (20%), this is a tradeoff vs. speed.
+    # For lowering the tolerance, the number of samples drawn in the test methods needs to be increased.
 
 
 def test_poisson_reference_implementation():

@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 import torch
 
+import cebra.datasets as cebra_datasets
 import cebra.distributions as cebra_distr
 
 
@@ -75,15 +76,18 @@ class _TestMixedBase:
     def ref_idx(self):
         return self.distribution.sample_prior(self.num_samples)
 
+    def setup_method(self):
         self.num_samples = 15
         self.discrete, self.continuous = prepare()
 
     def test_prior(self):
+        self.setup_method()
         assert_is_tensor(self.discrete)
         assert_is_tensor(self.continuous)
         assert_is_tensor(self.ref_idx)
 
     def test_conditional(self):
+        self.setup_method()
         # The conditional distribution p(· | disc, cont) should yield
         # samples where the label exactly matches the reference sample.
         samples_both = self.distribution.sample_conditional(
@@ -100,6 +104,8 @@ class _TestMixedBase:
 
 class TestMixed(_TestMixedBase):
 
+    def setup_method(self):
+        super().setup_method()
         self.distribution = cebra_distr.mixed.Mixed(self.discrete,
                                                     self.continuous)
 
@@ -109,6 +115,7 @@ class TestMixed(_TestMixedBase):
     def test_conditional_continuous(self):
         pytest.skip("Skipping")
 
+        self.setup_method()
         # Sampling only based on the continuous samples, p(· | cont) should reproduce
         # the empirical distribution of discrete values.
         samples_cont = self.distribution.sample_conditional_continuous(
@@ -124,6 +131,7 @@ class TestMixed(_TestMixedBase):
                             self.discrete[self.ref_idx]).all()
 
     def test_conditional_discrete(self):
+        self.setup_method()
         samples_disc = self.distribution.sample_conditional_discrete(
             self.discrete[self.ref_idx])
         assert_is_tensor(samples_disc)
@@ -244,3 +252,19 @@ def test_multi_session_time_delta():
     pass
 
 
+@pytest.mark.parametrize("time_offset", [1, 5, 10])
+def test_multi_session_time_contrastive(time_offset):
+    dataset = cebra_datasets.init("demo-continuous-multisession")
+    sampler = cebra_distr.MultisessionSampler(dataset, time_offset=time_offset)
+
+    num_samples = 5
+    sample = sampler.sample_prior(num_samples)
+    assert sample.shape == (dataset.num_sessions, num_samples)
+
+    positive, idx, rev_idx = sampler.sample_conditional(sample)
+    assert positive.shape == (dataset.num_sessions, num_samples)
+    assert idx.shape == (dataset.num_sessions * num_samples,)
+    assert rev_idx.shape == (dataset.num_sessions * num_samples,)
+    # NOTE(celia): test the private function ``_inverse_idx()``, with idx arrays flat
+    assert (idx.flatten()[rev_idx.flatten()].all() == np.arange(
+        len(rev_idx.flatten())).all())

@@ -11,3 +11,8 @@ Note:
     https://scikit-learn.org/stable/developers/develop.html
 """
 
+from cebra.integrations.sklearn import cebra
+from cebra.integrations.sklearn import dataset
+from cebra.integrations.sklearn import decoder
+from cebra.integrations.sklearn import metrics
+from cebra.integrations.sklearn import utils

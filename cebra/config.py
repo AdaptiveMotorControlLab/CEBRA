@@ -28,6 +28,7 @@ class Config:
 
 
 
+        """ Distance (in time) between positive pairs. The interpretation of this parameter depends on
         the chosen conditional distribution, but generally a higher time offset increases the difficulty of
         the learning task, and (in a certain range) improves the quality of the representation. The time
 
@@ -51,6 +52,7 @@ class Config:
 
 
 
+        The remaining will be test split""",
 
     @classmethod
     def _add_arguments(cls, parser, **override_kwargs):

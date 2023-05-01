@@ -79,7 +79,15 @@ from cebra.datasets import register
 class Area2BumpDataset(cebra.data.SingleSessionDataset):
     """Base dataclass to generate monkey reaching datasets.
 
+    Ephys and behavior recording from -100ms and 500ms from the movement 
+    onset in 1ms bin size.
+    The behavior labels can include trial types, target directions and the 
+    x,y hand positions.
+    After initialization of the dataset, split method can splits the data 
+    into 'train', 'valid' and 'test' split.
     Args:
+        session: The trial type. Choose between 'active', 'passive', 
+            'all', 'active-passive'.
     """
 
         super().__init__()
@@ -91,6 +99,10 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
 
     def split(self, split):
 
+        The train trials are the same as one defined in Neural Latent 
+        Benchmark (NLB) Dataset.
+        The half of the valid trials defined in NLBDataset is used as 
+        the valid set and the other half is used as the test set.
         Args:
             split: The split. It can be either `all`, `train`, `valid`, `test`.
         """
@@ -136,6 +148,8 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
         return self.pos
 
     def __repr__(self):
+        return f"MonkeyArea2BumpDataset(name: Discrete active/passive & " \
+               f"continuous hand position, shape: {self.neural.shape})"
 
     def __getitem__(self, index):
         index = self.expand_index_in_trial(index,
@@ -146,8 +160,16 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
 
 class Area2BumpShuffledDataset(Area2BumpDataset):
     """Base dataclass to generate shuffled monkey reaching datasets.
+    Ephys and behavior recording from -100ms and 500ms from the movement 
+    onset in 1ms bin size.
+    The shuffled behavior labels can include trial types, target directions 
+    and the x,y hand positions.
 
+    After initialization of the dataset, split method can splits the data 
+    into 'train', 'valid' and 'test' split.
     Args:
+        session: The trial type. Choose between 'active', 'passive', 'all', 
+            'active-passive'.
     """
 
     def _post_load(self):
@@ -181,12 +203,18 @@ class Area2BumpShuffledDataset(Area2BumpDataset):
 def _create_area2_dataset():
     """Register the monkey reaching datasets of different trial types, behavior labels.
     The trial types are 'active', 'passive', 'all' and 'active-passive'.
+    The 'active-passive' type distinguishes movement direction between active, passive 
+    (0-7 for active and 8-15 for passive) and 'all' does not (0-7).
     """
 
 
         class Dataset(Area2BumpDataset):
             """Monkey reaching dataset with hand position labels.
+            For the 'active-passive' trial type, it additionally loads discrete binary 
+            label of active(0)/passive(1).
             Args:
+                session: The trial type. Choose between 'active', 'passive', 'all', 
+                    'active-passive'.
             """
 
             def __init__(self, path=PATH, session=session_type):
@@ -206,6 +234,8 @@ def _create_area2_dataset():
             """Monkey reaching dataset with target direction labels.
             The dataset loads discrete target direction (0-7) as behavior labels.
             Args:
+                session: The trial type. Choose between 'active', 'passive', 'all', 
+                    'active-passive'.
             """
 
             def __init__(self, path=PATH, session=session_type):
@@ -223,7 +253,13 @@ def _create_area2_dataset():
 
         class Dataset(Area2BumpDataset):
             """Monkey reaching dataset with hand position labels and discrete target labels.
+            The dataset loads continuous x,y hand position and discrete target labels (0-7) 
+            as behavior labels.
+            For active-passive type, the discrete target labels 0-7 for active and 8-16 for 
+            passive are loaded.
             Args:
+                session: The trial type. Choose between 'active', 'passive', 'all', 
+                'active-passive'.
             """
 
             def __init__(self, path=PATH, session=session_type):
@@ -244,12 +280,18 @@ _create_area2_dataset()
 def _create_area2_shuffled_dataset():
     """Register the shuffled monkey reaching datasets of different trial types, behavior labels.
     The trial types are 'active' and 'active-passive'.
+    The behavior labels are randomly shuffled and the trial types are shuffled 
+    in case of 'shuffled-trial' datasets.
     """
 
 
         class Dataset(Area2BumpShuffledDataset):
             """Monkey reaching dataset with the shuffled trial type.
+            The dataset loads the discrete binary trial type label active(0)/passive(1) 
+            in randomly shuffled order.
             Args:
+                session: The trial type. Choose between 'active', 'passive', 'all', 
+                    'active-passive'.
             """
 
             def __init__(self, path=PATH, session=session_type):
@@ -268,7 +310,11 @@ def _create_area2_shuffled_dataset():
         class Dataset(Area2BumpShuffledDataset):
             """Monkey reaching dataset with the shuffled hand position.
             The dataset loads continuous x,y hand position in randomly shuffled order.
+            For the 'active-passive' trial type, it additionally loads discrete binary label 
+            of active(0)/passive(1).
             Args:
+                session: The trial type. Choose between 'active', 'passive', 'all', 
+                    'active-passive'.
             """
 
             def __init__(self, path=PATH, session=session_type):
@@ -286,7 +332,11 @@ def _create_area2_shuffled_dataset():
 
         class Dataset(Area2BumpShuffledDataset):
             """Monkey reaching dataset with the shuffled hand position.
+            The dataset loads discrete target direction (0-7 for active and 0-15 for active-passive) 
+            in randomly shuffled order.
             Args:
+                session: The trial type. Choose between 'active', 'passive', 'all', 
+                    'active-passive'.
             """
 
             def __init__(self, path=PATH, session=session_type):

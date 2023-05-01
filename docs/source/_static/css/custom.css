@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap');
+
 :root {
     --pst-font-size-base: 14px;
     --pst-font-family-base: 'Open Sans', var(--pst-font-family-base-system);
@@ -22,6 +24,7 @@ code {
   highlighting line at the start of the box.
 */
 .sig {
+    font-family: 'IBM Plex Mono', monospace;
     font-style: normal;
     color: var(--pst-color-primary);
 }
@@ -37,6 +40,7 @@ dt {
 }
 
 em.sig-param {
+    font-family: 'IBM Plex Mono', monospace;
     font-style: normal;
     color: rgb(23, 23, 23); 
 }
@@ -85,4 +89,37 @@ pre {
     text-align: center;
 }
 
+
+.sphx-glr-thumbcontainer {
+    background: transparent;
+    -moz-border-radius: 5px;
+    -webkit-border-radius: 5px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px #6c757d40;
+    box-sizing: border-box;
+    border: 1px solid transparent;
+    padding-top: 5px;
+    margin: 5px;
+    min-height: 230px;
+}
+
+.sphx-glr-thumbcontainer .figure {
+    margin: 5px;
+}
+
+.sphx-glr-thumbcontainer a.reference.internal {
+    text-align: center;
+}
+
+.default-value-section {
+    font-weight: bold;
+    word-break: break-word;
+    padding-left: 0.5em;
+    padding-right: 5px;
+}
+
+.default-value-section .default-value-label {
+    font-weight: 600;
+    font-size: 87.5%;
+    color: var(--pst-color-primary);
 }

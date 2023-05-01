@@ -55,12 +55,31 @@ def test_offset():
     assert offset.left == 5
     assert offset.right == 4
     assert offset.left_slice == slice(0, 5)
+    assert len(offset) == 5 + 4
+
+    offset = cebra.data.Offset(0, 4)
+    assert offset.left == 0
+    assert offset.right == 4
+    assert offset.left_slice == slice(0, 0)
+    assert len(offset) == 4
 
     offset = cebra.data.Offset(5)
     assert offset.left == 5
     assert offset.right == 5
     assert offset.left_slice == slice(0, 5)
     assert offset.right_slice == slice(-5, None)
+    assert len(offset) == 5 * 2
+
+    with pytest.raises(ValueError, match="Invalid.*right"):
+        offset = cebra.data.Offset(5, 0)
+    with pytest.raises(ValueError, match="Invalid.*right"):
+        offset = cebra.data.Offset(0, 0)
+    with pytest.raises(ValueError, match="Invalid.*number"):
+        offset = cebra.data.Offset(5, 5, 5)
+    with pytest.raises(ValueError, match="Invalid.*bounds"):
+        offset = cebra.data.Offset(-2, 4)
+    with pytest.raises(ValueError, match="Invalid.*bounds"):
+        offset = cebra.data.Offset(4, -2)
 
 
 def _assert_dataset_on_correct_device(loader, device):

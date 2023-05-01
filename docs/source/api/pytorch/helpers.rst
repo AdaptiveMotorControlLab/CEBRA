@@ -1,6 +1,8 @@
+==============================
 Helper functions and utilities
 ==============================
 
+This section contains information on modules that are used within the packages, but are not
 part of the key algorithm/functionality.
 
 File IO
@@ -18,3 +20,26 @@ Registry
    :members:
    :show-inheritance:
 
+
+Plots
+-----
+
+.. automodule:: cebra.integrations.matplotlib
+   :show-inheritance:
+   :members:
+
+
+Grid-Search 
+-----------
+
+.. automodule:: cebra.grid_search
+   :show-inheritance:
+   :members:
+
+
+Data helpers
+------------
+
+.. automodule:: cebra.data.helper
+   :members:
+   :show-inheritance:
