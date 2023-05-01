@@ -29,21 +29,41 @@ from cebra.datasets import register
 
 _SINGLE_SESSION_CA = (
     get_datapath(
+        "allen/visual_drift/data/calcium_excitatory/VISp/680156909.mat"),
     get_datapath(
+        "allen/visual_drift/data/calcium_excitatory/VISp/511510779.mat"),
     get_datapath(
+        "allen/visual_drift/data/calcium_excitatory/VISp/679702882.mat"),
     get_datapath(
+        "allen/visual_drift/data/calcium_excitatory/VISp/688678764.mat"),
+)
 
 
+@parametrize(
+    "allen-movie1-ca-single-session-{session_id}",
+    session_id=range(len(_SINGLE_SESSION_CA)),
+)
 class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
     """A single mouse 30Hz calcium events dataset during the allen MOVIE1 stimulus.
+
+    A dataset of a single mouse 30Hz calcium events from the excitatory neurons in the primary visual cortex
+    during the 10 repeats of the MOVIE1 stimulus in session type A. The preprocessed data from *Deitch et al. (2021) are used.
+    The continuous labels corresponding to a DINO embedding of each stimulus frame.
+
     Args:
         session_id: The integer value to pick a session among 4 sessions with the largest number of recorded neruons. Choose between 0-3.
         frame_feature_path: The path of the movie frame features.
+
     """
 
     def __init__(
+        self,
+        session_id: int,
+        frame_feature_path: str = get_datapath(
             "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
         ),
+        pca: bool = False,
+    ):
         self.path = _SINGLE_SESSION_CA[session_id]
         traces = scipy.io.loadmat(self.path)
         if pca:
@@ -74,17 +94,31 @@ class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
         return self.neural[index].transpose(2, 1)
 
 
+@parametrize(
+    "allen-movie1-ca-single-session-corrupt-{session_id}",
+    session_id=range(len(_SINGLE_SESSION_CA)),
+)
 class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
     """A corrupted single mouse 30Hz calcium events dataset during the allen MOVIE1 stimulus.
+
+    A dataset of a single mouse 30Hz calcium events from the excitatory neurons in the primary visual cortex
     during the 10 repeats of the MOVIE1 stimulus in session type A. The preprocessed data from *Deitch et al. (2021) are used.
+    The continuous labels corresponding to a DINO embedding of each stimulus frame, but in randomly shuffled order.
+
     Args:
+        session_id: The integer value to pick a session among 4 sessions with the largest number of recorded neruons. Choose between 0-3.
         frame_feature_path: The path of the movie frame features.
 
     """
 
     def __init__(
+        self,
+        session_id: int,
+        frame_feature_path: str = get_datapath(
             "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
         ),
+        pca: bool = False,
+    ):
         self.path = _SINGLE_SESSION_CA[session_id]
         traces = scipy.io.loadmat(self.path)
         if pca:
@@ -119,8 +153,17 @@ class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
         return self.neural[index].transpose(2, 1)
 
 
+@parametrize(
+    "allen-movie1-ca-single-session-time-{session_id}",
+    session_id=range(len(_SINGLE_SESSION_CA)),
+)
 class SingleSessionAllenCaTime(SingleSessionAllenCa):
     """A single mouse 30Hz calcium events dataset during the allen MOVIE1 stimulus.
+
+    A dataset of a single mouse 30Hz calcium events from the excitatory neurons in the primary visual cortex
+    during the 10 repeats of the MOVIE1 stimulus in session type A. The preprocessed data from *Deitch et al. (2021) are used.
+    There is no behavioral variable used as the continuous label.
+
     Args:
         session_id: The integer value to pick a session among 4 sessions with the largest number of recorded neruons. Choose between 0-3.
         frame_feature_path: The path of the movie frame features.
@@ -133,22 +176,38 @@ class SingleSessionAllenCaTime(SingleSessionAllenCa):
 
 
 @parametrize(
+    "allen-movie1-ca-single-session-decoding-{session_id}-repeat-{repeat_no}-{split_flag}",
     session_id=range(len(_SINGLE_SESSION_CA)),
     repeat_no=np.arange(10),
+    split_flag=["train", "test"],
+)
 class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
     """A single mouse 30Hz calcium events dataset during the allen MOVIE1 stimulus with train/test splits.
+
+    A dataset of a single mouse 30Hz calcium events from the excitatory neurons in the primary visual cortex
+    during the 10 repeats of the MOVIE1 stimulus in session type A. The preprocessed data from *Deitch et al. (2021) are used.
+    The continuous labels corresponding to a DINO embedding of each stimulus frame.
     A neural recording during the chosen repeat is used as a test set and the remaining 9 repeats are used as a train set.
+
     Args:
         session_id: The integer value to pick a session among 4 sessions with the largest number of recorded neruons. Choose between 0-3.
         repeat_no: The nth repeat to use as the test set. Choose between 0-9.
         split_flag: The `train`/`test` split to load.
         frame_feature_path: The path of the movie frame features.
+        pca: If true, 32 principal components of the PCA transformed calcium data are used as neural input. Default value is `False`.
 
     """
 
     def __init__(
+        self,
+        session_id: int,
+        repeat_no: int,
+        split_flag: str,
+        frame_feature_path: str = get_datapath(
             "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
         ),
+        pca: bool = False,
+    ):
         self.path = _SINGLE_SESSION_CA[session_id]
         traces = scipy.io.loadmat(self.path)
         if pca:
@@ -163,8 +222,10 @@ class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
         test_idx = np.arange(900 * repeat_no, 900 * (repeat_no + 1))
         train_idx = np.delete(np.arange(9000), test_idx)
         frame_feature = torch.load(frame_feature_path)
+        if split_flag == "train":
             self.neural = torch.from_numpy(neural[train_idx]).float()
             self.index = frame_feature.repeat(9, 1)
+        elif split_flag == "test":
             self.neural = torch.from_numpy(neural[test_idx]).float()
             self.index = frame_feature
 
@@ -185,8 +246,11 @@ class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
 
 
 @parametrize(
+    "allen-movie1-ca-single-session-leave2out-{session_id}-repeat-{repeat_no}-{split_flag}",
     session_id=range(len(_SINGLE_SESSION_CA)),
     repeat_no=[0, 2, 4, 6, 8],
+    split_flag=["train", "valid", "test"],
+)
 class SingleSessionAllenCaDecodingLeave2Out(cebra.data.SingleSessionDataset):
 
     def __init__(
@@ -207,10 +271,13 @@ class SingleSessionAllenCaDecodingLeave2Out(cebra.data.SingleSessionDataset):
         train_idx = np.delete(np.arange(9000),
                               np.concatenate([valid_idx, test_idx]))
         frame_feature = torch.load(frame_feature_path)
+        if split_flag == "train":
             self.neural = torch.from_numpy(neural[train_idx]).float()
             self.index = frame_feature.repeat(9, 1)
+        elif split_flag == "valid":
             self.neural = torch.from_numpy(neural[valid_idx]).float()
             self.index = frame_feature
+        elif split_flag == "test":
             self.neural = torch.from_numpy(neural[test_idx]).float()
             self.index = frame_feature
         else:
@@ -233,24 +300,50 @@ class SingleSessionAllenCaDecodingLeave2Out(cebra.data.SingleSessionDataset):
 
 
 @parametrize(
+    "allen-movie1-ca-multi-session-decoding-repeat-{repeat_no}-{split_flag}",
     repeat_no=np.arange(10),
+    split_flag=["train", "test"],
+)
 class MultiSessionAllenCaDecoding(cebra.data.DatasetCollection):
 
     def __init__(self, repeat_no, split_flag):
+        super().__init__(
+            *[
+                init(
+                    f"allen-movie1-ca-single-session-decoding-{session_id}-repeat-{repeat_no}-{split_flag}"
+                ) for session_id in range(4)
+            ],
+            continuous=True,
+        )
 
 
 @parametrize(
+    "allen-movie1-ca-multi-session-leave2out-repeat-{repeat_no}-{split_flag}",
     repeat_no=[0, 2, 4, 6, 8],
+    split_flag=["train", "valid", "test"],
+)
 class MultiSessionAllenCaLeave2Out(cebra.data.DatasetCollection):
 
     def __init__(self, repeat_no, split_flag):
+        super().__init__(
+            *[
+                init(
+                    f"allen-movie1-ca-single-session-leave2out-{session_id}-repeat-{repeat_no}-{split_flag}"
+                ) for session_id in range(4)
+            ],
+            continuous=True,
+        )
 
 
 @parametrize(
+    "allen-movie1-ca-single-session-decoding-corrupt-{session_id}-repeat-{repeat_no}-{split_flag}",
     session_id=range(len(_SINGLE_SESSION_CA)),
     repeat_no=[9],
+    split_flag=["train", "test"],
+)
 class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
     """A corrupted single mouse 30Hz calcium events dataset during the allen MOVIE1 stimulus with train/test splits.
+
     A dataset of a single mouse 30Hz calcium events from the excitatory neurons 
     in the primary visual cortex during the 10 repeats of the MOVIE1 stimulus 
     in session type A. The preprocessed data from *Deitch et al. (2021) are used.
@@ -258,6 +351,7 @@ class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
     but in randomly shuffled order.
     A neural recording during the chosen repeat is used as a test set and the 
     remaining 9 repeats are used as a train set.
+
     Args:
         session_id: The integer value to pick a session among 4 sessions with the 
             largest number of recorded neruons. Choose between 0-3.
@@ -268,8 +362,15 @@ class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
     """
 
     def __init__(
+        self,
+        session_id: int,
+        repeat_no: int,
+        split_flag: str,
+        frame_feature_path: str = get_datapath(
             "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
         ),
+        pca: bool = False,
+    ):
         self.path = _SINGLE_SESSION_CA[session_id]
         traces = scipy.io.loadmat(self.path)
         if pca:
@@ -285,11 +386,13 @@ class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
         train_idx = np.delete(np.arange(9000), test_idx)
         frame_feature = torch.load(frame_feature_path)
         rng = np.random.Generator(np.random.PCG64(111))
+        if split_flag == "train":
             self.neural = torch.from_numpy(neural[train_idx]).float()
             self.frame_index = np.arange(900)
             rng.shuffle(self.frame_index)
             self.index = frame_feature.repeat(9,
                                               1)[np.tile(self.frame_index, 9)]
+        elif split_flag == "test":
             self.neural = torch.from_numpy(neural[test_idx]).float()
             self.index = frame_feature
             self.frame_index = np.arange(900)

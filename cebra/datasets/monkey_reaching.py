@@ -20,6 +20,7 @@ try:
     from nlb_tools.nwb_interface import NWBDataset
 except ImportError:
     import warnings
+
     warnings.warn(
         ("Could not import the nlb_tools package required for data loading "
          "of cebra.datasets.monkey_reaching. Dataset will not be available. "
@@ -31,10 +32,23 @@ from cebra.datasets import get_datapath
 from cebra.datasets import register
 
 
+def _load_data(
+    path: str = get_datapath(
+        "s1_reaching/sub-Han_desc-train_behavior+ecephys.nwb"),
+    session: str = "active",
+    split: str = "train",
+):
+    """Load and preprocess neural and behavior data of monkey reaching task from NWBDataset.
+
     Ephys and behavior recording from -100ms and 500ms from the movement onset in 1ms bin size.
+    Neural recording is smoothened with Gaussian kernel with 40ms std.
     The behavior labels include trial types, target directions and the x,y hand positions.
+
     Args:
+        path: The path to the nwb file.
         session: The session type to load among 'active', 'passive' and 'all'.
+        split: The split to load among 'train', 'valid', 'test' and 'all'.
+
     """
 
     def _get_info(trial_info, data):
@@ -42,32 +56,63 @@ from cebra.datasets import register
         direction = []
         direction_actpas = []
         for index, trial in trial_info.iterrows():
+            if trial["ctr_hold_bump"]:
                 passive.append(True)
+                direction.append(int(trial["bump_dir"] / 45))
+                direction_actpas.append(int(trial["bump_dir"] / 45) + 8)
             else:
                 passive.append(False)
+                direction.append(int(trial["cond_dir"] / 45))
+                direction_actpas.append(int(trial["cond_dir"] / 45))
+            spikes = data["spikes_smth_40"].to_numpy()
+            velocity = data["hand_vel"].to_numpy()
+            position = data["hand_pos"].to_numpy()
 
         return {
+            "spikes": spikes,
+            "vel": velocity,
+            "pos": position,
+            "passive": np.array(passive),
+            "movement_dir": np.array(direction),
+            "movement_dir_actpas": np.array(direction_actpas),
+            "num_trials": len(trial_info),
+            "trial_len": int(len(spikes) / len(trial_info)),
         }
 
     dataset = NWBDataset(path, split_heldout=False)
+    dataset.smooth_spk(40, name="smth_40")
 
+    if split == "train":
+        split_mask = dataset.trial_info.split == "train"
 
+    elif split == "all":
+        split_mask = dataset.trial_info.split != "none"
 
+    elif split == "valid" or split == "test":
+        split_mask = dataset.trial_info.split == "val"
     else:
+        raise ValueError("--split argument should be train, valid, test or all")
 
+    if session == "active":
         session_mask = ~dataset.trial_info.ctr_hold_bump
+    elif session == "passive":
         session_mask = dataset.trial_info.ctr_hold_bump
+    elif session == "all":
         session_mask = True
     else:
+        raise ValueError("--session argument should be active, passive or all")
 
     mask = split_mask & session_mask
 
+    trials = dataset.make_trial_data(align_field="move_onset_time",
                                      align_range=(-100, 500),
                                      ignored_trials=~mask)
     trial_info = dataset.trial_info[mask]
 
+    if split == "valid":
         data_dic = _get_info(trial_info[:mask.sum() // 2],
                              trials[:len(trials) // 2])
+    elif split == "test":
         data_dic = _get_info(trial_info[mask.sum() // 2:],
                              trials[len(trials) // 2:])
     else:
@@ -76,35 +121,51 @@ from cebra.datasets import register
     return data_dic
 
 
+@register("area2-bump")
 class Area2BumpDataset(cebra.data.SingleSessionDataset):
     """Base dataclass to generate monkey reaching datasets.
 
     Ephys and behavior recording from -100ms and 500ms from the movement 
     onset in 1ms bin size.
+    Neural recording is smoothened with Gaussian kernel with 40ms std.
     The behavior labels can include trial types, target directions and the 
     x,y hand positions.
     After initialization of the dataset, split method can splits the data 
     into 'train', 'valid' and 'test' split.
+
     Args:
+        path: The path to the directory where the preloaded data is.
         session: The trial type. Choose between 'active', 'passive', 
             'all', 'active-passive'.
+
     """
 
+    def __init__(
+        self,
+        path: str = get_datapath("monkey_reaching_preload_smth_40/"),
+        session: str = "active",
+    ):
         super().__init__()
         self.path = path
         self.session = session
+        if session == "active-passive":
+            self.load_session = "all"
         else:
             self.load_session = session
+        self.data = jl.load(os.path.join(path, f"{self.load_session}_all.jl"))
         self._post_load()
 
     def split(self, split):
+        """Split the dataset.
 
         The train trials are the same as one defined in Neural Latent 
         Benchmark (NLB) Dataset.
         The half of the valid trials defined in NLBDataset is used as 
         the valid set and the other half is used as the test set.
+
         Args:
             split: The split. It can be either `all`, `train`, `valid`, `test`.
+
         """
 
         self.data = jl.load(
@@ -114,6 +175,9 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
     def _post_load(self):
         """Read and assign neural and behavior recording into the class attributes."""
 
+        self.trial_len = int(self.data["trial_len"])
+        self.num_trials = int(self.data["num_trials"])
+        self.neural = torch.from_numpy(self.data["spikes"]).float()
         self.trial_ids = np.concatenate(
             [[n] * self.trial_len for n in range(self.num_trials)])
         self.trial_borders = [
@@ -123,12 +187,17 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
             [np.arange(self.trial_len) for n in range(self.num_trials)])
 
         self.passive = torch.from_numpy(
+            np.concatenate([[t] * self.trial_len for t in self.data["passive"]
                            ])).long()
+        self.pos = torch.from_numpy(self.data["pos"]).float()
+        self.vel = torch.from_numpy(self.data["vel"]).float()
         self.target = torch.from_numpy(
             np.concatenate([
+                [t] * self.trial_len for t in self.data["movement_dir"]
             ])).long()
         self.target_actpas = torch.from_numpy(
             np.concatenate([
+                [t] * self.trial_len for t in self.data["movement_dir_actpas"]
             ])).long()
         self.trial_indices = torch.from_numpy(self.trial_indices).float()
 
@@ -158,23 +227,32 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
         return self.neural[index].transpose(2, 1)
 
 
+@register("area2-bump-shuffled")
 class Area2BumpShuffledDataset(Area2BumpDataset):
     """Base dataclass to generate shuffled monkey reaching datasets.
+
     Ephys and behavior recording from -100ms and 500ms from the movement 
     onset in 1ms bin size.
+    Neural recording is smoothened with Gaussian kernel with 40ms std.
     The shuffled behavior labels can include trial types, target directions 
     and the x,y hand positions.
 
     After initialization of the dataset, split method can splits the data 
     into 'train', 'valid' and 'test' split.
+
     Args:
+        path: The path to the directory where the preloaded data is.
         session: The trial type. Choose between 'active', 'passive', 'all', 
             'active-passive'.
+
     """
 
     def _post_load(self):
         rng = np.random.Generator(np.random.PCG64(1))
 
+        self.trial_len = int(self.data["trial_len"])
+        self.num_trials = int(self.data["num_trials"])
+        self.neural = torch.from_numpy(self.data["spikes"]).float()
         self.trial_ids = np.concatenate(
             [[n] * self.trial_len for n in range(self.num_trials)])
         self.trial_borders = [
@@ -187,14 +265,18 @@ class Area2BumpShuffledDataset(Area2BumpDataset):
         rng.shuffle(shuffle_index)
 
         self.passive = torch.from_numpy(
+            np.concatenate([[t] * self.trial_len for t in self.data["passive"]
                            ])).long()
         self.passive_shuffled = self.passive[shuffle_index]
+        self.pos = torch.from_numpy(self.data["pos"]).float()
         self.pos_shuffled = self.pos[shuffle_index]
         self.target = torch.from_numpy(
             np.concatenate([
+                [t] * self.trial_len for t in self.data["movement_dir"]
             ])).long()
         self.target_actpas = torch.from_numpy(
             np.concatenate([
+                [t] * self.trial_len for t in self.data["movement_dir_actpas"]
             ])).long()
         self.target_shuffled = self.target[shuffle_index]
         self.trial_indices = torch.from_numpy(self.trial_indices).float()
@@ -202,19 +284,29 @@ class Area2BumpShuffledDataset(Area2BumpDataset):
 
 def _create_area2_dataset():
     """Register the monkey reaching datasets of different trial types, behavior labels.
+
     The trial types are 'active', 'passive', 'all' and 'active-passive'.
     The 'active-passive' type distinguishes movement direction between active, passive 
     (0-7 for active and 8-15 for passive) and 'all' does not (0-7).
+
     """
 
+    PATH = get_datapath("monkey_reaching_preload_smth_40")
+    for session_type in ["active", "passive", "active-passive", "all"]:
 
+        @register(f"area2-bump-pos-{session_type}")
         class Dataset(Area2BumpDataset):
             """Monkey reaching dataset with hand position labels.
+
+            The dataset loads continuous x,y hand position as behavior labels.
             For the 'active-passive' trial type, it additionally loads discrete binary 
             label of active(0)/passive(1).
+
             Args:
+                path: The path to the directory where the preloaded data is.
                 session: The trial type. Choose between 'active', 'passive', 'all', 
                     'active-passive'.
+
             """
 
             def __init__(self, path=PATH, session=session_type):
@@ -222,6 +314,7 @@ def _create_area2_dataset():
 
             @property
             def discrete_index(self):
+                if self.session == "active-passive":
                     return self.passive
                 else:
                     return None
@@ -230,12 +323,17 @@ def _create_area2_dataset():
             def continuous_index(self):
                 return self.pos
 
+        @register(f"area2-bump-target-{session_type}")
         class Dataset(Area2BumpDataset):
             """Monkey reaching dataset with target direction labels.
+
             The dataset loads discrete target direction (0-7) as behavior labels.
+
             Args:
+                path: The path to the directory where the preloaded data is.
                 session: The trial type. Choose between 'active', 'passive', 'all', 
                     'active-passive'.
+
             """
 
             def __init__(self, path=PATH, session=session_type):
@@ -243,6 +341,7 @@ def _create_area2_dataset():
 
             @property
             def discrete_index(self):
+                if self.session == "active-passive":
                     return self.target_actpas
                 else:
                     return self.target
@@ -251,15 +350,20 @@ def _create_area2_dataset():
             def continuous_index(self):
                 return None
 
+        @register(f"area2-bump-posdir-{session_type}")
         class Dataset(Area2BumpDataset):
             """Monkey reaching dataset with hand position labels and discrete target labels.
+
             The dataset loads continuous x,y hand position and discrete target labels (0-7) 
             as behavior labels.
             For active-passive type, the discrete target labels 0-7 for active and 8-16 for 
             passive are loaded.
+
             Args:
+                path: The path to the directory where the preloaded data is.
                 session: The trial type. Choose between 'active', 'passive', 'all', 
                 'active-passive'.
+
             """
 
             def __init__(self, path=PATH, session=session_type):
@@ -279,19 +383,28 @@ _create_area2_dataset()
 
 def _create_area2_shuffled_dataset():
     """Register the shuffled monkey reaching datasets of different trial types, behavior labels.
+
     The trial types are 'active' and 'active-passive'.
     The behavior labels are randomly shuffled and the trial types are shuffled 
     in case of 'shuffled-trial' datasets.
+
     """
 
+    PATH = get_datapath("monkey_reaching_preload_smth_40/")
+    for session_type in ["active", "active-passive"]:
 
+        @register(f"area2-bump-pos-{session_type}-shuffled-trial")
         class Dataset(Area2BumpShuffledDataset):
             """Monkey reaching dataset with the shuffled trial type.
+
             The dataset loads the discrete binary trial type label active(0)/passive(1) 
             in randomly shuffled order.
+
             Args:
+                path: The path to the directory where the preloaded data is.
                 session: The trial type. Choose between 'active', 'passive', 'all', 
                     'active-passive'.
+
             """
 
             def __init__(self, path=PATH, session=session_type):
@@ -299,6 +412,7 @@ def _create_area2_shuffled_dataset():
 
             @property
             def discrete_index(self):
+                if self.session == "active-passive":
                     return self.passive_shuffled
                 else:
                     return None
@@ -307,14 +421,19 @@ def _create_area2_shuffled_dataset():
             def continuous_index(self):
                 return self.pos
 
+        @register(f"area2-bump-pos-{session_type}-shuffled-position")
         class Dataset(Area2BumpShuffledDataset):
             """Monkey reaching dataset with the shuffled hand position.
+
             The dataset loads continuous x,y hand position in randomly shuffled order.
             For the 'active-passive' trial type, it additionally loads discrete binary label 
             of active(0)/passive(1).
+
             Args:
+                path: The path to the directory where the preloaded data is.
                 session: The trial type. Choose between 'active', 'passive', 'all', 
                     'active-passive'.
+
             """
 
             def __init__(self, path=PATH, session=session_type):
@@ -322,6 +441,7 @@ def _create_area2_shuffled_dataset():
 
             @property
             def discrete_index(self):
+                if self.session == "active-passive":
                     return self.passive
                 else:
                     return None
@@ -330,13 +450,18 @@ def _create_area2_shuffled_dataset():
             def continuous_index(self):
                 return self.pos_shuffled
 
+        @register(f"area2-bump-target-{session_type}-shuffled")
         class Dataset(Area2BumpShuffledDataset):
             """Monkey reaching dataset with the shuffled hand position.
+
             The dataset loads discrete target direction (0-7 for active and 0-15 for active-passive) 
             in randomly shuffled order.
+
             Args:
+                path: The path to the directory where the preloaded data is.
                 session: The trial type. Choose between 'active', 'passive', 'all', 
                     'active-passive'.
+
             """
 
             def __init__(self, path=PATH, session=session_type):
@@ -344,6 +469,7 @@ def _create_area2_shuffled_dataset():
 
             @property
             def discrete_index(self):
+                if self.session == "active-passive":
                     return self.passive
                 else:
                     return self.target_shuffled

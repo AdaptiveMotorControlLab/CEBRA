@@ -54,6 +54,7 @@ def simulate_cont_data_diff_var(length: int, n_dim: int, noise_func: str):
     x_output = pi_vae.realnvp_block(x_input)
     for ii in range(n_blk - 1):
         x_output = keras.layers.core.Lambda(pi_vae.perm_func,
+                                            arguments={"ind": permute_ind[ii]
                                                       })(x_output)
         x_output = pi_vae.realnvp_block(x_output)
 
@@ -150,29 +151,54 @@ def refractory_poisson(x):
 
 
 if __name__ == "__main__":
+    """Generate synthetic datasets with poisson, gaussian, laplace, uniform, t noise during generative process."""
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--save-path",
+        type=str,
+        default="/data/synthetic/",
+        help="Directory to save the generated dataset.",
+    )
+    parser.add_argument(
+        "--n-samples",
+        type=int,
+        default=15000,
+        help="The number of the trials to generate",
+    )
     parser.add_argument("--neurons",
                         type=int,
                         default=100,
+                        help="The number of the neurons")
     parser.add_argument(
         "--noise",
         type=str,
         choices=list(__noises.keys()),
+        help="The type of noise to add in the generative process",
+    )
     parser.add_argument(
         "--scale",
         type=float,
         default=50,
         help=
+        "The scaling factor to firing rate for generating poisson neurons with refractory period",
     )
     parser.add_argument(
         "--time-interval",
         type=float,
         default=3,
         help=
+        "The time interval (sec) to sample spikes for generating poisson neurons with refractory period",
+    )
+    parser.add_argument(
+        "--refractory-period",
+        type=float,
+        default=0.01,
+        help="The refaractory period (sec) of neurons",
     )
 
     args = parser.parse_args()
 
+    if args.noise != "refractory_poisson":
         func = __noises[args.noise]
         z_true, u_true, mean_true, lam_true, x = simulate_cont_data_diff_var(
             args.n_samples, args.neurons, func)
@@ -182,7 +208,21 @@ if __name__ == "__main__":
         flattened_lam = lam_true.flatten()
         x = np.zeros_like(flattened_lam)
         for i, rate in enumerate(flattened_lam):
+            neuron = poisson.PoissonNeuron(
+                spike_rate=rate * args.scale,
+                num_repeats=1,
+                time_interval=args.time_interval,
+            )
             count = neuron._get_counts(refractory_period=args.refractory_period)
             x[i] = count
         x = x.reshape(lam_true.shape)
 
+    jl.dump(
+        {
+            "z": z_true,
+            "u": u_true,
+            "lam": lam_true,
+            "x": x
+        },
+        os.path.join(args.save_path, f"continuous_label_{args.noise}.jl"),
+    )

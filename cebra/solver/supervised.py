@@ -20,6 +20,7 @@ import cebra.solver.base as abc_
 
 
 class SupervisedNNSolver(abc_.Solver):
+    """Supervised neural network training with MSE loss"""
 
     _variant_name = "supervised-nn"
 
@@ -36,6 +37,7 @@ class SupervisedNNSolver(abc_.Solver):
 
         Args:
             loader: Data loader, which is an iterator over `cebra.data.Batch` instances.
+                Each batch contains reference, positive and negative input samples.
             save_frequency: If not `None`, the frequency for automatically saving model checkpoints
                 to `logdir`.
             logdir:  The logging directory for writing model checkpoints. The checkpoints
@@ -55,6 +57,7 @@ class SupervisedNNSolver(abc_.Solver):
 
     def step(self, batch) -> dict:
         """Perform a single gradient update.
+
         Args:
             batch: The input samples
 
@@ -63,6 +66,7 @@ class SupervisedNNSolver(abc_.Solver):
         """
         self.optimizer.zero_grad()
         prediction = self._inference(batch)
+        loss = self.criterion(prediction, batch["label"].squeeze())
         loss.backward()
         self.optimizer.step()
         self.history.append(loss.item())
@@ -70,6 +74,7 @@ class SupervisedNNSolver(abc_.Solver):
 
     def _inference(self, batch):
         """Compute predictions (discrete/continuous) for the batch."""
+        feature, prediction = self.model(batch["neural"])
         return prediction
 
     def validation(self, valid_loader):
@@ -77,5 +82,6 @@ class SupervisedNNSolver(abc_.Solver):
         total_loss = 0
         for batch in valid_loader:
             prediction = self._inference(batch)
+            loss = self.criterion(prediction, batch["label"].squeeze())
             total_loss += loss.item()
         return total_loss

@@ -32,21 +32,41 @@ from cebra.datasets.allen import SEEDS_DISJOINT
 
 
 @parametrize(
+    "allen-movie-{num_movie}-ca-{cortex}-{num_neurons}-{split_flag}-{test_repeat}-{seed}",
+    num_movie=["one"],
+    cortex=["VISp", "VISpm", "VISam", "VISrl", "VISal", "VISl"],
     num_neurons=NUM_NEURONS,
+    split_flag=["train", "test"],
     test_repeat=[10],
+    seed=SEEDS,
+)
 class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
     """A pseudomouse 30Hz calcium events dataset during the allen MOVIE1 stimulus with train/test splits.
 
     A dataset of stacked 30Hz calcium events from the excitatory neurons in the visual cortices (VISp, VISpm, VISam, VISrl, VISal, VISl) of multiple mice
+    recorded during the 10 repeats of the MOVIE1 stimulus in session A,B and C. The preprocessed data from *Deitch et al. (2021) are used.
     The continuous labels corresponding to a DINO embedding of each stimulus frame.
     The 10th repeat is held-out as a test set and the remaining 9 repeats consists a train set.
 
     Args:
+        cortex: The cortical area to sample the neurons from.
         num_neurons: The number of neurons to sample. Choose from 10, 30, 50, 100, 200, 400, 600, 800, 900, 1000.
+        split_flag: The split to load. Choose between `train` and `test`.
         seed: The random seeds for sampling neurons.
         preload: The path to the preloaded neural data. If `None`, the neural data is constructed from the source. Default value is `None`.
+
     """
 
+    def __init__(
+        self,
+        num_movie,
+        cortex,
+        num_neurons,
+        split_flag,
+        seed,
+        test_repeat,
+        preload=None,
+    ):
         super().__init__()
         self.num_neurons = num_neurons
         self.seed = seed
@@ -61,16 +81,19 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
         else:
             data = joblib.load(preload)
             self.neural = data["neural"]
+            if split_flag == "train":
                 self.index = frame_feature.repeat(9, 1)
             else:
                 self.index = frame_feature.repeat(1, 1)
 
+    def _get_video_features(self, num_movie="one"):
         """Return behavior labels.
 
         The frame feature used as the behavior labels are returned.
 
         Args:
             num_movie: The number of the moive used as the stimulus. It is fixed to 'one'.
+
         """
 
         frame_feature_path = get_datapath(
@@ -81,7 +104,9 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
 
     def _sample_neurons(self, pseudo_mice):
         """Randomly sample the specified number of neurons.
+
         The random sampling of the neurons specified by the `seed` and `num_neurons`.
+
         Args:
             pseudo_mice: The pseudomouse data.
 
@@ -95,15 +120,27 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
     def _split(self, pseudo_mice, frame_feature):
         """Split the dataset into train and test set.
         The first 9 repeats are train set and the last repeat is test set.
+
         Args:
             pseudo_mice: The pseudomouse neural data.
             frame_feature: The behavior labels.
 
         """
 
+        if self.split_flag == "train":
+            neural = np.delete(
+                pseudo_mice[self.neurons_indices],
+                np.arange(
+                    (self.test_repeat - 1) * self.movie_len,
+                    self.test_repeat * self.movie_len,
+                ),
+                axis=1,
+            )
             self.index = frame_feature.repeat(9, 1)
+        elif self.split_flag == "test":
             neural = pseudo_mice[self.neurons_indices, (self.test_repeat - 1) *
                                  self.movie_len:self.test_repeat *
+                                 self.movie_len,]
             self.index = frame_feature.repeat(1, 1)
         else:
             raise ValueError("split_flag should be either train or test")
@@ -173,7 +210,9 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
             indices2.sort()
             indices3.sort()
             indices = [indices1, indices2, indices3]
+            matfile = get_datapath(
                 f"allen/visual_drift/data/calcium_excitatory/{area}/{exp_container}.mat"
+            )
             traces = scipy.io.loadmat(matfile)
             for n, i in enumerate(seq_sessions):
                 session = traces["filtered_traces_days_events"][n, 0][
@@ -207,18 +246,30 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
 
 
 @parametrize(
+    "allen-movie-{num_movie}-ca-{cortex}-disjoint-{group}-{num_neurons}-{split_flag}-{test_repeat}-{seed}",
+    num_movie=["one"],
+    cortex=["VISp", "VISpm", "VISam", "VISrl", "VISal", "VISl"],
     num_neurons=[400],
+    split_flag=["train", "test"],
     test_repeat=[10],
     seed=SEEDS_DISJOINT,
+    group=[0, 1],
+)
 class AllenCaMoviesDisjointDataset(AllenCaMoviesDataset,
                                    cebra.data.SingleSessionDataset):
     """A disjoint pseudomouse 30Hz calcium events dataset of  during the allen MOVIE1 stimulus with train/test splits.
 
     A dataset of stacked 30Hz calcium events from the excitatory neurons in the visual cortices (VISp, VISpm, VISam, VISrl, VISal, VISl) of multiple mice
+    recorded during the 10 repeats of the MOVIE1 stimulus in session A. The preprocessed data from *Deitch et al. (2021) are used.
     The continuous labels corresponding to a DINO embedding of each stimulus frame.
+    The disjoint sets of 400 neurons are configured. For example, for each seed, group1 and group2 (called by `group` parameter) are disjoint to each other.
+    The 10th repeat is held-out as a test set and the remaining 9 repeats consists a train set.
 
     Args:
+        cortex: The cortical area to sample the neurons from.
+        split_flag: The split to load. Choose between `train` and `test`.
         seed: The random seeds for sampling neurons.
+        group: The index of the group among disjoint sets of the sampled neurons.
 
     """
 
@@ -237,7 +288,10 @@ class AllenCaMoviesDisjointDataset(AllenCaMoviesDataset,
         self._split(pseudo_mice, frame_feature)
 
     def _sample_neurons(self, pseudo_mice):
+        """Randomly sample disjoint neurons.
+
         The sampled two groups of 400 neurons are non-overlapping.
+
         Args:
             pseudo_mice: The pseudomouse dataset.
 
@@ -265,10 +319,17 @@ class AllenCaMoviesDisjointDataset(AllenCaMoviesDataset,
 
         def _get_neural_data(num_movie, mat_file):
             mat = scipy.io.loadmat(mat_file)
+            if num_movie == "one":
                 mat_index = None
+                mat_key = "united_traces_days_events"
+            elif num_movie == "two":
                 mat_index = (2, 1)
+                mat_key = "filtered_traces_days_events"
+            elif num_movie == "three":
                 mat_index = (0, 1)
+                mat_key = "filtered_traces_days_events"
             else:
+                raise ValueError("num_movie should be one, two or three")
 
             if mat_index is not None:
                 events = mat[mat_key][mat_index[0], mat_index[1]]

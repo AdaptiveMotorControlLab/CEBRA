@@ -32,13 +32,17 @@ _DEFAULT_DATADIR = get_datapath()
 @register("rat-hippocampus-single")
 @parametrize(
     "rat-hippocampus-single-{name}",
+    name=["achilles", "buddy", "cicero", "gatsby"],
 )
 class SingleRatDataset(cebra.data.SingleSessionDataset):
     """A single rat hippocampus tetrode recording while the rat navigates on a linear track.
 
     Neural data is spike counts binned into 25ms time window and the continuous behavior label is position and the running driection (left, right) of a rat.
+    The behavior label is structured as 3D array consists of position, right, and left.
+
     Args:
         name: The name of the rat to use. Choose among 'achilles', 'buddy', 'cicero' and 'gatsby'.
+
     """
 
     def __init__(self, name="achilles", root=_DEFAULT_DATADIR):
@@ -70,12 +74,15 @@ class SingleRatDataset(cebra.data.SingleSessionDataset):
 
     def decode(self, x_train, y_train, x_test, y_test):
         """kNN decoding function.
+
         Perform a kNN decoding for n_neighbors = 1,4,9,26,25 with the given train set and test set.
+
         Args:
             x_train: The train set data
             y_train: The train set label
             x_test: The test set data
             y_test: The test set label
+
         """
 
         nn = np.power(np.linspace(1, 10, 6, dtype=int), 2)
@@ -92,14 +99,23 @@ class SingleRatDataset(cebra.data.SingleSessionDataset):
 
 
 @register("rat-hippocampus-3fold-trial-split")
+@parametrize(
+    "rat-hippocampus-{name}-3fold-trial-split-{split_no}",
+    name=["achilles", "buddy", "cicero", "gatsby"],
+    split_no=[0, 1, 2],
+)
 class SingleRatTrialSplitDataset(SingleRatDataset):
     """A single rat hippocampus tetrode recording while the rat navigates on a linear track with 3-fold splits.
+
     Neural data is spike counts binned into 25ms time window and the behavior is position and the running driection (left, right) of a rat.
+    The behavior label is structured as 3D array consists of position, right, and left.
     The neural and behavior recordings are parsed into trials (a round trip from one end of the track) and the trials are split into a train, valid and test set with k=3 nested cross validation.
+
     Args:
         name: The name of a rat to use. Choose among 'achilles', 'buddy', 'cicero' and 'gatsby'.
         split_no: The `k` for k-fold split. Choose among 0, 1, 2.
         split: The split to use. Choose among 'train', 'valid', 'test', 'all', and 'wo_test'(all trials except test split).
+
     """
 
     def __init__(self,
@@ -115,9 +131,12 @@ class SingleRatTrialSplitDataset(SingleRatDataset):
 
     def _split(self, split, **kwargs):
         """Split the dataset into 3-fold nested cross validation scheme.
+
         The recordings are parsed into trials and split into a train, valid, test set with 3-fold nested cross validation scheme.
+
         Args:
             split: The split to use. Choose among 'train', 'valid', 'test', 'all', and 'wo_test'(all trials except test split).
+
         """
 
         direction_change_idx = np.where(
@@ -146,10 +165,15 @@ class SingleRatTrialSplitDataset(SingleRatDataset):
             valid_trials.extend(np.array(out_fold)[valid_trial])
             test_trials.extend(np.array(out_fold)[test_trial])
 
+        if split == "train":
             trials = train_trials
+        elif split == "valid":
             trials = valid_trials
+        elif split == "test":
             trials = test_trials
+        elif split == "all":
             trials = np.arange(total_trials_num)
+        elif split == "wo_test":
             trials = np.concatenate([train_trials, valid_trials])
         else:
             raise ValueError(
@@ -172,10 +196,21 @@ class SingleRatTrialSplitDataset(SingleRatDataset):
                                              1 != trials[1:]]
 
 
+@parametrize(
+    "rat-hippocampus-{name}-corrupt-{seed}",
+    name=["achilles", "buddy", "cicero", "gatsby"],
+    seed=np.arange(1000),
+)
 class SingleRatCorruptDataset(SingleRatDataset):
     """A single rat hippocampus tetrode recording while the rat navigates on a linear track with a shuffled behavior label.
+
     Neural data is spike counts binned into 25ms time window and the behavior is position and the running driection (left, right) of a rat.
+    The behavior label is structured as 3D array consists of position, right, and left and it is shuffled in random orders.
+
+    Args:
         name: The name of the rat to use. Choose among 'achilles', 'buddy', 'cicero' and 'gatsby'.
+        seed: The random seed to set the shuffling.
+
     """
 
     def __init__(self, name, seed, root=_DEFAULT_DATADIR):
@@ -191,13 +226,16 @@ class SingleRatCorruptDataset(SingleRatDataset):
              split_no=[0, 1, 2])
 class MultipleRatsTrialSplitDataset(cebra.data.DatasetCollection):
     """4 rats hippocampus tetrode recording while the rat navigates on a linear track with 3-fold splits.
+
     Neural and behavior recordings of 4 rats.
     For each rat, neural data is spike counts binned into 25ms time window and the behavior is position and the running driection (left, right) of a rat.
     The behavior label is structured as 3D array consists of position, right, and left.
     Neural and behavior recordings of each rat are parsed into trials (a round trip from one end of the track) and the trials are split into a train, valid and test set with k=3 nested cross validation.
+
     Args:
         split_no: The `k` for k-fold split. Choose among 0, 1, and 2.
         split: The split to use. Choose among 'train', 'valid', 'test', 'all', and 'wo_test'(all trials except test split).
+
     """
 
     def __init__(self, split_no=0, split=None):
@@ -215,6 +253,9 @@ class MultipleRatsTrialSplitDataset(cebra.data.DatasetCollection):
         self._split = split
 
     def __repr__(self):
+        return (
+            f"MultipleRatsTrialSplitDataset(name: {self.names}, shape: {self.shapes})"
+        )
 
     def split(self, split):
         assert split == self._split

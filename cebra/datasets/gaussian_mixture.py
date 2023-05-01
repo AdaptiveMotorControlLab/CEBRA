@@ -13,16 +13,27 @@ from cebra.datasets import parametrize
 from cebra.datasets import register
 
 
+@register("continuous-gaussian-mixture")
 @parametrize(
+    "continuous-gaussian-mixture-{noise}",
+    noise=["poisson", "gaussian", "laplace", "uniform", "refractory_poisson"],
+)
 class ContinuousGaussianMixtureDataset(cebra.data.SingleSessionDataset):
+    """A dataset of synthetically generated continuous labels and the corresponding 2D latents
+    and 100D noisy observations.
 
     Args:
         noise: The applied noise distribution applied.
     """
 
+    def __init__(self, noise: str = "poisson"):
         super().__init__()
         self.noise = noise
         data = jl.load(
+            get_datapath(f"synthetic/continuous_label_{self.noise}.jl"))
+        self.latent = data["z"]
+        self.index = torch.from_numpy(data["u"]).float()
+        self.neural = torch.from_numpy(data["x"]).float()
 
     @property
     def input_dimension(self):
@@ -41,12 +52,15 @@ class ContinuousGaussianMixtureDataset(cebra.data.SingleSessionDataset):
         train_idx = np.arange(tot_len)[:int(tot_len * train_ratio)]
         valid_idx = np.arange(tot_len)[int(tot_len * train_ratio):]
 
+        if split == "train":
             self.neural = self.neural[train_idx]
             self.index = self.index[train_idx]
 
+        elif split == "valid":
             self.neural = self.neural[valid_idx]
             self.index = self.index[valid_idx]
 
+        elif split == "all":
             pass
 
     def __len__(self):

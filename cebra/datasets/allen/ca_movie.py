@@ -37,7 +37,11 @@ _DEFAULT_DATADIR = get_datapath()
              seed=SEEDS)
 class AllenCaMovieDataset(cebra.data.SingleSessionDataset):
     """A pseudomouse 30Hz calcium events dataset during the allen MOVIE1 stimulus.
+
     A dataset of stacked 30Hz calcium events from the excitatory neurons in the primary visual cortex of multiple mice
+    during the 10 repeats of the MOVIE1 stimulus in session A,B and C. The preprocessed data from *Deitch et al. (2021) are used.
+    The continuous labels corresponding to a DINO embedding of each stimulus frame.
+
     Args:
         num_neurons: The number of neurons to randomly sample from the stacked pseudomouse neurons. Choose from 10, 30, 50, 100, 200, 400, 600, 800, 900, 1000.
         seed: The random seeds for sampling neurons.
@@ -47,6 +51,16 @@ class AllenCaMovieDataset(cebra.data.SingleSessionDataset):
     """
 
     def __init__(
+        self,
+        num_neurons=10,
+        seed=111,
+        area="VISp",
+        frame_feature_path=get_datapath(
+            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
+        ),
+        pca=False,
+        load=None,
+    ):
         super().__init__()
 
         frame_feature = torch.load(frame_feature_path)
@@ -72,6 +86,7 @@ class AllenCaMovieDataset(cebra.data.SingleSessionDataset):
     def _get_index(self, frame_feature):
         """Return the behavior label.
 
+        Construct the behavior labels with the user-defined frame feature.
 
         Args:
             frame_feature: The behavior label of each movie frame.
@@ -143,7 +158,9 @@ class AllenCaMovieDataset(cebra.data.SingleSessionDataset):
             indices2.sort()
             indices3.sort()
             indices = [indices1, indices2, indices3]
+            matfile = get_datapath(
                 f"allen/visual_drift/data/calcium_excitatory/{area}/{exp_container}.mat"
+            )
             traces = scipy.io.loadmat(matfile)
             for n, i in enumerate(seq_sessions):
                 session = traces["filtered_traces_days_events"][n, 0][
@@ -171,6 +188,7 @@ class AllenCaMovieDataset(cebra.data.SingleSessionDataset):
         return self.neural[index].transpose(2, 1)
 
 
+@parametrize("allen-movie1-ca-{num_neurons}-{seed}-preload",
              num_neurons=NUM_NEURONS,
              seed=SEEDS)
 class AllenCaMoviePreLoadDataset(AllenCaMovieDataset):
@@ -186,6 +204,8 @@ class AllenCaMoviePreLoadDataset(AllenCaMovieDataset):
 
     def __init__(self, num_neurons, seed):
         preload = get_datapath(
+            f"allen_preload/allen-movie1-ca-{num_neurons}-{seed}.jl")
         if not os.path.isfile(preload):
+            print("The dataset is not yet preloaded.")
             preload = None
         super().__init__(num_neurons=num_neurons, seed=seed, load=preload)

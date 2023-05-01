@@ -22,10 +22,23 @@ import pandas as pd
 from cebra.datasets import get_datapath
 
 
+def _filter_units(
+    unit_ids: npt.NDArray[np.int64],
+    isi_violations: npt.NDArray[np.float64],
+    amplitude_cutoff: npt.NDArray[np.float64],
+    presence_ratio: npt.NDArray[np.float64],
+    quality: npt.NDArray[object],
+    amp_thr: float = 0.1,
+    ratio_thr: float = 0.95,
+    isi_thr: float = 0.5,
+):
     """Filter recording units with the conditions defined by the arguments.
+
     The units above `amp_thr`, `ratio_thr` and below `isi_thr` with the 'good' quality are returned.
     See `AllenSDK`_ for the default filter values.
+
     Args:
+        unit_ids: Array of unit ids.
         isi_violations: The isi violation levels of each unit.
         amplitude_cutoff: The amplitude cutoff of each unit.
         prsence_ratio: The presence_ratio of each unit.
@@ -35,9 +48,13 @@ from cebra.datasets import get_datapath
         isi_thr: The isi level threshold to filter.
 
     .. _AllenSDK: https://github.com/AllenInstitute/AllenSDK/blob/a73b9dbf65d3b03d5c244fad0b271b141afebce1/allensdk/brain_observatory/ecephys/__init__.py
+
     """
 
     quality = np.array([q for q in quality])
+    filtered_unit_idx = ((isi_violations <= isi_thr) &
+                         (presence_ratio >= ratio_thr) &
+                         (amplitude_cutoff <= amp_thr) & (quality == "good"))
 
     return filtered_unit_idx
 
@@ -45,8 +62,12 @@ from cebra.datasets import get_datapath
 def _spikes_by_units(spike_times: npt.NDArray[np.float64],
                      spike_time_index: npt.NDArray[np.int64]):
     """Make array of spike times of each unit.
+    The spike times belong to each spike unit are filtered and return the list of spike times of each unit.
+
     Args:
         spike_times: Spiking times of multiple units.
+        spike_time_index: The index of the recording unit corresponding to the recorded spike.
+
     """
 
     units = []
@@ -62,11 +83,22 @@ def _spikes_by_units(spike_times: npt.NDArray[np.float64],
     return units
 
 
+def _get_area(
+    area: npt.NDArray[str],
+    peak_channel_id: npt.NDArray[np.int64],
+    electrode_id: npt.NDArray[np.int64],
+):
     """Read the area where each unit was recording.
+
+    The corresponding recording visual cortical areas of the recording units are returned.
+    Args:
         area: The list of areas registered for each peak channel.
+        peak_channel_id: The list of peak channel ids.
         electrode_id: The list of electrode ids.
+
     """
 
+    units = np.empty(len(peak_channel_id), dtype="object")
     for n, i in enumerate(electrode_id):
         units[peak_channel_id == i] = area[n]
 
@@ -76,6 +108,7 @@ def _spikes_by_units(spike_times: npt.NDArray[np.float64],
 def _get_movie1(start: float, stop: float, unit_spikes):
     """Get spike timings during the movie1 stimulus block.
     The spike times of each unit during the movie1 stimulus block are returned.
+
     Args:
         start: The start time point of the movie1 stimulus block.
         stop: The end time point of the movie1 stimulus block.
@@ -92,8 +125,12 @@ def _get_movie1(start: float, stop: float, unit_spikes):
 
 def _spike_counts(bin_edges: npt.NDArray[np.float64], units: list):
     """Get spike counts of defined bins.
+    Given spike times of each unit is placed in the defined bins to return spike counts.
+
     Args:
+        bin_edges: The bins to count the spike counts.
         units: The list of spiking time array of the recording units
+
     """
 
     spike_matrix = np.zeros((len(bin_edges) - 1, len(units)))
@@ -104,12 +141,20 @@ def _spike_counts(bin_edges: npt.NDArray[np.float64], units: list):
     return spike_matrix
 
 
+def read_neuropixel(
+    path: str = "/shared/neuropixel/*/*.nwb",
+    cortex: str = "VISp",
+    sampling_rate: float = 120.0,
+):
     """Load 120Hz Neuropixels data recorded in the specified cortex during the movie1 stimulus.
+
     The Neuropixels recordin is filtered and transformed to spike counts in a bin size specified by the sampling rat.
+
     Args:
         path: The wildcard file path where the neuropixels .nwb files are located.
         cortex: The cortex where the neurons were recorded. Choose from VISp, VISal, VISrl, VISl, VISpm, VISam.
         sampling_rate: The sampling rate for spike counts to process the raw data.
+
     """
 
     files = glob.glob(path)
@@ -117,12 +162,31 @@ def _spike_counts(bin_edges: npt.NDArray[np.float64], units: list):
     len_recording = []
     session_frames = []
     for f in files:
+        with h5py.File(f, "r") as d:
+            print("read one session and filter for area and quality")
+            if "brain" in d["general/stimulus"][...].item():
                 area_list = d[
+                    "general/extracellular_ephys/electrodes/location"][...]
                 start_time = d[
+                    "intervals/natural_movie_one_presentations/start_time"][...]
                 end_time = d[
+                    "intervals/natural_movie_one_presentations/stop_time"][...]
                 timeseries = d[
+                    "intervals/natural_movie_one_presentations/timeseries"][...]
                 timeseries_index = d[
+                    "intervals/natural_movie_one_presentations/timeseries_index"][
                         ...]
+                session_no = d["identifier"][...].item()
+                spike_time_index = d["units/spike_times_index"][...]
+                spike_times = d["units/spike_times"][...]
+                ids = d["units/id"][...]
+                amplitude_cutoff = d["units/amplitude_cutoff"][...]
+                presence_ratio = d["units/presence_ratio"][...]
+                isi_violations = d["units/isi_violations"][...]
+                quality = d["units/quality"][...]
+
+                peak_channel_id = d["units/peak_channel_id"][...]
+                electrode_id = d["general/extracellular_ephys/electrodes/id"][
                     ...]
                 unit_spikes = _spikes_by_units(spike_times, spike_time_index)
                 filtered_quality = _filter_units(ids, isi_violations,
@@ -150,6 +214,7 @@ def _spike_counts(bin_edges: npt.NDArray[np.float64], units: list):
                 len_recording.append(spike_matrix.shape[0])
                 sessions[session_no] = spike_matrix
                 session_frames.append(movie_frame % 900)
+    print("Build pseudomouse")
     for session_key in sessions.keys():
         sessions[session_key] = sessions[session_key][:sampling_rate * 10 * 30]
     for i in range(len(session_frames)):
@@ -158,11 +223,14 @@ def _spike_counts(bin_edges: npt.NDArray[np.float64], units: list):
     return sessions, session_frames
 
 
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--data-path", default="/shared/neuropixel", type=str)
     parser.add_argument("--save-path",
                         default=get_datapath("allen_movie1_neuropixel/VISp/"),
                         type=str)
     parser.add_argument("--sampling-rate", default=120, type=float)
+    parser.add_argument("--cortex", default="VISp", type=str)
     args = parser.parse_args()
     sessions_dic, session_frames = read_neuropixel(
         path=args.data_path,
@@ -173,6 +241,20 @@ def _spike_counts(bin_edges: npt.NDArray[np.float64], units: list):
 
     jl.dump(
         {
+            "neural": sessions_dic,
+            "frames": session_frames
         },
         os.path.join(
             args.save_path,
+            f"neuropixel_sessions_{int(args.sampling_rate)}_filtered.jl"),
+    )
+    jl.dump(
+        {
+            "neural": pseudo_mice,
+            "frames": pseudo_mice_frames
+        },
+        os.path.join(
+            args.save_path,
+            f"neuropixel_pseudomouse_{int(args.sampling_rate)}_filtered.jl",
+        ),
+    )

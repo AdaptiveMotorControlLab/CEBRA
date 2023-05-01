@@ -28,10 +28,19 @@ from cebra.datasets.allen import NUM_NEURONS
 from cebra.datasets.allen import SEEDS
 
 
+@parametrize(
+    "allen-movie1-neuropixel-{num_neurons}-{seed}-10ms",
+    num_neurons=NUM_NEURONS,
+    seed=SEEDS,
+)
 class AllenNeuropixelMovie120HzDataset(ca_movie.AllenCaMovieDataset):
     """A pseudomouse 120Hz Neuropixels dataset during the allen MOVIE1 stimulus.
+
     A dataset of stacked 120HZ spike counts recorded in the primary visual cortex of multiple mice
+    during the first 10 repeats of the MOVIE1 stimulus in Brain Observatory 1.1 set.
     The units which ISI > 0.5, amplitude < 0.1, presence ratio < 0.95 are excluded.
+    The continuous labels corresponding to a DINO embedding of each stimulus frame.
+
     Args:
         num_neurons: The number of neurons to randomly sample from the stacked pseudomouse neurons. Choose from 10, 30, 50, 100, 200, 400, 600, 800, 900, 1000.
         seed: The random seeds for sampling neurons.
@@ -39,6 +48,7 @@ class AllenNeuropixelMovie120HzDataset(ca_movie.AllenCaMovieDataset):
 
     """
 
+    def _get_pseudo_mice(self, area="VISp"):
         """Construct pseudomouse neural dataset.
 
         Stack the excitatory neurons from the multiple mice and construct a psuedomouse neural dataset of the specified visual cortical area.
@@ -53,18 +63,23 @@ class AllenNeuropixelMovie120HzDataset(ca_movie.AllenCaMovieDataset):
             get_datapath(
                 f"allen/allen_movie1_neuropixel/{area}/neuropixel_pseudomouse_120_filtered.jl"
             ))
+        pseudo_mice = list_recording["neural"]
 
         return pseudo_mice.transpose(1, 0)
 
     def _get_index(self, frame_feature):
         """Return behavior labels.
 
+        Construct the behavior labels with the user-defined frame feature.
+
         Args:
             frame feature: The video frame feature.
+
         """
 
         list_recording = joblib.load(
             get_datapath(
                 f"allen/allen_movie1_neuropixel/{self.area}/neuropixel_pseudomouse_120_filtered.jl"
             ))
+        frames_index = list_recording["frames"]
         return frame_feature[frames_index]
