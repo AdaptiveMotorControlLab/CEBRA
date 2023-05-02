@@ -118,10 +118,10 @@ class KNNDecoder(Decoder):
             )
 
         # Use regression or classification, based on if the targets are continuous or discrete
-        if y.dtype in (np.float32, np.float64, torch.float32, torch.float64):
+        if np.issubdtype(y.dtype, np.floating):
             self.knn = sklearn.neighbors.KNeighborsRegressor(
                 n_neighbors=self.n_neighbors, metric=self.metric)
-        elif y.dtype in (np.int32, np.int64, torch.int32, torch.int64):
+        elif np.issubdtype(y.dtype, np.integer):
             self.knn = sklearn.neighbors.KNeighborsClassifier(
                 n_neighbors=self.n_neighbors, metric=self.metric)
         else:
