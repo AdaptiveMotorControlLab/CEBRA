@@ -7,22 +7,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Primary Meta Tags -->
-    <title>Learnable latent embeddings for joint behavioral and neural analysis</title>
-    <meta name="title" content="Learnable latent embeddings for joint behavioral and neural analysis">
-    <meta name="description" content="Mapping behavioral actions to neural activity is a fundamental goal of neuroscience. As our ability to record large neural and behavioral data increases, there is growing interest in modeling neural dynamics during adaptive behaviors to probe neural representations. In particular, neural latent embeddings can reveal underlying correlates of behavior, yet, we lack non-linear techniques that can explicitly and flexibly leverage joint behavior and neural data. Here, we fill this gap with a novel method, CEBRA, that jointly uses behavioral and neural data in a hypothesis- or discovery-driven manner to produce consistent, high-performance latent spaces. We validate its accuracy and demonstrate our tool's utility for both calcium and electrophysiology datasets, across sensory and motor tasks, and in simple or complex behaviors across species. It allows for single and multi-session datasets to be leveraged for hypothesis testing or can be used label-free. Lastly, we show that CEBRA can be used for the mapping of space, uncovering complex kinematic features, and rapid, high-accuracy decoding of natural movies from visual cortex.">
+    <title>Learnable latent embeddings for joint behavioural and neural analysis</title>
+    <meta name="title" content="Learnable latent embeddings for joint behavioural and neural analysis">
+    <meta name="description" content="Mapping behavioural actions to neural activity is a fundamental goal of neuroscience. As our ability to record large neural and behavioural data increases, there is growing interest in modeling neural dynamics during adaptive behaviors to probe neural representations. In particular, neural latent embeddings can reveal underlying correlates of behavior, yet, we lack non-linear techniques that can explicitly and flexibly leverage joint behavior and neural data. Here, we fill this gap with a novel method, CEBRA, that jointly uses behavioural and neural data in a hypothesis- or discovery-driven manner to produce consistent, high-performance latent spaces. We validate its accuracy and demonstrate our tool's utility for both calcium and electrophysiology datasets, across sensory and motor tasks, and in simple or complex behaviors across species. It allows for single and multi-session datasets to be leveraged for hypothesis testing or can be used label-free. Lastly, we show that CEBRA can be used for the mapping of space, uncovering complex kinematic features, and rapid, high-accuracy decoding of natural movies from visual cortex.">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://cebra.ai/">
-    <meta property="og:title" content="Learnable latent embeddings for joint behavioral and neural analysis">
-    <meta property="og:description" content="Mapping behavioral actions to neural activity is a fundamental goal of neuroscience. As our ability to record large neural and behavioral data increases, there is growing interest in modeling neural dynamics during adaptive behaviors to probe neural representations. In particular, neural latent embeddings can reveal underlying correlates of behavior, yet, we lack non-linear techniques that can explicitly and flexibly leverage joint behavior and neural data. Here, we fill this gap with a novel method, CEBRA, that jointly uses behavioral and neural data in a hypothesis- or discovery-driven manner to produce consistent, high-performance latent spaces. We validate its accuracy and demonstrate our tool's utility for both calcium and electrophysiology datasets, across sensory and motor tasks, and in simple or complex behaviors across species. It allows for single and multi-session datasets to be leveraged for hypothesis testing or can be used label-free. Lastly, we show that CEBRA can be used for the mapping of space, uncovering complex kinematic features, and rapid, high-accuracy decoding of natural movies from visual cortex.">
+    <meta property="og:title" content="Learnable latent embeddings for joint behavioural and neural analysis">
+    <meta property="og:description" content="Mapping behavioural actions to neural activity is a fundamental goal of neuroscience. As our ability to record large neural and behavioural data increases, there is growing interest in modeling neural dynamics during adaptive behaviors to probe neural representations. In particular, neural latent embeddings can reveal underlying correlates of behavior, yet, we lack non-linear techniques that can explicitly and flexibly leverage joint behavior and neural data. Here, we fill this gap with a novel method, CEBRA, that jointly uses behavioural and neural data in a hypothesis- or discovery-driven manner to produce consistent, high-performance latent spaces. We validate its accuracy and demonstrate our tool's utility for both calcium and electrophysiology datasets, across sensory and motor tasks, and in simple or complex behaviors across species. It allows for single and multi-session datasets to be leveraged for hypothesis testing or can be used label-free. Lastly, we show that CEBRA can be used for the mapping of space, uncovering complex kinematic features, and rapid, high-accuracy decoding of natural movies from visual cortex.">
     <meta property="og:image" content="">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://cebra.ai/">
-    <meta property="twitter:title" content="Learnable latent embeddings for joint behavioral and neural analysis">
-    <meta property="twitter:description" content="Mapping behavioral actions to neural activity is a fundamental goal of neuroscience. As our ability to record large neural and behavioral data increases, there is growing interest in modeling neural dynamics during adaptive behaviors to probe neural representations. In particular, neural latent embeddings can reveal underlying correlates of behavior, yet, we lack non-linear techniques that can explicitly and flexibly leverage joint behavior and neural data. Here, we fill this gap with a novel method, CEBRA, that jointly uses behavioral and neural data in a hypothesis- or discovery-driven manner to produce consistent, high-performance latent spaces. We validate its accuracy and demonstrate our tool's utility for both calcium and electrophysiology datasets, across sensory and motor tasks, and in simple or complex behaviors across species. It allows for single and multi-session datasets to be leveraged for hypothesis testing or can be used label-free. Lastly, we show that CEBRA can be used for the mapping of space, uncovering complex kinematic features, and rapid, high-accuracy decoding of natural movies from visual cortex.">
+    <meta property="twitter:title" content="Learnable latent embeddings for joint behavioural and neural analysis">
+    <meta property="twitter:description" content="Mapping behavioural actions to neural activity is a fundamental goal of neuroscience. As our ability to record large neural and behavioural data increases, there is growing interest in modeling neural dynamics during adaptive behaviors to probe neural representations. In particular, neural latent embeddings can reveal underlying correlates of behavior, yet, we lack non-linear techniques that can explicitly and flexibly leverage joint behavior and neural data. Here, we fill this gap with a novel method, CEBRA, that jointly uses behavioural and neural data in a hypothesis- or discovery-driven manner to produce consistent, high-performance latent spaces. We validate its accuracy and demonstrate our tool's utility for both calcium and electrophysiology datasets, across sensory and motor tasks, and in simple or complex behaviors across species. It allows for single and multi-session datasets to be leveraged for hypothesis testing or can be used label-free. Lastly, we show that CEBRA can be used for the mapping of space, uncovering complex kinematic features, and rapid, high-accuracy decoding of natural movies from visual cortex.">
     <meta property="twitter:image" content="">
 
     <!-- Bootstrap CSS -->
@@ -48,6 +48,12 @@
         .main {
             font-family: 'IBM Plex Sans Condensed', sans-serif;
             color: gainsboro;
+        }
+
+        .container-fluid .col {
+            width: 100%;
+            padding-left: 0;
+            padding-right: 0;
         }
 
         .code {
@@ -80,40 +86,48 @@
     <title>CEBRA</title>
 </head>
 
-<body style="background-color: rgb(26, 26, 26);">
-    <div class="container-sm main">
+<body style="background-color: rgb(0, 0, 0);">
+    <div class="container-fluid  d-flex flex-column main">
         <div class="row">
             <div class="col-md-2">
             </div>
             <div class="col-md-8" id="main-content">
                 <div class="row text-center my-5" id="#">
-                    <h1>Learnable latent embeddings for joint behavioral and neural analysis</h1>
+                    <h1>Learnable latent embeddings for joint behavioural and neural analysis</h1>
                 </div>
 
                 <!-- Begin author list-->
                 <div class="row text-center mb-4">
-                    <div class="col-md-4 mb-4">
-                        Steffen Schneider*
-                        <a href="mailto:stes@hey.com"><i class="far fa-envelope"></i></a>
-                        <a href="https://stes.io" target="_blank"><i class="fas fa-link"></i></a></br>
+                    <div class="col-md-3 mb-4"></div>
+                    <div class="col-md-2 mb-4">
+                        Steffen Schneider*</br>
                         EPFL & <nobr>IMPRS-IS</nobr>
+                        <a href="mailto:stes@hey.com"><i class="far fa-envelope"></i></a>
+                        <a href="https://stes.io" target="_blank"><i class="fas fa-link"></i></a>
                     </div>
-                    <div class="col-md-4 mb-4">
-                        Jin Hwa Lee*
-                        <a href="https://jinhl9.github.io/" target="_blank"><i class="fas fa-link"></i></a></br>
+                    <div class="col-md-2 mb-4">
+                        Jin Hwa Lee*</br>
                         EPFL
+                        <a href="https://jinhl9.github.io/" target="_blank"><i class="fas fa-link"></i></a>
                     </div>
-                    <div class="col-md-4  mb-4">
-                        Mackenzie Weygandt Mathis
+                    <div class="col-md-2  mb-4">
+                        Mackenzie Weygandt Mathis</br>
+                        EPFL
                         <a href="mailto:mackenzie.mathis@epfl.ch"><i class="far fa-envelope"></i></a>
-                        <a href="https://www.mackenziemathislab.org/mackenziemathis" target="_blank"><i class="fas fa-link"></i></a></br>
-                        EPFL
+                        <a href="https://www.mackenziemathislab.org/mackenziemathis" target="_blank"><i class="fas fa-link"></i></a>
                     </div>
                 </div>
                 <!-- End author list-->
 
                 <div class="row text-center">
-                    <div class="col-sm-3 mb-3">
+                    <div class="col-md-2 mb-4"></div>
+                    <div class="col-sm-2 mb-2">
+                        <h4>
+                            <a href="https://doi.org/10.1038/s41586-023-06031-6" target="_blank">
+                            <i class="fas fa-file-alt"></i>
+                            Paper
+                        </a>
+                        </h4>
                     </div>
                     <div class="col-sm-2 mb-2">
                         <h4>
@@ -139,47 +153,60 @@
                     </div>
                 </div>
 
-                <div class="row pt-4">
-                    <h3>Abstract</h3>
+                <div class="row mb-5 mt-2">
+                    CEBRA is a machine-learning
+                    method that can be used to
+                    compress time series in a way
+                    that reveals otherwise hidden
+                    structures in the variability of
+                    the data. It excels on behavioural
+                    and neural data recorded
+                    simultaneously, and it can
+                    decode activity from the visual
+                    cortex of the mouse brain to
+                    reconstruct a viewed video.
                 </div>
+
                 <div class="row">
-                    <p>
-                      Mapping behavioral actions to neural activity is a fundamental goal of neuroscience. As our ability to record large neural and behavioral data increases, there is growing interest in modeling neural dynamics during adaptive behaviors to probe neural representations. In particular, neural latent embeddings can reveal underlying correlates of behavior, yet, we lack non-linear techniques that can explicitly and flexibly leverage joint behavior and neural data to uncover neural dynamics. Here, we fill this gap with a novel encoding method, CEBRA, that jointly uses behavioral and neural data in a (supervised) hypothesis- or (self-supervised) discovery-driven manner to produce both consistent and high-performance latent spaces. We show that consistency can be used as a metric for uncovering meaningful differences, and the inferred latents can be used for decoding. We validate its accuracy and demonstrate our tool's utility for both calcium and electrophysiology datasets, across sensory and motor tasks, and in simple or complex behaviors across species. It allows for single and multi-session datasets to be leveraged for hypothesis testing or can be used label-free. Lastly, we show that CEBRA can be used for the mapping of space, uncovering complex kinematic features, produces consistent latent spaces across 2-photon and Neuropixels data, and can provide rapid, high-accuracy decoding of natural movies from visual cortex.
-                    </p>
-                </div>
-                <div class="row">
-                    <div class="col-sm-12 mb-1">
-                        <img src="static/img/overview.png" width="100%" />
+
+                    <div class="col-md-6 mb-2">
+                        <video width="100%" autoplay loop muted preload="auto">
+                            <source src="static/videos/rat.mp4" type="video/mp4">
+                            Video file not supported in this web browser.
+                        </video>
+
+                        <p>Application of CEBRA-Behavior to rat hippocampus data (Grosmark and Buzsáki, 2016), showing position/neural activity (left), overlayed with decoding obtained by CEBRA. The current point in embedding space is highlighted (right). CEBRA obtains a median absolute error of 5cm (total track length: 160cm; see pre-print for details). Video is played at 2x real-time speed.</p>
                     </div>
+
+                    <div class="col-md-6 mb-2">
+                            <video width="100%" autoplay loop muted preload="auto">
+                                <source src="static/videos/allen.mp4" type="video/mp4">
+                                Video file not supported in this web browser.
+                            </video>
+
+                            <p>CEBRA applied to mouse primary visual cortex, collected at the Allen Institute (de Vries et al. 2020, Siegle et al. 2021). 2-photon and Neuropixels recordings are embedded with CEBRA using DINO frame features as labels.
+                            The embedding is used to decode the video frames using a kNN decoder on the CEBRA-Behavior embedding from the test set.</p>
+                        
+                    </div>
+
                 </div>
 
                 <div class="row pt-4">
                     <h3>
-                        <i class="fas fa-poll"></i>
-                        CEBRA embedding visualizations and decoding
+                        <i class="fas fa-file"></i>
+                        Abstract
                     </h3>
                 </div>
 
                 <div class="row">
-                    <p>Application of CEBRA-Behavior to rat hippocampus data (Grosmark and Buzsáki, 2016), showing position/neural activity (left), overlayed with decoding obtained by CEBRA. The current point
-                        in embedding space is highlighted (right). CEBRA obtains a median absolute error of 5cm (total track length: 160cm; see pre-print for details). Video is played at 2x real-time speed.</p>
-
-                    <video width="100%" autoplay loop muted preload="auto">
-                        <source src="static/videos/rat.mp4" type="video/mp4">
-                        Video file not supported in this web browser.
-                    </video>
+                    <div class="col-sm-12 mb-5">
+                        <img src="static/img/overview.png" width="100%" />
+                    </div>
                 </div>
-
-                <div class="row pt-4">
-                    <p>CEBRA applied to mouse primary visual cortex, collected at the Allen Institute (de Vries et al. 2020, Siegle et al. 2021). The left panels show example calcium traces from 2-photon imaging (top)
-                        and spikes from Neuropixels recording (bottom) while the video (far right) is presented to mice. The center panel shows an embedding space constructed by jointly training a CEBRA-Behavior model
-                        with 2-photon and Neuropixels recordings using DINO frame features as labels. The colored trace is an embedding of a held-out test repeat from Neuropixels data. The colormap indicates frame number of 
-                        the 30 second long video (30 Hz). The last panels show true video (top) and the predicted frame sequence (bottom) using a kNN decoder on the CEBRA-Behavior embedding from the test set.</p>
-                    
-                    <video width="100%" autoplay loop muted preload="auto">
-                        <source src="static/videos/allen.mp4" type="video/mp4">
-                        Video file not supported in this web browser.
-                    </video>
+                <div class="row">
+                    <p>
+                      Mapping behavioural actions to neural activity is a fundamental goal of neuroscience. As our ability to record large neural and behavioural data increases, there is growing interest in modeling neural dynamics during adaptive behaviors to probe neural representations. In particular, neural latent embeddings can reveal underlying correlates of behavior, yet, we lack non-linear techniques that can explicitly and flexibly leverage joint behavior and neural data to uncover neural dynamics. Here, we fill this gap with a novel encoding method, CEBRA, that jointly uses behavioural and neural data in a (supervised) hypothesis- or (self-supervised) discovery-driven manner to produce both consistent and high-performance latent spaces. We show that consistency can be used as a metric for uncovering meaningful differences, and the inferred latents can be used for decoding. We validate its accuracy and demonstrate our tool's utility for both calcium and electrophysiology datasets, across sensory and motor tasks, and in simple or complex behaviors across species. It allows for single and multi-session datasets to be leveraged for hypothesis testing or can be used label-free. Lastly, we show that CEBRA can be used for the mapping of space, uncovering complex kinematic features, produces consistent latent spaces across 2-photon and Neuropixels data, and can provide rapid, high-accuracy decoding of natural movies from visual cortex.
+                    </p>
                 </div>
 
                 <div class="row pt-4">
@@ -190,12 +217,10 @@
                 </div>
 
                 <div class="row">
-                    <div class="col-lg-4 mb-1">
-                        <p>
-                            The pre-print is available on arxiv now: <a href="https://arxiv.org/abs/2204.00673">arxiv.org/abs/2204.00673</a>.
-                        </p>
-                    </div>
-                    <div class="col-lg-8 mb-1">
+                    <p>
+                        The pre-print is available on arxiv at <a href="https://arxiv.org/abs/2204.00673">arxiv.org/abs/2204.00673</a>.
+                    </p>
+                    <!---div class="col-lg-8 mb-1">
                         <div class="row">
                             <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_1.pdf.png" width="100%" /></div>
                             <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_2.pdf.png" width="100%" /></div>
@@ -206,7 +231,7 @@
                             <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_7.pdf.png" width="100%" /></div>
                             <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_8.pdf.png" width="100%" /></div>
                         </div>
-                    </div>
+                    </div--->
                 </div>
 
                 <div class="row pt-4">
@@ -216,15 +241,14 @@
                 </div>
 
                 <p>
-                    Our official implementation of the CEBRA algorithm will be released on GitHub upon publication of the paper.
-                    <a href="https://github.com/stes/cebra" target="blank_">Watch and Star the repository</a> to be notified of updates
-                    and code release dates.
+                    You can find our official implementation of the CEBRA algorithm on GitHub:
+                    <a href="https://github.com/AdaptiveMotorControlLab/CEBRA" target="blank_">Watch and Star the repository</a> to
+                    be notified of future updates and releases.
                     You can also <a href="https://twitter.com/cebraAI" target="blank_">follow us on Twitter</a> or subscribe to our 
-                    <a href="https://groups.google.com/g/cebra-info" target="blank_">mailing list</a> for updates on the project and
-                    release timeline.
+                    <a href="https://groups.google.com/g/cebra-info" target="blank_">mailing list</a> for updates on the project.
                 </p>
 
-                <p>If you are interested in collaborations and/or early access, please contact us via
+                <p>If you are interested in collaborations, please contact us via
                     <a href="mailto:mackenzie.mathis@epfl.ch"><i class="far fa-envelope"></i> email</a>.
                 </p>
 
@@ -237,7 +261,7 @@
                     <p>Please cite our pre-print as follows:</p>
                 </div>
                 <div class="row justify-content-md-center">
-                    <div class="col-sm-10 rounded p-3 m-2" style="background-color: gray;">
+                    <div class="col-sm-10 rounded p-3 m-2" style="background-color: rgb(20,20,20);">
                         <small class="code">
                             @article{schneider2022cebra,<br>
                             &nbsp;&nbsp;author = {Schneider, Steffen and Lee, Jin H and Mathis, Mackenzie W},<br>
