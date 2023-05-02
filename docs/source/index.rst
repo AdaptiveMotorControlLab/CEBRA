@@ -18,7 +18,7 @@
 Welcome to CEBRA's documentation!
 =================================
 
-CEBRA is a library for estimating Consistent Embeddings of high-dimensional Recordings using Auxiliary variables.
+CEBRA is a library for estimating Consistent EmBeddings of high-dimensional Recordings using Auxiliary variables.
 It contains self-supervised learning algorithms implemented in PyTorch, and has support for
 a variety of different datasets common in biology and neuroscience.
 
@@ -73,14 +73,12 @@ References
 ----------
 .. code::
 
-  @article{schneider2022cebra,
+  @article{schneider2023cebra,
     author = {Schneider, Steffen and Lee, Jin H and Mathis, Mackenzie W},
-    title = {Learnable latent embeddings for joint behavioral and neural analysis},
-    journal = {CoRR},
-    volume = {abs/2204.00673},
-    doi = {10.48550/ARXIV.2204.00673},
-    url = {https://arxiv.org/abs/2204.00673},
-    year = {2022},
+    title = {Learnable latent embeddings for joint behavioural and neural analysis},
+    journal = {Nature},
+    doi = {https://doi.org/10.1038/s41586-023-06031-6},
+    year = {2023},
   }
 
 This documentation is based on the `PyData Theme`_.
