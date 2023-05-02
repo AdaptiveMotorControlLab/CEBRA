@@ -1,6 +1,6 @@
 **Please fill in the digital copy of the form here: https://forms.gle/o5F7YiLCZ96vfhQ18**
 
-For reference, or from printing and emailing or mailing the form it is reproduced here:
+For reference, or for printing and emailing or mailing the form it is reproduced here:
 
 
 **Individual Contributor License Agreement ("Agreement") V2.0**
