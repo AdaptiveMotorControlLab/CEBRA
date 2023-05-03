@@ -18,8 +18,10 @@ Installation Guide
 ------------------
 
 We outline installation instructions for different systems. 
-CEBRA will be installed via ``pip``. Its dependencies can be installed using ``pip``, ``conda`` or
-``docker`` and we outline different options below.
+CEBRA will be installed via ``pip install cebra``.
+
+Its dependencies can be installed using ``pip`` or ``conda`` and
+we outline different options below.
 
 Most users can only install the **minimal install**. 🚀 For more advanced users, CEBRA has different extra install options that you can select based on your usecase:
 
@@ -35,7 +37,16 @@ Most users can only install the **minimal install**. 🚀 For more advanced user
 
     .. tab:: Google Colab
 
-        CEBRA can also be installed and run on Google colaboratory. Please see the ``open in colab`` button at the top of each demo notebook for examples. 
+        CEBRA can also be installed and run on Google colaboratory.
+        Please see the ``open in colab`` button at the top of each demo notebook for examples. 
+
+        If you are starting with a new notebook, simply run
+
+        .. code:: bash
+
+            ! pip install cebra
+
+        In the first cell.
 
 
     .. tab:: Supplied conda (CEBRA)
@@ -133,31 +144,6 @@ Most users can only install the **minimal install**. 🚀 For more advanced user
         .. note::
             On windows systems, you will need to drop the quotation marks and install via ``pip install .[dev]``.
 
-    .. tab:: Docker
-
-        A ``Dockerfile`` for running CEBRA is provided in the ``docker/`` sub-directory.
-        It is possible to start a full development environment by running ``make interact``.
-        Alternatively, the container can be build locally. Refer to ``make docker`` in the ``Makefile``.
-
-        .. code:: bash
-
-            $ make docker 
-            $ make interact 
-            $ make test
-            
-        Several arguments can be used to configure the docker container.
-        The currently supported docker images for different CUDA versions installed locally are:
-        ``docker-10.1-runtime-ubuntu18.04``, ``docker-10.2-runtime-ubuntu18.04`` and ``docker-11.1-runtime-ubuntu20.04``, but more images can be easily added by modifying the Dockerfile.
-
-        A particular version can be built and run by executing
-
-        .. code:: bash
-
-            $ make docker-11.1-runtime-ubuntu20.04
-            $ make interact-11.1-runtime-ubuntu20.04
-
-        All images are based on the official `Nvidia CUDA Docker images <https://hub.docker.com/r/nvidia/cuda>`_.
-
     .. tab:: pip
 
         .. note::
@@ -181,17 +167,11 @@ Most users can only install the **minimal install**. 🚀 For more advanced user
 
             $ pip install cebra
 
-        * For a minimal install, use
-
-        .. code:: bash
-
-            $ pip install .
-
         * For a full install, run
 
         .. code:: bash
 
-            $ pip install -e '.[dev,docs,integrations,datasets]'
+            $ pip install 'cebra[dev,integrations,datasets]'
 
         Note that, similarly to that last command, you can select the specific install options of interest based on their description above and on your usecase.
 

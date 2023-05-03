@@ -161,7 +161,7 @@ html_theme_options = {
         },
         {
             "name": "How to cite CEBRA",
-            "url": "https://api.semanticscholar.org/CorpusID:247939478",
+            "url": "https://doi.org/10.1038/s41586-023-06031-6#citeas",
             "icon": "fas fa-graduation-cap",
         },
     ],
