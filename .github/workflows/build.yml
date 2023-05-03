@@ -47,6 +47,10 @@ jobs:
         run: |
           make codespell
 
+      - name: Check CITATION.cff validity
+        run: |
+          cffconvert --validate
+
       - name: Check that no binary files have been added to repo
         run: |
           make check_for_binary

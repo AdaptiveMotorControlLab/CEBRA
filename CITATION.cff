@@ -1,29 +1,40 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
+title: >-
+  Learnable latent embeddings for joint behavioural and
+  neural analysis
 authors:
-- family-names: "Schneider"
-  given-names: "Steffen"
-- family-names: "Lee"
-  given-names: "Jin H"
-- family-names: "Mathis"
-  given-names: "Mackenzie W"
-title: "Learnable latent embeddings for joint behavioral and neural analysis"
-doi: abs/2204.00673
-date-released: 2022-04-01
-url: "https://arxiv.org/abs/2204.00673"
-preferred-citation:
-  type: article
-  authors:
-  - family-names: "Schneider"
-    given-names: "Steffen"
-  - family-names: "Lee"
-    given-names: "Jin H"
-  - family-names: "Mathis"
-    given-names: "Mackenzie W"
-  doi: abs/2204.00673
-  journal: "CoRR"
-  month: 04
-  title: "Learnable latent embeddings for joint behavioral and neural analysis"
-  volume: abs/2204.00673
-  year: 2022
+  - given-names: "Steffen"
+    family-names: "Schneider"
+  - given-names: "Jin Hwa"
+    family-names: "Lee"
+  - given-names: "Mackenzie Weygandt"
+    family-names: "Mathis"
+identifiers:
+  - type: url
+    value: 'https://www.nature.com/articles/s41586-023-06031-6'
+  - type: doi
+    value: 10.1038/s41586-023-06031-6
+repository-code: 'https://github.com/AdaptiveMotorControlLab/CEBRA'
 
+preferred-citation:
+  title: >-
+    Learnable latent embeddings for joint behavioural and
+    neural analysis
+  authors:
+    - given-names: "Steffen"
+      family-names: "Schneider"
+    - given-names: "Jin Hwa"
+      family-names: "Lee"
+    - given-names: "Mackenzie Weygandt"
+      family-names: "Mathis"
+  type: "article"
+  journal: "Nature"
+  year: 2023
+  month: 05
+  doi: 10.1038/s41586-023-06031-6
+  issn: 1476-4687
+  url: https://doi.org/10.1038/s41586-023-06031-6
