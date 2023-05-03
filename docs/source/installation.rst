@@ -43,6 +43,7 @@ Most users can only install the **minimal install**. 🚀 For more advanced user
         If you are starting with a new notebook, simply run
 
         .. code:: bash
+
             ! pip install cebra
 
         In the first cell.
