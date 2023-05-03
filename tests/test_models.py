@@ -122,3 +122,24 @@ def test_multiobjective():
     assert first.shape == (5, 4)
     assert second.shape == (5, 2)
     assert third.shape == (5, 4)
+
+
+@pytest.mark.parametrize("version,raises", [
+    ["1.12", False],
+    ["2.", False],
+    ["2.0.0rc", False],
+    ["2.0", False],
+    ["2.5", False],
+    ["1.11.0rc1", True],
+    ["1.10", True],
+    ["1.2", True],
+    ["1.0", True],
+])
+def test_version_check(version, raises):
+
+    torch.__version__ = version
+    assert cebra.models.model._check_torch_version(
+        raise_error=False) == (not raises)
+    if raises:
+        with pytest.raises(ImportError):
+            cebra.models.model._check_torch_version(raise_error=True)
