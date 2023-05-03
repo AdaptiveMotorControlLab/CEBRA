@@ -18,7 +18,6 @@
 [![Downloads](https://static.pepy.tech/badge/cebra/month)](https://pepy.tech/project/cebra)
 [![PyPI version](https://badge.fury.io/py/cebra.svg)](https://badge.fury.io/py/cebra)
 ![License: Non-Commercial](https://img.shields.io/badge/License-Non--commercial-lightgrey)
-![Codecov](https://img.shields.io/codecov/c/github/AdaptiveMotorControlLab/CEBRA)
 [![Twitter Follow](https://img.shields.io/twitter/follow/CEBRAAI.svg?label=CEBRAai&style=social)](https://twitter.com/CEBRAAI)
 
 
@@ -27,7 +26,7 @@
 
 # Welcome! 👋
 
-CEBRA is a library for estimating **C**onsistent **E**m**B**eddings of high-dimensional **R**ecordings using **A**uxiliary variables. It contains self-supervised learning algorithms implemented in PyTorch, and has support for a variety of different datasets common in biology and neuroscience.
+**CEBRA** is a library for estimating **C**onsistent **E**m**B**eddings of high-dimensional **R**ecordings using **A**uxiliary variables. It contains self-supervised learning algorithms implemented in PyTorch, and has support for a variety of different datasets common in biology and neuroscience.
 
 To receive updates on code releases, please 👀 watch or ⭐️ star this repository!
 
@@ -36,9 +35,14 @@ It can jointly use behavioral and neural data in a hypothesis- or discovery-driv
 
 
 # Reference 
-- 📄 **Preprint**:
+
+- 📄 **Publication May 2023**:
+  [Learnable latent embeddings for joint behavioural and neural analysis.](https://doi.org/10.1038/s41586-023-06031-6)
+  Steffen Schneider*, Jin Hwa Lee* and Mackenzie Weygandt Mathis. Nature 2023.
+  
+- 📄 **Preprint April 2022**:
   [Learnable latent embeddings for joint behavioral and neural analysis.](https://arxiv.org/abs/2204.00673)
   Steffen Schneider*, Jin Hwa Lee* and Mackenzie Weygandt Mathis
   
  # License
--  CEBRA is released for academic use only (please read the license file). If this license is not appropriate for your application, please contact Prof. Mackenzie W. Mathis (mackenzie@post.harvard.edu) and/or the TTO office at EPFL (tto@epfl.ch) for a commercial use license.
+-  CEBRA is released for academic use only (please read the license file). If this license is not appropriate for your application, please contact Prof. Mackenzie W. Mathis (mackenzie@post.harvard.edu) for a commercial use license.

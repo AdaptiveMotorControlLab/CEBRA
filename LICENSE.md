@@ -44,7 +44,7 @@ and/or the TTO office at EPFL (tto@epfl.ch) for a commercial use license.
 
 5.	LICENSEE agrees that they shall credit the use of CEBRA with an appropriate citation: 
     Steffen Schneider, Jin H. Lee, Mackenzie Weygandt Mathis. Learnable latent embeddings for joint behavioral 
-    and neural analysis. Nature 2023 doi: _pending_.
+    and neural analysis. Nature 2023 doi: https://doi.org/10.1038/s41586-023-06031-6.
 
 6.	Ownership of all rights, including copyright in the PROGRAM and in any material associated therewith, shall at all times
    remain with LICENSOR and LICENSEE agrees to preserve the same. LICENSEE agrees not to use any portion of the PROGRAM or 
