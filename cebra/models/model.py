@@ -24,6 +24,31 @@ import cebra.models.layers as cebra_layers
 from cebra.models import register
 
 
+def _check_torch_version(raise_error=False):
+    current_version = tuple(
+        [int(i) for i in torch.__version__.split(".")[:2] if len(i) > 0])
+    required_version = (1, 12)
+    if current_version < required_version:
+        if raise_error:
+            raise ImportError(
+                f"PyTorch < 1.12 is not supported for models using "
+                f"Dropout1D, but got PyTorch={torch.__version__}.")
+        else:
+            return False
+    return True
+
+
+def _register_conditionally(*args, **kwargs):
+    if _check_torch_version(raise_error=False):
+        return register(*args, **kwargs)
+    else:
+
+        def do_nothing(cls):
+            return cls
+
+        return do_nothing
+
+
 class Model(nn.Module):
     """Base model for CEBRA experiments.
 
@@ -669,9 +694,13 @@ class Offset36(_OffsetModel, ConvolutionalModelMixin):
         return cebra.data.Offset(18, 18)
 
 
-@register("offset36-model-dropout")
+@_register_conditionally("offset36-model-dropout")
 class Offset36Dropout(_OffsetModel, ConvolutionalModelMixin):
-    """CEBRA model with a 10 sample receptive field."""
+    """CEBRA model with a 10 sample receptive field.
+    
+    Note:
+        Requires ``torch>=1.12``.
+    """
 
     def __init__(self, num_neurons, num_units, num_output, normalize=True):
         if num_units < 1:
@@ -709,9 +738,13 @@ class Offset36Dropout(_OffsetModel, ConvolutionalModelMixin):
         return cebra.data.Offset(18, 18)
 
 
-@register("offset36-model-more-dropout")
+@_register_conditionally("offset36-model-more-dropout")
 class Offset36Dropoutv2(_OffsetModel, ConvolutionalModelMixin):
-    """CEBRA model with a 10 sample receptive field."""
+    """CEBRA model with a 10 sample receptive field.
+    
+    Note:
+        Requires ``torch>=1.12``.
+    """
 
     def _make_layers(self, num_units, p, n):
         return [
