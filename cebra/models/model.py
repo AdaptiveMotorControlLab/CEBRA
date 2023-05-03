@@ -674,6 +674,10 @@ class Offset36Dropout(_OffsetModel, ConvolutionalModelMixin):
     """CEBRA model with a 10 sample receptive field."""
 
     def __init__(self, num_neurons, num_units, num_output, normalize=True):
+        if torch.__version__ < '1.12':
+            raise ImportError(
+                f"PyTorch < 1.12 is not supported for models using "
+                f"Dropout1D, but got PyTorch={torch.__version__}.")
         if num_units < 1:
             raise ValueError(
                 f"Hidden dimension needs to be at least 1, but got {num_units}."
@@ -721,6 +725,10 @@ class Offset36Dropoutv2(_OffsetModel, ConvolutionalModelMixin):
         ]
 
     def __init__(self, num_neurons, num_units, num_output, normalize=True):
+        if torch.__version__ < '1.12':
+            raise ImportError(
+                f"PyTorch < 1.12 is not supported for models using "
+                f"Dropout1D, but got PyTorch={torch.__version__}.")
         if num_units < 1:
             raise ValueError(
                 f"Hidden dimension needs to be at least 1, but got {num_units}."
