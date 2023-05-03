@@ -143,3 +143,11 @@ def test_version_check(version, raises):
     if raises:
         with pytest.raises(ImportError):
             cebra.models.model._check_torch_version(raise_error=True)
+
+
+def test_version_check():
+    raises = not cebra.models.model._check_torch_version(raise_error=False)
+    if raises:
+        assert len(cebra.models.get_options("*dropout*")) == 0
+    else:
+        assert len(cebra.models.get_options("*dropout*")) > 0
