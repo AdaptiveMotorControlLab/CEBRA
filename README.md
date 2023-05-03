@@ -40,7 +40,7 @@ It can jointly use behavioral and neural data in a hypothesis- or discovery-driv
   [Learnable latent embeddings for joint behavioural and neural analysis.](https://doi.org/10.1038/s41586-023-06031-6)
   Steffen Schneider*, Jin Hwa Lee* and Mackenzie Weygandt Mathis. Nature 2023.
   
-- 📄 **Preprint March 2022**:
+- 📄 **Preprint April 2022**:
   [Learnable latent embeddings for joint behavioral and neural analysis.](https://arxiv.org/abs/2204.00673)
   Steffen Schneider*, Jin Hwa Lee* and Mackenzie Weygandt Mathis
   
