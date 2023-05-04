@@ -13,9 +13,7 @@ import glob
 import re
 import sys
 
-import nbformat
 import pytest
-from nbconvert.preprocessors import ExecutePreprocessor
 
 _FILENAMES = glob.glob("demo_notebooks/Demo_hippocampus.ipynb")
 
@@ -46,6 +44,8 @@ def _change_file_path(nb):
 @pytest.mark.requires_dataset
 @pytest.mark.parametrize("filename", _FILENAMES)
 def test_demo_notebook(filename):
+    import nbformat
+    from nbconvert.preprocessors import ExecutePreprocessor
     with open(filename) as f:
         nb = nbformat.read(f, as_version=4)
     nb = _decrease_max_iterations(nb)
