@@ -37,6 +37,13 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Cache dependencies
+        id: pip-cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: pip-os_${{ runner.os }}-python_${{ matrix.python-version }}-torch_${{ matrix.torch-version }}
+
       - name: Checkout code
         uses: actions/checkout@v2
 
@@ -44,13 +51,21 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
 
       - name: Install package
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install torch==${{ matrix.torch-version }} --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install '.[dev,demos,datasets]'
+          pip install '.[datasets]'
+
+      - name: Run pytest tests
+        timeout-minutes: 10
+        run: |
+          make test
+
+      - name: Install dev dependencies
+        run: |
+          pip install '.[dev,datasets]'
           
       - name: Run the formatter
         run: |
@@ -65,17 +80,13 @@ jobs:
           cffconvert --validate
 
       - name: Check that no binary files have been added to repo
+        if: matrix.os == 'ubuntu-latest'
         run: |
           make check_for_binary
 
       - name: Build package
         run: |
           make build
-
-      - name: Run pytest tests
-        timeout-minutes: 10
-        run: |
-          make test
 
       - name: Check reinstall script
         timeout-minutes: 10
