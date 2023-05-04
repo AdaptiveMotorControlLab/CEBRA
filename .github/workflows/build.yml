@@ -14,8 +14,6 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-
     strategy:
       fail-fast: true
       matrix:
@@ -33,6 +31,7 @@ jobs:
           - os: macos-latest
             torch-version: 2.0.0
 
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout code
