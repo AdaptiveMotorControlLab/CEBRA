@@ -118,10 +118,15 @@ class KNNDecoder(Decoder):
             )
 
         # Use regression or classification, based on if the targets are continuous or discrete
-        if np.issubdtype(y.dtype, np.floating):
+        if (isinstance(y, np.ndarray) and
+                np.issubdtype(y.dtype, np.floating)) or (isinstance(
+                    y, torch.Tensor) and torch.is_floating_point(y)):
             self.knn = sklearn.neighbors.KNeighborsRegressor(
                 n_neighbors=self.n_neighbors, metric=self.metric)
-        elif np.issubdtype(y.dtype, np.integer):
+        elif (isinstance(y, np.ndarray) and
+              np.issubdtype(y.dtype, np.integer)) or (
+                  isinstance(y, torch.Tensor) and
+                  (not torch.is_floating_point(y) and not torch.is_complex(y))):
             self.knn = sklearn.neighbors.KNeighborsClassifier(
                 n_neighbors=self.n_neighbors, metric=self.metric)
         else:
@@ -132,7 +137,9 @@ class KNNDecoder(Decoder):
         self.knn.fit(X, y)
         return self
 
-    def predict(self, X: Union[npt.NDArray, torch.Tensor]) -> npt.NDArray:
+    def predict(
+        self, X: Union[npt.NDArray,
+                       torch.Tensor]) -> Union[npt.NDArray, torch.Tensor]:
         """Predict the targets for data ``X``.
 
         Args:
@@ -201,16 +208,13 @@ class L1LinearRegressor(Decoder):
                 f"Invalid shape: y and X must have the same number of samples, got y:{len(y)} and X:{len(X)}."
             )
 
-        if not y.dtype in (
-                np.float32,
-                np.float64,
-                torch.float32,
-                torch.float64,
-                np.int32,
-                np.int64,
-                torch.int32,
-                torch.int64,
-        ):
+        if not (
+            (isinstance(y, np.ndarray) and
+             (np.issubdtype(y.dtype, np.floating) or
+              np.issubdtype(y.dtype, np.integer))) or
+            (isinstance(y, torch.Tensor) and
+             (torch.is_floating_point(y) or
+              (not torch.is_floating_point(y) and not torch.is_complex(y))))):
             raise NotImplementedError(
                 f"Invalid type: targets must be numeric, got y:{y.dtype}")
 
@@ -218,7 +222,9 @@ class L1LinearRegressor(Decoder):
         self.model.fit(X, y)
         return self
 
-    def predict(self, X: Union[npt.NDArray, torch.Tensor]) -> npt.NDArray:
+    def predict(
+        self, X: Union[npt.NDArray,
+                       torch.Tensor]) -> Union[npt.NDArray, torch.Tensor]:
         """Predict the targets for data ``X``.
 
         Args:
