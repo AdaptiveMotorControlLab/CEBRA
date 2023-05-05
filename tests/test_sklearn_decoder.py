@@ -11,6 +11,7 @@
 #
 import numpy as np
 import pytest
+import torch
 
 import cebra.integrations.sklearn.decoder as cebra_sklearn_decoder
 
@@ -48,25 +49,39 @@ def test_sklearn_decoder(decoder):
     decoder.fit(X, y_c)
     pred = decoder.predict(X)
     assert isinstance(pred, np.ndarray)
-    assert pred.dtype in (np.float32, np.float64)
+    assert np.issubdtype(pred.dtype, np.floating)
 
     score = decoder.score(X, y_c)
     assert isinstance(score, float)
+
+    # torch
+    decoder.fit(torch.Tensor(X), torch.Tensor(y_c))
+    pred = decoder.predict(torch.Tensor(X))
+    assert isinstance(pred, np.ndarray)
+    assert np.issubdtype(pred.dtype, np.floating)
 
     # discrete target
     decoder.fit(X, y_d)
     pred = decoder.predict(X)
     assert isinstance(pred, np.ndarray)
-    assert pred.dtype in (np.int32, np.int64, np.float32, np.float64)
+    assert np.issubdtype(pred.dtype, np.integer) or np.issubdtype(
+        pred.dtype, np.floating)
 
     score = decoder.score(X, y_d)
     assert isinstance(score, float)
+
+    # torch
+    decoder.fit(torch.Tensor(X), torch.Tensor(y_d))
+    pred = decoder.predict(torch.Tensor(X))
+    assert isinstance(pred, np.ndarray)
+    assert np.issubdtype(pred.dtype, np.integer) or np.issubdtype(
+        pred.dtype, np.floating)
 
     # multi-dim continuous target
     decoder.fit(X, y_c_dim)
     pred = decoder.predict(X)
     assert isinstance(pred, np.ndarray)
-    assert pred.dtype in (np.float32, np.float64)
+    assert np.issubdtype(pred.dtype, np.floating)
 
     score = decoder.score(X, y_c_dim)
     assert isinstance(score, float)
@@ -76,7 +91,7 @@ def test_sklearn_decoder(decoder):
     decoder.fit(X, multi_y)
     pred = decoder.predict(X)
     assert isinstance(pred, np.ndarray)
-    assert pred.dtype in (np.float32, np.float64)
+    assert np.issubdtype(pred.dtype, np.floating)
 
     score = decoder.score(X, multi_y)
     assert isinstance(score, float)
