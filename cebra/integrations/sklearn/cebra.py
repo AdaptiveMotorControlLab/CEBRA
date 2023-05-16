@@ -1256,3 +1256,46 @@ class CEBRA(BaseEstimator, TransformerMixin):
             raise RuntimeError("Model loaded from file is not compatible with "
                                "the current CEBRA version.")
         return model
+
+    def to(self, device: Union[str, torch.device]):
+        """Moves the cebra model to the specified device.
+
+        Args:
+            device: The device to move the cebra model to. This can be a string representing
+                    the device ('cpu','cuda', cuda:1 etc) or a torch.device object.
+
+        Returns:
+            The cebra model instance.
+
+        Example:
+
+            >>> import cebra
+            >>> import numpy as np
+            >>> dataset =  np.random.uniform(0, 1, (1000, 30))
+            >>> cebra_model = cebra.CEBRA(max_iterations=10, device = "cuda_if_available")
+            >>> cebra_model.fit(dataset)
+            CEBRA(max_iterations=10)
+            >>> cebra_model = cebra_model.to("cpu")
+            >>> cebra_model.is_cuda()
+        """
+        
+        # Check if device is a string or torch.device object
+        if not isinstance(device, (str, torch.device)):
+            raise TypeError("The 'device' parameter must be a string or torch.device object.")
+        
+        if not device == 'cpu' and not device.startswith('cuda'):
+            raise ValueError("The 'device' parameter must be a valid device string or device object.")
+        
+        # Convert device string to torch.device object if necessary
+        if isinstance(device, str):
+            device = torch.device(device)
+    
+        # Check if device is valid
+        if not device.type == 'cpu' and not device.type.startswith('cuda'):
+            raise ValueError("The 'device' parameter must be a valid device string or device object.")
+        
+        self.device = device
+        #self.device_ = device (I am not sure if I should do this)
+        self.solver_.model.to(device)
+
+        return self
