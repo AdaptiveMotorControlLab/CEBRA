@@ -810,3 +810,50 @@ def test_save_and_load(action):
         original_model.save(savefile.name)
         loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
     _assert_equal(original_model, loaded_model)
+
+def test_to_method():
+
+    # example dataset
+    X = np.random.uniform(0, 1, (1000, 50))
+    
+     # List of devices to test
+    devices = ['cpu', 'cuda', 'cuda:0', 'cuda:1']
+
+    for device in devices:
+        
+        #little hack for now since it is not possible to specify the GPU ID
+        # in sklearn API
+        device_train_model = 'cuda' if device.startswith('cuda') else device
+
+        # Create CEBRA model
+        cebra_model = cebra_sklearn_cebra.CEBRA(
+            model_architecture="offset1-model",
+            time_offsets=10,
+            learning_rate=3e-4,
+            max_iterations=5,
+            device=device_train_model,
+            output_dimension=2,
+            batch_size=42,
+            verbose=True,
+        )
+
+        # Train model -- time contrastive
+        cebra_model.fit(X)
+
+        # Move the model to a different device
+        new_device = 'cpu' if device.startswith('cuda') else 'cuda:0'
+        cebra_model.to(new_device)
+
+        # Check that the device has changed
+        assert cebra_model.device == torch.device(new_device)
+
+        # Check that the model parameters are on the correct device
+        assert next(cebra_model.solver_.model.parameters()).device == torch.device(new_device)
+
+
+    ## check that if you save a model on cpu it stays on cpu
+    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
+        cebra_model.save(savefile.name)
+        loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
+    
+    assert cebra_model.device == loaded_model.device
