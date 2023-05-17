@@ -811,7 +811,7 @@ def test_save_and_load(action):
         loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
     _assert_equal(original_model, loaded_model)
 
-def test_to_method():
+def test_to_device():
 
     # example dataset
     X = np.random.uniform(0, 1, (1000, 50))
