@@ -114,15 +114,30 @@ def check_device(device: str) -> str:
         device: The device to return, if possible.
 
     Returns:
-        Either cuda or cpu depending on {device} and availability in the environment.
+        Either cuda, cuda:device_id or cpu depending on {device} and availability in the environment.
     """
+
     if device == "cuda_if_available":
         if torch.cuda.is_available():
             return "cuda"
         else:
             return "cpu"
-    elif device in ["cuda", "cpu"]:
+    elif device.startswith("cuda:") and len(device) > 5:
+        cuda_device_id = device[5:]
+        if cuda_device_id.isdigit():
+            device_count = torch.cuda.device_count()
+            device_id = int(cuda_device_id)
+            if device_id < device_count:
+                return f"cuda:{device_id}"
+            else:
+                raise ValueError(f"CUDA device {device_id} is not available. Available device IDs are 0 to {device_count - 1}.")
+        else:
+            raise ValueError(f"Invalid CUDA device ID format. Please use 'cuda:device_id' where '{cuda_device_id}' is an integer.")
+    elif device == "cuda" and torch.cuda.is_available():
+        return "cuda:0"
+    elif device == "cpu":
         return device
+    
     raise ValueError(f"Device needs to be cuda or cpu, but got {device}.")
 
 
