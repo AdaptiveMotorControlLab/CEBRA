@@ -833,15 +833,11 @@ def test_to_device(device):
     if device.startswith('cuda') and device not in ordered_cuda_devices:
         pytest.skip(f"Device ID {device} not available")
 
-    #little hack for now since it is not possible to specify the GPU ID
-    # in scikit learn API
-    device_train_model = 'cuda' if device.startswith('cuda') else device
-
     # Create CEBRA model
     cebra_model = cebra_sklearn_cebra.CEBRA(
         model_architecture="offset1-model",
         max_iterations=5,
-        device=device_train_model)
+        device=device)
 
     # Train model (time contrastive)
     cebra_model.fit(X)
