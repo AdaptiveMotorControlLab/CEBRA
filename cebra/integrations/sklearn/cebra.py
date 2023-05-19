@@ -1294,8 +1294,11 @@ class CEBRA(BaseEstimator, TransformerMixin):
         if not device.type == 'cpu' and not device.type.startswith('cuda'):
             raise ValueError("The 'device' parameter must be a valid device string or device object.")
         
+        # only assign the device if self.device_ exists
+        if hasattr(self, "device_"):
+            self.device_ = device 
+
         self.device = device
-        #self.device_ = device (I am not sure if I should do this)
         self.solver_.model.to(device)
 
         return self
