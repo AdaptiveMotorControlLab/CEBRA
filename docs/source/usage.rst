@@ -557,10 +557,10 @@ method of interest by providing the directory name in which the models and param
 
 .. testcode::
 
-    # 5. Get the results
+    # 4. Get the results
     df_results = grid_search.get_df_results(models_dir="saved_models")
 
-    # 6. Get the best model for a given dataset
+    # 5. Get the best model for a given dataset
     best_model, best_model_name = grid_search.get_best_model(dataset_name="dataset2", models_dir="saved_models")
 
 
