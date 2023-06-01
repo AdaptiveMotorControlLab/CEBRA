@@ -36,6 +36,7 @@ from cebra.distributions.discrete import *
 from cebra.distributions.index import *
 from cebra.distributions.mixed import *
 from cebra.distributions.multisession import *
+from cebra.distributions.vmf import *
 
 __all__ = [
     "Index",
@@ -51,6 +52,8 @@ __all__ = [
     "Discrete",
     "DiscreteUniform",
     "DiscreteEmpirical",
+    "DeltaNormalDistribution",
+    "DeltaVMFDistribution",
     "MultivariateDiscrete",
     "MultisessionSampler",
 ]

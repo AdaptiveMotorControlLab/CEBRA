@@ -321,16 +321,19 @@ class DeltaVMFDistribution(abc_.JointDistribution, abc_.HasGenerator):
                 f"Reference indices have wrong shape: {reference_idx.shape}. "
                 "Pass a 1D array of indices of reference samples.")
         
-        if self.data.dim() == 1:
+        if self.data.size(1) == 1:
             raise ValueError(
-                f"The index is a 1D array but vmf distribution requires 2D array (> 1 dimension).")
+                "The index has only 1 dimension. To sample from a Von Mises Fisher (vmf)"
+                "distribution at least 2 dimensions are required.")
 
-        # sample from a vmf distribution
-        data_np = self.data.numpy()
-        ref_idx_np = reference_idx.numpy()
+        # TODO(rodrigo): for now the vmf sampler is written in numpy. We can rewrite in
+        # torch if necessary.
+
+        data_np = self.data.cpu().numpy()
+        ref_idx_np = reference_idx.cpu().numpy()
         mean = data_np[ref_idx_np]
         query = cebra.distributions.vmf.sample_vMF(mu = mean, kappa = self.std, num_samples = ref_idx_np.shape[0])
-        query = torch.from_numpy(query)
+        query = torch.from_numpy(query).float()
         return self.index.search(query)
 
 
