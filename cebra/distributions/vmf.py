@@ -11,10 +11,6 @@ https://github.com/clara-labs/spherecluster
 """
 import numpy as np
 
-
-__all__ = ["sample_vMF", "sample_vMF_sequential"]
-
-
 def sample_vMF_sequential(mu, kappa, num_samples):
     """Generate num_samples N-dimensional samples from von Mises Fisher
     distribution around center mu \in R^N with concentration kappa.

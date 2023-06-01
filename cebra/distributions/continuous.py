@@ -20,8 +20,7 @@ import cebra.data
 import cebra.distributions
 import cebra.distributions.base as abc_
 from cebra.data.datatypes import Offset
-from vmf import *
-
+import cebra.distributions.vmf 
 
 class Prior(abc_.PriorDistribution, abc_.HasGenerator):
     """An empirical prior distribution for continuous datasets.
@@ -330,7 +329,7 @@ class DeltaVMFDistribution(abc_.JointDistribution, abc_.HasGenerator):
         data_np = self.data.numpy()
         ref_idx_np = reference_idx.numpy()
         mean = data_np[ref_idx_np]
-        query = sample_vMF(mu = mean, kappa = self.std, num_samples = ref_idx_np.shape[0])
+        query = cebra.distributions.vmf.sample_vMF(mu = mean, kappa = self.std, num_samples = ref_idx_np.shape[0])
         query = torch.from_numpy(query)
         return self.index.search(query)
 
