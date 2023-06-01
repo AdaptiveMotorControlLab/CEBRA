@@ -208,8 +208,13 @@ class ContinuousDataLoader(cebra_data.Loader):
                     self.dataset.continuous_index,
                     self.time_offset,
                     device=self.device)
-            elif self.conditional == "delta":
-                self.distribution = cebra.distributions.DeltaDistribution(
+            elif self.conditional == "delta_normal":
+                self.distribution = cebra.distributions.DeltaNormalDistribution(
+                    self.dataset.continuous_index,
+                    self.delta,
+                    device=self.device)
+            elif self.conditional == "delta_vmf":
+                self.distribution = cebra.distributions.DeltaVMFDistribution(
                     self.dataset.continuous_index,
                     self.delta,
                     device=self.device)

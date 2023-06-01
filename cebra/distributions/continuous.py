@@ -20,6 +20,7 @@ import cebra.data
 import cebra.distributions
 import cebra.distributions.base as abc_
 from cebra.data.datatypes import Offset
+from vmf import *
 
 
 class Prior(abc_.PriorDistribution, abc_.HasGenerator):
@@ -242,7 +243,7 @@ class TimedeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
         return self.index.search(query)
 
 
-class DeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
+class DeltaNormalDistribution(abc_.JointDistribution, abc_.HasGenerator):
     """Define a conditional distribution based on behavioral changes over time.
 
     Takes a continuous index, and uses sample from Gaussian distribution to sample positive
@@ -277,12 +278,61 @@ class DeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
                 "Pass a 1D array of indices of reference samples.")
 
         # TODO(stes): Set seed
+        mean = self.data[reference_idx]
         query = torch.distributions.Normal(
-            self.data[reference_idx].squeeze(),
-            torch.ones_like(reference_idx, device=self.device) * self.std,
+                    loc = mean,
+                    scale = torch.ones_like(mean, device=self.device) * self.std,
         ).sample()
 
-        return self.index.search(query.unsqueeze(-1))
+        query = query.unsqueeze(-1) if query.dim() == 1 else query
+        return self.index.search(query)
+    
+
+class DeltaVMFDistribution(abc_.JointDistribution, abc_.HasGenerator):
+    """Define a conditional distribution based on behavioral changes over time.
+
+    Takes a continuous index, and uses sample from Von Mises Fisher distribution to sample positive
+
+    Args:
+        continuous: The multidimensional, continuous index
+        delta: Standard deviation of Gaussian distribution to sample positive pair
+
+    """
+
+    def __init__(self,
+                 continuous: torch.Tensor,
+                 delta: float = 1,
+                 device: Literal["cpu", "cuda"] = "cpu",
+                 seed: Optional[int] = None):
+        abc_.HasGenerator.__init__(self, device=device, seed=seed)
+        self.data = continuous
+        self.std = delta
+        self.index = cebra.distributions.ContinuousIndex(self.data)
+        self.prior = Prior(self.data, device=device, seed=seed)
+
+    def sample_prior(self, num_samples: int) -> torch.Tensor:
+        """See :py:meth:`.Prior.sample_prior`."""
+        return self.prior.sample_prior(num_samples)
+
+    def sample_conditional(self, reference_idx: torch.Tensor) -> torch.Tensor:
+        """Return indices from the conditional distribution."""
+
+        if reference_idx.dim() != 1:
+            raise ValueError(
+                f"Reference indices have wrong shape: {reference_idx.shape}. "
+                "Pass a 1D array of indices of reference samples.")
+        
+        if self.data.dim() == 1:
+            raise ValueError(
+                f"The index is a 1D array but vmf distribution requires 2D array (> 1 dimension).")
+
+        # sample from a vmf distribution
+        data_np = self.data.numpy()
+        ref_idx_np = reference_idx.numpy()
+        mean = data_np[ref_idx_np]
+        query = sample_vMF(mu = mean, kappa = self.std, num_samples = ref_idx_np.shape[0])
+        query = torch.from_numpy(query)
+        return self.index.search(query)
 
 
 class CEBRADistribution(abc_.JointDistribution):

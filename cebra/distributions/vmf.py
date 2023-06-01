@@ -132,28 +132,3 @@ def _sample_orthonormal_to(mu):
     )
     orthto = v - proj_mu_v
     return orthto / np.linalg.norm(orthto, axis=-1, keepdims=True)
-
-
-if __name__ == "__main__":
-    import timeit
-
-    def setup_mu(num_samples, n):
-        mu = np.random.normal(0.0, 1.0, size=(num_samples, n))
-        mu /= np.sqrt(np.sum(mu ** 2, -1, keepdims=True))
-        return mu
-
-    print(
-        timeit.timeit(
-            "n=1000; sample_vMF(mu=setup_mu(n, 10), kappa=1, num_samples=n)",
-            setup="from __main__ import setup_mu, sample_vMF, sample_vMF_p",
-            number=1000,
-        )
-    )
-
-    print(
-        timeit.timeit(
-            "n=1000; sample_vMF_p(mu=setup_mu(n, 10), kappa=1, num_samples=n)",
-            setup="from __main__ import setup_mu, sample_vMF, sample_vMF_p",
-            number=1000,
-        )
-    )
