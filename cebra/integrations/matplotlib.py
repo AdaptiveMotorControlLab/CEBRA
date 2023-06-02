@@ -1186,7 +1186,7 @@ def compare_models(
         The axis of the generated plot. If no ``ax`` argument was specified, it will be created
         by the function and returned here.
     """
-
+    #note this is the min. required version for matplotlib
     required_version = "3.5"
     installed_version = pkg_resources.get_distribution("matplotlib").version
     if installed_version < required_version:
