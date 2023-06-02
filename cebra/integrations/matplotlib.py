@@ -25,6 +25,7 @@ import numpy as np
 import numpy.typing as npt
 import sklearn.utils.validation
 import torch
+import pkg_resources
 
 from cebra import CEBRA
 
@@ -1185,6 +1186,12 @@ def compare_models(
         The axis of the generated plot. If no ``ax`` argument was specified, it will be created
         by the function and returned here.
     """
+
+    required_version = "3.5"
+    installed_version = pkg_resources.get_distribution("matplotlib").version
+    if installed_version < required_version:
+        raise ImportError(f"The function cebra.compare_models() requires matplotlib version {required_version} or higher.")
+
     if not isinstance(models, list):
         raise ValueError(f"Invalid list of models, got {type(models)}.")
     for model in models:
