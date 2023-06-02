@@ -1186,12 +1186,26 @@ def compare_models(
         The axis of the generated plot. If no ``ax`` argument was specified, it will be created
         by the function and returned here.
     """
+    # OPTION 1
     #note this is the min. required version for matplotlib
-    required_version = "3.5"
-    installed_version = pkg_resources.get_distribution("matplotlib").version
+    required_version = pkg_resources.parse_version("3.6")
+    installed_version = pkg_resources.parse_version(matplotlib.__version__)
+    
     if installed_version < required_version:
         raise ImportError(f"The function cebra.compare_models() requires matplotlib version {required_version} or higher.")
 
+    # OPTION 2
+    #note this is the min. required version for matplotlib
+    def versiontuple(v):
+        return tuple(map(int, (v.split("."))))
+    
+    required_version = versiontuple("3.6")
+    installed_version = versiontuple(matplotlib.__version__)
+    
+    if installed_version < required_version:
+        raise ImportError(f"The function cebra.compare_models() requires matplotlib"
+                           f"version {'.'.join(str(x) for x in required_version)} or higher.")
+    
     if not isinstance(models, list):
         raise ValueError(f"Invalid list of models, got {type(models)}.")
     for model in models:
