@@ -826,7 +826,7 @@ def test_to_device(device):
     X = np.random.uniform(0, 1, (1000, 50))
     
     # Check if CUDA is available
-    if device.startswith('cuda') and not torch.cuda.is_available():
+    if not torch.cuda.is_available():
         pytest.skip("CUDA not available")
 
     # Check if device ID exists
