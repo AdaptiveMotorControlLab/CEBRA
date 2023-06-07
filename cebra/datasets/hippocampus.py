@@ -36,8 +36,16 @@ from cebra.datasets import get_datapath
 from cebra.datasets import init
 from cebra.datasets import parametrize
 from cebra.datasets import register
+from cebra.datasets.assets import download_file_with_progress_bar
 
 _DEFAULT_DATADIR = get_datapath()
+
+rat_dataset_urls = {
+    "achilles": "https://figshare.com/ndownloader/files/40849463?private_link=9f91576cbbcc8b0d8828",
+    "budy":     "https://figshare.com/ndownloader/files/40849460?private_link=9f91576cbbcc8b0d8828",
+    "cicero":   "https://figshare.com/ndownloader/files/40849457?private_link=9f91576cbbcc8b0d8828",
+    "gatsby":   "https://figshare.com/ndownloader/files/40849454?private_link=9f91576cbbcc8b0d8828"
+    }
 
 
 @register("rat-hippocampus-single")
@@ -56,10 +64,16 @@ class SingleRatDataset(cebra.data.SingleSessionDataset):
 
     """
 
-    def __init__(self, name="achilles", root=_DEFAULT_DATADIR):
+    def __init__(self, name="achilles", root=_DEFAULT_DATADIR, download_data = True):
         super().__init__()
-        path = os.path.join(root, f"rat_hippocampus/{name}.jl")
+
+        location = os.path.join(root, "rat_hippocampus")
+        if download_data:
+            download_file_with_progress_bar(rat_dataset_urls[name], location = location)
+
+        path = os.path.join(location, f"{name}.jl")
         data = joblib.load(path)
+        
         self.neural = torch.from_numpy(data["spikes"]).float()
         self.index = torch.from_numpy(data["position"]).float()
         self.name = name
