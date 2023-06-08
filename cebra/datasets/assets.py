@@ -14,8 +14,15 @@ import requests
 import os
 from tqdm import tqdm
 import re
+import hashlib
 
-def download_file_with_progress_bar(url, location):
+MAX_RETRY_COUNT = 2
+
+def download_file_with_progress_bar(url, expected_checksum, location, retry_count=0):
+
+    if retry_count > MAX_RETRY_COUNT:
+        raise RuntimeError("Exceeded maximum retry count. Unable to download the file.")
+    
     response = requests.get(url, stream=True)
 
     # Check if the request was successful
@@ -41,12 +48,22 @@ def download_file_with_progress_bar(url, location):
     file_path = os.path.join(location,filename)
 
     total_size = int(response.headers.get("Content-Length", 0))
+    checksum = hashlib.md5()  # create checksum
 
     with open(file_path, "wb") as file:
         with tqdm(total=total_size, unit="B", unit_scale=True) as progress_bar:
             for data in response.iter_content(chunk_size=1024):
                 file.write(data)
+                checksum.update(data)  # Update the checksum with the downloaded data
                 progress_bar.update(len(data))
+    
+    downloaded_checksum = checksum.hexdigest()  # Get the checksum value
+    if downloaded_checksum != expected_checksum:
+        print("Checksum verification failed. Deleting the file.")
+        os.remove(file_path)
+        print("File deleted. Retrying download...")
+        return download_file_with_progress_bar(url, location, expected_checksum, retry_count + 1)
+
 
     print(f"Download complete. Dataset saved in '{file_path}'")
     return response

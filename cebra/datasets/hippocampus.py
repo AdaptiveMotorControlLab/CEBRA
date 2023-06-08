@@ -41,10 +41,25 @@ from cebra.datasets.assets import download_file_with_progress_bar
 _DEFAULT_DATADIR = get_datapath()
 
 rat_dataset_urls = {
-    "achilles": "https://figshare.com/ndownloader/files/40849463?private_link=9f91576cbbcc8b0d8828",
-    "budy":     "https://figshare.com/ndownloader/files/40849460?private_link=9f91576cbbcc8b0d8828",
-    "cicero":   "https://figshare.com/ndownloader/files/40849457?private_link=9f91576cbbcc8b0d8828",
-    "gatsby":   "https://figshare.com/ndownloader/files/40849454?private_link=9f91576cbbcc8b0d8828"
+
+    "achilles": {
+                "url": "https://figshare.com/ndownloader/files/40849463?private_link=9f91576cbbcc8b0d8828",
+                "checksum": "c52f9b55cbc23c66d57f3842214058b8"
+                },
+
+    "budy":     {
+                "url":"https://figshare.com/ndownloader/files/40849460?private_link=9f91576cbbcc8b0d8828",
+                "checksum": "36341322907708c466871bf04bc133c2"
+                },   
+
+    "cicero":   {
+                "url": "https://figshare.com/ndownloader/files/40849457?private_link=9f91576cbbcc8b0d8828",
+                "checksum": "a83b02dbdc884fdd7e53df362499d42f"
+                },
+
+    "gatsby":   {"url": "https://figshare.com/ndownloader/files/40849454?private_link=9f91576cbbcc8b0d8828",
+                 "checksum": "2b889da48178b3155011c12555342813"
+                }
     }
 
 
@@ -64,16 +79,19 @@ class SingleRatDataset(cebra.data.SingleSessionDataset):
 
     """
 
-    def __init__(self, name="achilles", root=_DEFAULT_DATADIR, download_data = True):
+    def __init__(self, name="achilles", root=_DEFAULT_DATADIR):
         super().__init__()
 
         location = os.path.join(root, "rat_hippocampus")
-        if download_data:
-            download_file_with_progress_bar(rat_dataset_urls[name], location = location)
-
-        path = os.path.join(location, f"{name}.jl")
-        data = joblib.load(path)
+        file_path = os.path.join(location, f"{name}.jl")
         
+        if not os.path.exists(file_path):
+            download_file_with_progress_bar(url = rat_dataset_urls[name]["url"], 
+                                            expected_checksum = rat_dataset_urls[name]["checksum"],
+                                            location = location)
+
+        
+        data = joblib.load(file_path)
         self.neural = torch.from_numpy(data["spikes"]).float()
         self.index = torch.from_numpy(data["position"]).float()
         self.name = name
