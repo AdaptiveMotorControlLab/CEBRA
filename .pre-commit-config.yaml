@@ -8,13 +8,13 @@ repos:
       - id: check-added-large-files
       - id: check-executables-have-shebangs
       - id: check-toml
-  - repo: https://github.com/google/yapf
-    rev: v0.33.0
-    hooks:
-      - id: yapf
-        exclude: ^third_party/.*\.py$
-        additional_dependencies:
-          - pyproject.toml
+  #- repo: https://github.com/google/yapf
+  #  rev: v0.33.0
+  #  hooks:
+  #    - id: yapf
+  #      exclude: ^third_party/.*\.py$
+  #      additional_dependencies:
+  #        - pyproject.toml
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
     hooks:
