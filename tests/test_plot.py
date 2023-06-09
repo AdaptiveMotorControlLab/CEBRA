@@ -152,19 +152,18 @@ def test_compare_models_with_different_versions(matplotlib_version):
     fitted_models = []
     for _ in range(n_models):
         fitted_models.append(
-            cebra_sklearn_cebra.CEBRA(max_iterations=10, batch_size=512).fit(X)
+            cebra_sklearn_cebra.CEBRA(max_iterations=10, batch_size=128).fit(X)
             )
+    
+    # minimum version of matplotlib 
+    minimum_version = "3.6"
     
     # Patch the matplotlib version
     matplotlib.__version__ = matplotlib_version
 
-    try:
-        cebra_plot.compare_models(models = fitted_models)
-    except ImportError as e:
-        pass  # Expected ImportError
-    else:
-        assert pkg_resources.parse_version(matplotlib_version) >= pkg_resources.parse_version("3.6")
-
+    if pkg_resources.parse_version(matplotlib_version) < pkg_resources.parse_version(minimum_version):
+        with pytest.raises(ImportError):
+            cebra_plot.compare_models(models=fitted_models)
 
 def test_compare_models():
     # example dataset
