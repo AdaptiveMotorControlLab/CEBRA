@@ -15,7 +15,6 @@ blank = false
 [tool.yapf]
 based_on_style = "google"
 indent_width = 4
-exclude = "third_party/**/*.py"
 
 
 [tool.isort]
