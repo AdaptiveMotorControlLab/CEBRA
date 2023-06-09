@@ -12,12 +12,12 @@ repos:
     rev: v0.33.0
     hooks:
       - id: yapf
+        exclude: ^third_party/.*\.py$
         additional_dependencies:
           - pyproject.toml
   - repo: https://github.com/PyCQA/isort
     rev: 5.12.0
     hooks:
       - id: isort
-        exclude: ^third_party/.*\.py$
         additional_dependencies:
           - pyproject.toml
