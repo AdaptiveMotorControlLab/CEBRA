@@ -1216,10 +1216,21 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> cebra_model.save('/tmp/foo.pt')
 
         """
+        #print(self.__dict__)
         if backend != "torch":
             raise NotImplementedError(f"Unsupported backend: {backend}")
-        checkpoint = torch.save(self, filename)
-        return checkpoint
+        
+        #checkpoint = torch.save(self, filename)
+
+        # if is has been fitted (add condition)
+
+        self.__dict__.update({'self': self.state_dict_})
+        # TODO: we also need to add the STATE_DICT of the solver to this!
+
+        ckp = torch.save(self.__dict__, filename)
+        return self.__dict__
+        
+
 
     @classmethod
     def load(cls,
@@ -1249,10 +1260,63 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> embedding = loaded_model.transform(dataset)
 
         """
+
+        # NOTE(rodrigo):
+            #THIS ONLY WORKS FOR SINGLE SESSSION
+
         if backend != "torch":
             raise NotImplementedError(f"Unsupported backend: {backend}")
-        model = torch.load(filename, **kwargs)
-        if not isinstance(model, cls):
-            raise RuntimeError("Model loaded from file is not compatible with "
-                               "the current CEBRA version.")
-        return model
+        
+
+        print(type(cls))
+        #dictmodel = torch.load(filename, **kwargs)
+        
+        # TODO:
+            # build model
+            # build solver
+            # build CEBRA object 
+        
+        # CREATE CEBRA MODEL
+        dict = torch.load(filename)
+        valid_dict = {k: v for k, v in dict.items() if k in cls.__init__.__code__.co_varnames}
+        CEBRA_object = cls(**valid_dict)
+
+
+        ## add model
+        
+        model = cebra.models.init(
+                dict["model_architecture"],
+                num_neurons=dict["input_dimension"],
+                num_units=dict["num_hidden_units"],
+                num_output=dict["output_dimension"],
+            ).to(dict["device_"])
+        
+        CEBRA_object.model = model
+
+
+        #criterion = self._prepare_criterion()
+        #criterion.to(self.device_)
+        #optimizer = torch.optim.Adam(
+        #    list(model.parameters()) + list(criterion.parameters()),
+        #    lr=self.learning_rate,
+        #    **dict(self.optimizer_kwargs),
+        #)
+#
+        #solver = cebra.solver.init(
+        #    solver_name,
+        #    model=model,
+        #    criterion=criterion,
+        #    optimizer=optimizer,
+        #    tqdm_on=self.verbose,
+        #)
+        #solver.to(self.device_)
+
+
+        #model = torch.load(filename, **kwargs)
+        #if not isinstance(model, cls):
+        #    raise RuntimeError("Model loaded from file is not compatible with "
+        #                       "the current CEBRA version.")
+        #return model
+
+
+
