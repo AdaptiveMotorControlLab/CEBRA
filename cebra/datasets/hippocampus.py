@@ -79,18 +79,18 @@ class SingleRatDataset(cebra.data.SingleSessionDataset):
 
     """
 
-    def __init__(self, name="achilles", root=_DEFAULT_DATADIR):
+    def __init__(self, name="achilles", root=_DEFAULT_DATADIR, download = True):
         super().__init__()
 
         location = os.path.join(root, "rat_hippocampus")
         file_path = os.path.join(location, f"{name}.jl")
         
-        if not os.path.exists(file_path):
+        if download:
             download_file_with_progress_bar(url = rat_dataset_urls[name]["url"], 
                                             expected_checksum = rat_dataset_urls[name]["checksum"],
-                                            location = location)
+                                            location = location,
+                                            file_name = f"{name}.jl")
 
-        
         data = joblib.load(file_path)
         self.neural = torch.from_numpy(data["spikes"]).float()
         self.index = torch.from_numpy(data["position"]).float()
