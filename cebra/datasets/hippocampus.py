@@ -47,7 +47,7 @@ rat_dataset_urls = {
                 "checksum": "c52f9b55cbc23c66d57f3842214058b8"
                 },
 
-    "budy":     {
+    "buddy":     {
                 "url":"https://figshare.com/ndownloader/files/40849460?private_link=9f91576cbbcc8b0d8828",
                 "checksum": "36341322907708c466871bf04bc133c2"
                 },   

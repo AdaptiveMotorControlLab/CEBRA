@@ -15,6 +15,7 @@ import os
 import tqdm
 import re
 import hashlib
+import warnings
 from typing import Optional
 
 _MAX_RETRY_COUNT = 2
@@ -82,9 +83,9 @@ def download_file_with_progress_bar(url: str, expected_checksum: str, location: 
 
     downloaded_checksum = checksum.hexdigest()  # Get the checksum value
     if downloaded_checksum != expected_checksum:
-        print(f"Checksum verification failed. Deleting {file_path}.")
+        warnings.warn(f"Checksum verification failed. Deleting '{file_path}'.")
         os.remove(file_path)
-        print("File deleted. Retrying download...")
+        warnings.warn("File deleted. Retrying download...")
 
         # Retry download using a for loop
         for _ in range(retry_count + 1, _MAX_RETRY_COUNT + 1):
