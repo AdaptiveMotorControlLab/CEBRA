@@ -1220,15 +1220,29 @@ class CEBRA(BaseEstimator, TransformerMixin):
         if backend != "torch":
             raise NotImplementedError(f"Unsupported backend: {backend}")
         
-        #checkpoint = torch.save(self, filename)
+        state = self.__dict__.copy()
 
-        # if is has been fitted (add condition)
+        # Save the modified dictionary to the specified file
+        torch.save(
+            {
+            'state':state,
+            'model_state_dict': self.model_.state_dict()
+            },
+            filename)
+        #self.__dict__.update({'self': self.state_dict_})
 
-        self.__dict__.update({'self': self.state_dict_})
-        # TODO: we also need to add the STATE_DICT of the solver to this!
+        #state.pop('self', None)
+        #state.pop('device_', None)
+        #state.pop('offset_', None)
+        #state.pop('_label_types', None)
+        #state.pop('model_', None)
+        #state.pop('n_features_', None)
+        #state.pop('solver_', None)
+        #state.pop('n_features_in_', None)
+        #state.pop('num_sessions_', None)
 
-        ckp = torch.save(self.__dict__, filename)
-        return self.__dict__
+       
+        return state
         
 
 
@@ -1260,63 +1274,69 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> embedding = loaded_model.transform(dataset)
 
         """
+        def split_dictionary(dictionary, keys):
+            dict1 = {}
+            dict2 = {}
+            for key, value in dictionary.items():
+                if key in keys:
+                    dict1[key] = value
+                else:
+                    dict2[key] = value
+            return dict1, dict2
+        
 
-        # NOTE(rodrigo):
-            #THIS ONLY WORKS FOR SINGLE SESSSION
-
+        # NOTE(rodrigo): #THIS ONLY WORKS FOR SINGLE SESSSION
         if backend != "torch":
             raise NotImplementedError(f"Unsupported backend: {backend}")
-        
+    
 
-        print(type(cls))
-        #dictmodel = torch.load(filename, **kwargs)
-        
-        # TODO:
-            # build model
-            # build solver
-            # build CEBRA object 
-        
-        # CREATE CEBRA MODEL
-        dict = torch.load(filename)
-        valid_dict = {k: v for k, v in dict.items() if k in cls.__init__.__code__.co_varnames}
-        CEBRA_object = cls(**valid_dict)
+        cebra_info = torch.load(filename)
 
+        state = cebra_info['state']
+        model_state_dict = cebra_info['model_state_dict']
 
-        ## add model
-        
+        keys = {
+                'self', # i should not save this!
+                'device_',
+                'offset_',
+                '_label_types',
+                'model_',
+                'n_features_',
+                'solver_',
+                'n_features_in_',
+                'num_sessions_',
+            }
+        hidden, args = split_dictionary(state, keys)
+
+        CEBRA = cls(**args)
+
+        # reconstruct model
         model = cebra.models.init(
-                dict["model_architecture"],
-                num_neurons=dict["input_dimension"],
-                num_units=dict["num_hidden_units"],
-                num_output=dict["output_dimension"],
-            ).to(dict["device_"])
-        
-        CEBRA_object.model = model
+            args["model_architecture"],
+            num_neurons=hidden["n_features_in_"], 
+            num_units=args["num_hidden_units"],
+            num_output=args["output_dimension"],
+        ).to(hidden["device_"])
 
+        CEBRA.model_ = model
+        CEBRA.model_.load_state_dict(model_state_dict)
 
-        #criterion = self._prepare_criterion()
-        #criterion.to(self.device_)
-        #optimizer = torch.optim.Adam(
-        #    list(model.parameters()) + list(criterion.parameters()),
-        #    lr=self.learning_rate,
-        #    **dict(self.optimizer_kwargs),
-        #)
-#
-        #solver = cebra.solver.init(
-        #    solver_name,
-        #    model=model,
-        #    criterion=criterion,
-        #    optimizer=optimizer,
-        #    tqdm_on=self.verbose,
-        #)
+        ## reconstruct solver
+        criterion = cls._prepare_criterion(hidden['self'])
+        criterion.to(hidden['device_'])
+        optimizer = torch.optim.Adam(
+            list(model.parameters()) + list(criterion.parameters()),
+            lr=args['learning_rate'],
+            **dict(args['optimizer_kwargs']),
+        )
+
+        solver = cebra.solver.init(
+            solver_name, #TODO: how do i get solver's name without calling init_loader?
+            model=model,
+            criterion=criterion,
+            optimizer=optimizer,
+            tqdm_on=args['verbose'],
+        )
         #solver.to(self.device_)
 
-
-        #model = torch.load(filename, **kwargs)
-        #if not isinstance(model, cls):
-        #    raise RuntimeError("Model loaded from file is not compatible with "
-        #                       "the current CEBRA version.")
-        #return model
-
-
-
+        return CEBRA
