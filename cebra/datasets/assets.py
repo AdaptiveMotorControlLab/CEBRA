@@ -12,7 +12,7 @@
 
 import requests
 import os
-from tqdm import tqdm
+import tqdm
 import re
 import hashlib
 from typing import Optional
@@ -48,54 +48,50 @@ def download_file_with_progress_bar(url: str, expected_checksum: str, location: 
         raise RuntimeError(f"Exceeded maximum retry count ({_MAX_RETRY_COUNT}). "
                            f"Unable to download the file from {url}")
 
-    try:
-        response = requests.get(url, stream=True)
+    
+    response = requests.get(url, stream=True)
 
-        # Check if the request was successful
-        if response.status_code != 200:
-            raise requests.HTTPError(f"Error occurred while downloading the file. Response code: {response.status_code}")
+    # Check if the request was successful
+    if response.status_code != 200:
+        raise requests.HTTPError(f"Error occurred while downloading the file. Response code: {response.status_code}")
 
-        # Check if the response headers contain the 'Content-Disposition' header
-        if 'Content-Disposition' not in response.headers:
-            raise ValueError("Unable to determine the filename. 'Content-Disposition' header not found.")
+    # Check if the response headers contain the 'Content-Disposition' header
+    if 'Content-Disposition' not in response.headers:
+        raise ValueError("Unable to determine the filename. 'Content-Disposition' header not found.")
 
-        # Extract the filename from the 'Content-Disposition' header
-        filename_match = re.search(r'filename="(.+)"', response.headers.get("Content-Disposition"))
-        if not filename_match:
-            raise ValueError("Unable to determine the filename from the 'Content-Disposition' header.")
+    # Extract the filename from the 'Content-Disposition' header
+    filename_match = re.search(r'filename="(.+)"', response.headers.get("Content-Disposition"))
+    if not filename_match:
+        raise ValueError("Unable to determine the filename from the 'Content-Disposition' header.")
 
-        # Create the directory and any necessary parent directories
-        os.makedirs(location, exist_ok=True)
+    # Create the directory and any necessary parent directories
+    os.makedirs(location, exist_ok=True)
 
-        filename = filename_match.group(1)
-        file_path = os.path.join(location, filename)
+    filename = filename_match.group(1)
+    file_path = os.path.join(location, filename)
 
-        total_size = int(response.headers.get("Content-Length", 0))
-        checksum = hashlib.md5()  # create checksum
+    total_size = int(response.headers.get("Content-Length", 0))
+    checksum = hashlib.md5()  # create checksum
 
-        with open(file_path, "wb") as file:
-            with tqdm(total=total_size, unit="B", unit_scale=True) as progress_bar:
-                for data in response.iter_content(chunk_size=1024):
-                    file.write(data)
-                    checksum.update(data)  # Update the checksum with the downloaded data
-                    progress_bar.update(len(data))
+    with open(file_path, "wb") as file:
+        with tqdm.tqdm(total=total_size, unit="B", unit_scale=True) as progress_bar:
+            for data in response.iter_content(chunk_size=1024):
+                file.write(data)
+                checksum.update(data)  # Update the checksum with the downloaded data
+                progress_bar.update(len(data))
 
-        downloaded_checksum = checksum.hexdigest()  # Get the checksum value
-        if downloaded_checksum != expected_checksum:
-            print("Checksum verification failed. Deleting the file.")
-            os.remove(file_path)
-            print("File deleted. Retrying download...")
+    downloaded_checksum = checksum.hexdigest()  # Get the checksum value
+    if downloaded_checksum != expected_checksum:
+        print(f"Checksum verification failed. Deleting {file_path}.")
+        os.remove(file_path)
+        print("File deleted. Retrying download...")
 
-            # Retry download using a for loop
-            for _ in range(retry_count + 1, _MAX_RETRY_COUNT + 1):
-                return download_file_with_progress_bar(url, location, expected_checksum, file_name, retry_count + 1)
-        else:
-            print(f"Download complete. Dataset saved in '{file_path}'")
-            return url
-
-    except Exception as e:
-        print(f"An exception occurred: {e}")
-        return None
+        # Retry download using a for loop
+        for _ in range(retry_count + 1, _MAX_RETRY_COUNT + 1):
+            return download_file_with_progress_bar(url, expected_checksum, location, file_name, retry_count + 1)
+    else:
+        print(f"Download complete. Dataset saved in '{file_path}'")
+        return url
 
 
 def calculate_checksum(file_path: str) -> str:
