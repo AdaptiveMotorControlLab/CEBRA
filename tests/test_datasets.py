@@ -9,15 +9,19 @@
 # Please see LICENSE.md for the full license document:
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
+import os
 import numpy as np
 import pytest
 import torch
-import tqdm
 
 import cebra.data
 import cebra.datasets
+import cebra.datasets.assets 
 import cebra.registry
 from cebra.datasets import poisson
+from unittest.mock import patch
+import requests
+import tempfile
 
 
 def test_registry():
@@ -280,191 +284,51 @@ def test_poisson_sampling(spike_rate, refractory_period):
 
     _assert_histograms_close(spike_counts.flatten().numpy(), reference_counts)
 
-
-### TEST DOWNLOAD FILE FUNCTION
-
-import os
-import hashlib
-import pytest
-from unittest.mock import patch
-from cebra.datasets.assets import download_file_with_progress_bar, calculate_checksum
-import tempfile
-import requests
-
-
-@pytest.fixture
-def temp_file(tmpdir):
-    file_path = os.path.join(tmpdir, "test_file")
-    with open(file_path, "w") as file:
-        file.write("Test file")
-    return file_path
-
-def test_calculate_checksum(temp_file):
-    expected = "098f6bcd4621d373cade4e832627b4f6" # GET THE EXPECTED CHECKSUM RIGHT
-    result = calculate_checksum(temp_file)
-    assert result == expected
-
 @pytest.mark.parametrize(
-    "name, url, expected_checksum",
+    "filename, url, expected_checksum",
     [
-        ("achilles", "https://figshare.com/ndownloader/files/40849463?private_link=9f91576cbbcc8b0d8828", "c52f9b55cbc23c66d57f3842214058b8"),
+        ("achilles.jl", "https://figshare.com/ndownloader/files/40849463?private_link=9f91576cbbcc8b0d8828",  "c52f9b55cbc23c66d57f3842214058b8"),
+        ("buddy.jl",     "https://figshare.com/ndownloader/files/40849460?private_link=9f91576cbbcc8b0d8828", "36341322907708c466871bf04bc133c2"),
+        ("cicero.jl",   "https://figshare.com/ndownloader/files/40849457?private_link=9f91576cbbcc8b0d8828",  "a83b02dbdc884fdd7e53df362499d42f"),
+        ("gatsby.jl",   "https://figshare.com/ndownloader/files/40849454?private_link=9f91576cbbcc8b0d8828",  "2b889da48178b3155011c12555342813")
     ]
 )
-def test_download_file_with_progress_bar_existing_file(name, url, expected_checksum):
+def test_download_file_with_progress_bar(filename, url, expected_checksum):
+    
+    # SUCCESSFUL DOWNLOAD
     with tempfile.TemporaryDirectory() as temp_dir:
-        # Download the file to the temporary directory
-        filename =  f"{name}.jl"
-        file_path = os.path.join(temp_dir, filename)
-
-        download_file_with_progress_bar(url = url,expected_checksum= expected_checksum,
+        cebra.datasets.assets.download_file_with_progress_bar(url = url, expected_checksum= expected_checksum,
                                         location= temp_dir,file_name= filename)
-
-        # Calculate the checksum of the downloaded file
-        downloaded_checksum = calculate_checksum(file_path)
-
-        # Compare the downloaded checksum with the expected checksum
+        
+        downloaded_checksum = cebra.datasets.assets.calculate_checksum(os.path.join(temp_dir, filename))
         assert downloaded_checksum == expected_checksum
 
-@pytest.mark.parametrize(
-    "name, url, expected_checksum",
-    [
-        ("achilles", "https://figshare.com/ndownloader/files/40849463?private_link=9f91576cbbcc8b0d8828", "c52f9b55cbc23c66d57f3842214058b8"),
-    ]
-)
-def test_download_file_with_progress_bar_retry_exceeded(expected_checksum, url, name):
-     
-     wrong_checksum = ''.join(reversed(expected_checksum))
-
-     with tempfile.TemporaryDirectory() as temp_dir:
-        filename =  f"{name}.jl"
+    # CHECKSUM
+    wrong_checksum = ''.join(reversed(expected_checksum))
+    with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(RuntimeError):
-            download_file_with_progress_bar(url, wrong_checksum, temp_dir, filename, retry_count=2)
+            cebra.datasets.assets.download_file_with_progress_bar(url = url, expected_checksum = wrong_checksum,
+                                            location= temp_dir,file_name= filename, retry_count=2)
 
-@pytest.mark.parametrize(
-    "name, url, expected_checksum",
-    [
-        ("achilles", "https://figshare.com/ndownloader/files/40849463?private_link=9f91576cbbcc8b0d8828", "c52f9b55cbc23c66d57f3842214058b8"),
-    ]
-)
-def test_download_file_with_progress_bar_http_error(expected_checksum, name, url):
-    
+    # URL
     wrong_url =  "https://figshare.com/wrongurl"
     with tempfile.TemporaryDirectory() as temp_dir:
-        filename =  f"{name}.jl"
         with pytest.raises(requests.HTTPError):
-            download_file_with_progress_bar(wrong_url, expected_checksum, temp_dir, filename)
+            cebra.datasets.assets.download_file_with_progress_bar(url = wrong_url, expected_checksum = expected_checksum,
+                                                                  location= temp_dir, file_name = filename)
 
-
-
-@pytest.mark.parametrize(
-    "name, url, expected_checksum",
-    [
-        ("achilles", "https://figshare.com/ndownloader/files/40849463?private_link=9f91576cbbcc8b0d8828", "c52f9b55cbc23c66d57f3842214058b8"),
-    ]
-)
-def test_download_file_with_progress_bar_no_content_disposition(expected_checksum, url, name):
-    filename = f"{name}.jl"
-    print(filename)
+    # CONTENT DISPOSITION
     with tempfile.TemporaryDirectory() as temp_dir:
-
         with patch("requests.get") as mock_get:
             mock_response = mock_get.return_value
             mock_response.status_code = 200
             mock_response.headers = {}
 
-            with pytest.raises(ValueError) as err:
-                download_file_with_progress_bar(url, expected_checksum, temp_dir, filename)
+            with pytest.raises(ValueError):
+                cebra.datasets.assets.download_file_with_progress_bar(url = url, expected_checksum= expected_checksum,
+                                                location= temp_dir,file_name= filename)
 
             mock_response.headers = {"Content-Disposition": "invalid_header"}
-            with pytest.raises(ValueError) as err:
-                download_file_with_progress_bar(url, expected_checksum, temp_dir, filename)
-
-
-#def test_download_file_with_progress_bar_non_existing_file(expected_checksum, tmpdir):
-#    url = "https://example.com/file"
-#    location = str(tmpdir)
-#    file_name = "test_file"
-#
-#
-#
-#    downloaded_file = download_file_with_progress_bar(url, expected_checksum, location, file_name)
-#
-#    assert downloaded_file == os.path.join(location, file_name)
-#
-#
-#
-#
-#
-#
-#def test_download_file_with_progress_bar_invalid_content_disposition(expected_checksum, tmpdir):
-#    url = "https://example.com/file"
-#    location = str(tmpdir)
-#    file_name = "test_file"
-#
-#    with patch("requests.get") as mock_get:
-#        mock_response = mock_get.return_value
-#        mock_response.status_code = 200
-#        mock_response.headers = {"Content-Disposition": "invalid_header"}
-#
-#        with pytest.raises(ValueError):
-#            download_file_with_progress_bar(url, expected_checksum, location, file_name)
-#
-#
-#def test_download_file_with_progress_bar_successful_download(expected_checksum, tmpdir):
-#    url = "https://example.com/file"
-#    location = str(tmpdir)
-#    file_name = "test_file"
-#
-#    with patch("requests.get") as mock_get, \
-#         patch("tqdm.tqdm") as mock_tqdm, \
-#         patch("hashlib.md5") as mock_md5, \
-#         patch("builtins.open") as mock_open:
-#        mock_response = mock_get.return_value
-#        mock_response.status_code = 200
-#        mock_response.headers = {"Content-Disposition": 'filename="test_file"'}
-#        mock_response.iter_content.return_value = [b"test"]
-#
-#        mock_file = mock_open.return_value.__enter__.return_value
-#        mock_checksum = mock_md5.return_value
-#
-#        downloaded_file = download_file_with_progress_bar(url, expected_checksum, location, file_name)
-#
-#        mock_open.assert_called_with(os.path.join(location, file_name), "wb")
-#        mock_file.write.assert_called_with(b"test")
-#        mock_checksum.update.assert_called_with(b"test")
-#        mock_tqdm.assert_called_once()
-#        assert downloaded_file == url
-#
-#
-#def test_download_file_with_progress_bar_checksum_verification_failed(expected_checksum, tmpdir):
-#    url = "https://example.com/file"
-#    location = str(tmpdir)
-#    file_name = "test_file"
-#
-#    with patch("requests.get") as mock_get, \
-#         patch("tqdm.tqdm") as mock_tqdm, \
-#         patch("hashlib.md5") as mock_md5, \
-#         patch("builtins.open") as mock_open:
-#        mock_response = mock_get.return_value
-#        mock_response.status_code = 200
-#        mock_response.headers = {"Content-Disposition": 'filename="test_file"'}
-#        mock_response.iter_content.return_value = [b"test"]
-#
-#        mock_file = mock_open.return_value.__enter__.return_value
-#        mock_checksum = mock_md5.return_value
-#        mock_checksum.hexdigest.return_value = "invalid_checksum"
-#
-#        downloaded_file = download_file_with_progress_bar(url, expected_checksum, location, file_name)
-#
-#        mock_open.assert_called_with(os.path.join(location, file_name), "wb")
-#        mock_file.write.assert_called_with(b"test")
-#        mock_checksum.update.assert_called_with(b"test")
-#        mock_tqdm.assert_called_once()
-#        mock_open.assert_called_with(os.path.join(location, file_name), "wb")
-#        mock_file.write.assert_called_with(b"test")
-#        mock_checksum.update.assert_called_with(b"test")
-#        mock_tqdm.assert_called_once()
-#        mock_file.remove.assert_called_once()
-#        assert downloaded_file is None
-
-
+            with pytest.raises(ValueError):
+                cebra.datasets.assets.download_file_with_progress_bar(url = url, expected_checksum= expected_checksum,
+                                                                      location= temp_dir,file_name= filename)
