@@ -1216,36 +1216,33 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> cebra_model.save('/tmp/foo.pt')
 
         """
-        #print(self.__dict__)
+        
+        import inspect
+
         if backend != "torch":
             raise NotImplementedError(f"Unsupported backend: {backend}")
         
+        constructor_signature = inspect.signature(self.__init__)
+        arg_names = [param.name for param in constructor_signature.parameters.values()]
         state = self.__dict__.copy()
+        state['solver_name'] = state['solver_']._variant_name
+
+        state.pop('self', None)
+        state.pop('solver_', None)
+        state.pop('model_', None)
 
         # Save the modified dictionary to the specified file
         torch.save(
             {
-            'state':state,
-            'model_state_dict': self.model_.state_dict()
+            'args_names':arg_names,
+            'state': state,
+            'model_state_dict': self.model_.state_dict(),
+            'criterion' : self.solver_.criterion,
             },
             filename)
-        #self.__dict__.update({'self': self.state_dict_})
-
-        #state.pop('self', None)
-        #state.pop('device_', None)
-        #state.pop('offset_', None)
-        #state.pop('_label_types', None)
-        #state.pop('model_', None)
-        #state.pop('n_features_', None)
-        #state.pop('solver_', None)
-        #state.pop('n_features_in_', None)
-        #state.pop('num_sessions_', None)
-
-       
-        return state
         
-
-
+        return constructor_signature
+        
     @classmethod
     def load(cls,
              filename: str,
@@ -1273,70 +1270,54 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> loaded_model = cebra.CEBRA.load('/tmp/foo.pt')
             >>> embedding = loaded_model.transform(dataset)
 
-        """
-        def split_dictionary(dictionary, keys):
-            dict1 = {}
-            dict2 = {}
-            for key, value in dictionary.items():
-                if key in keys:
-                    dict1[key] = value
-                else:
-                    dict2[key] = value
-            return dict1, dict2
-        
+        """    
 
         # NOTE(rodrigo): #THIS ONLY WORKS FOR SINGLE SESSSION
         if backend != "torch":
             raise NotImplementedError(f"Unsupported backend: {backend}")
     
-
         cebra_info = torch.load(filename)
-
+        args_names = cebra_info['args_names']
         state = cebra_info['state']
         model_state_dict = cebra_info['model_state_dict']
 
-        keys = {
-                'self', # i should not save this!
-                'device_',
-                'offset_',
-                '_label_types',
-                'model_',
-                'n_features_',
-                'solver_',
-                'n_features_in_',
-                'num_sessions_',
-            }
-        hidden, args = split_dictionary(state, keys)
+        args = {key: state[key] for key in args_names}
 
         CEBRA = cls(**args)
 
         # reconstruct model
         model = cebra.models.init(
-            args["model_architecture"],
-            num_neurons=hidden["n_features_in_"], 
-            num_units=args["num_hidden_units"],
-            num_output=args["output_dimension"],
-        ).to(hidden["device_"])
+            state["model_architecture"],
+            num_neurons=state["n_features_in_"], 
+            num_units=state["num_hidden_units"],
+            num_output=state["output_dimension"],
+        ).to(state["device_"])
 
         CEBRA.model_ = model
         CEBRA.model_.load_state_dict(model_state_dict)
 
-        ## reconstruct solver
-        criterion = cls._prepare_criterion(hidden['self'])
-        criterion.to(hidden['device_'])
+        criterion = cebra_info['criterion']
         optimizer = torch.optim.Adam(
             list(model.parameters()) + list(criterion.parameters()),
-            lr=args['learning_rate'],
-            **dict(args['optimizer_kwargs']),
+            lr=state['learning_rate'],
+            **dict(state['optimizer_kwargs']),
         )
 
         solver = cebra.solver.init(
-            solver_name, #TODO: how do i get solver's name without calling init_loader?
+            state['solver_name'], 
             model=model,
             criterion=criterion,
             optimizer=optimizer,
             tqdm_on=args['verbose'],
         )
-        #solver.to(self.device_)
+        solver.to(state['device_'])
+        
+        CEBRA.solver_ = solver
+        CEBRA.offset_ = model.get_offset()
+        CEBRA.device_ = state['device_']
+        CEBRA._label_types = state['_label_types']
+        CEBRA.n_features_ = state['n_features_']
+        CEBRA.n_features_in_ = state['n_features_in_']
+        CEBRA.num_sessions_ = state['num_sessions_']
 
         return CEBRA
