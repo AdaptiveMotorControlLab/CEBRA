@@ -1191,7 +1191,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
         # current version of CEBRA.
         return {"non_deterministic": True}
 
-    def save(self, filename: str, backend: Literal["torch"] = "torch"):
+    def save(self, filename: str, backend: Literal["torch"] = "sklearn"):
         """Save the model to disk.
 
         Args:
@@ -1219,30 +1219,46 @@ class CEBRA(BaseEstimator, TransformerMixin):
         
         import inspect
 
-        if backend != "torch":
+        if backend == "torch":
+            pass
+        elif backend == "sklearn":
+
+            constructor_signature = inspect.signature(self.__init__)
+            arg_names = list(constructor_signature.parameters.keys())
+            cebra_args = {arg_name: getattr(self, arg_name) for arg_name in arg_names}
+            # KEY:VALUE pair of args that user passed to get the object!
+                         
+            #TODO:
+            # - disctintion between fitted and nonfitted (e.g solver_)
+            # - disctintion between single session and multisession
+
+            if sklearn_utils.check_fitted(self):
+                #raise ValueError("CEBRA object is not fitted. Does not make sense to save it.")
+                state = {
+                    key: value for key, value in self.__dict__.items()
+                     if key not in ['self', 'solver_', 'model_']
+                    }
+                state.update({'solver_name' : self.__dict__['solver_']._variant_name})
+
+            else:
+                state = {}
+
+            
+            torch.save(
+                {
+                'cebra_args':cebra_args,
+                'state':state,
+                'solver_state_dict': self.solver_.state_dict(),
+                'criterion' : self.solver_.criterion,
+                },
+                filename)
+        
+
+        else:
             raise NotImplementedError(f"Unsupported backend: {backend}")
-        
-        constructor_signature = inspect.signature(self.__init__)
-        arg_names = [param.name for param in constructor_signature.parameters.values()]
-        state = self.__dict__.copy()
-        state['solver_name'] = state['solver_']._variant_name
-
-        state.pop('self', None)
-        state.pop('solver_', None)
-        state.pop('model_', None)
-
-        # Save the modified dictionary to the specified file
-        torch.save(
-            {
-            'args_names':arg_names,
-            'state': state,
-            'model_state_dict': self.model_.state_dict(),
-            'criterion' : self.solver_.criterion,
-            },
-            filename)
-        
-        return constructor_signature
-        
+       
+        return arg_names, cebra_args, state
+    
     @classmethod
     def load(cls,
              filename: str,
@@ -1272,31 +1288,30 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
         """    
 
-        # NOTE(rodrigo): #THIS ONLY WORKS FOR SINGLE SESSSION
+        
         if backend != "torch":
             raise NotImplementedError(f"Unsupported backend: {backend}")
     
         cebra_info = torch.load(filename)
-        args_names = cebra_info['args_names']
+
+        cebra_args = cebra_info['cebra_args']
         state = cebra_info['state']
-        model_state_dict = cebra_info['model_state_dict']
+        solver_state_dict = cebra_info['solver_state_dict']
 
-        args = {key: state[key] for key in args_names}
+        # create CEBRA object
+        cebra_obj = cls(**cebra_args)
 
-        CEBRA = cls(**args)
-
-        # reconstruct model
+        #FIRST: reconstruct model
         model = cebra.models.init(
             state["model_architecture"],
             num_neurons=state["n_features_in_"], 
             num_units=state["num_hidden_units"],
             num_output=state["output_dimension"],
-        ).to(state["device_"])
-
-        CEBRA.model_ = model
-        CEBRA.model_.load_state_dict(model_state_dict)
-
+        )
+        
         criterion = cebra_info['criterion']
+        #optimizer = torch.optim.Adam()
+        
         optimizer = torch.optim.Adam(
             list(model.parameters()) + list(criterion.parameters()),
             lr=state['learning_rate'],
@@ -1308,16 +1323,34 @@ class CEBRA(BaseEstimator, TransformerMixin):
             model=model,
             criterion=criterion,
             optimizer=optimizer,
-            tqdm_on=args['verbose'],
+            tqdm_on=cebra_args['verbose'],
         )
-        solver.to(state['device_'])
-        
-        CEBRA.solver_ = solver
-        CEBRA.offset_ = model.get_offset()
-        CEBRA.device_ = state['device_']
-        CEBRA._label_types = state['_label_types']
-        CEBRA.n_features_ = state['n_features_']
-        CEBRA.n_features_in_ = state['n_features_in_']
-        CEBRA.num_sessions_ = state['num_sessions_']
 
-        return CEBRA
+        solver.load_state_dict(solver_state_dict)
+
+        
+        cebra_obj.model_ = model
+        cebra_obj.solver_ = solver
+        
+        #CEBRA.offset_ = model.get_offset()
+        #CEBRA.device_ = state['device_']
+        #CEBRA._label_types = state['_label_types']
+        #CEBRA.n_features_ = state['n_features_']
+        #CEBRA.n_features_in_ = state['n_features_in_']
+        #CEBRA.num_sessions_ = state['num_sessions_']
+
+
+        # TODO:
+        # check if I need to move object .to(device) both for model and solver.
+        # I think its missing num_sessions: for multisession
+
+        #list(set(dir(cebra_model)) - set(dir(cebra_obj)))
+        #'n_features_in_',
+        #'n_features_',
+        #'device_',
+        #'num_sessions_',
+        #'_label_types',
+        #'offset_'
+        
+        return cebra_obj
+#
