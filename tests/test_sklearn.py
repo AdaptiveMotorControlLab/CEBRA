@@ -810,3 +810,14 @@ def test_save_and_load(action):
         original_model.save(savefile.name)
         loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
     _assert_equal(original_model, loaded_model)
+
+
+def test_save_singlesession_model():
+    pass
+
+def test_save_multisession_model():
+    pass
+
+def test_save_singlesession_fitted_model():
+    pass
+
