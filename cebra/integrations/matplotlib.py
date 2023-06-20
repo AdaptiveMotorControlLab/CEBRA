@@ -25,7 +25,6 @@ import numpy as np
 import numpy.typing as npt
 import sklearn.utils.validation
 import torch
-import pkg_resources
 
 from cebra import CEBRA
 
@@ -1132,7 +1131,8 @@ def plot_consistency(
         dpi=dpi,
     ).plot(**kwargs)
 
-
+from cebra.helper import requires_package_version
+@requires_package_version(matplotlib, "3.6")
 def compare_models(
     models: List[CEBRA],
     labels: Optional[List[str]] = None,
@@ -1186,13 +1186,7 @@ def compare_models(
         The axis of the generated plot. If no ``ax`` argument was specified, it will be created
         by the function and returned here.
     """
-    
-    required_version = pkg_resources.parse_version("3.6") #note this is the min. required version for matplotlib
-    installed_version = pkg_resources.parse_version(matplotlib.__version__)
-    
-    if installed_version < required_version:
-        raise ImportError(f"The function cebra.compare_models() requires matplotlib version {required_version} or higher.")
-    
+
     if not isinstance(models, list):
         raise ValueError(f"Invalid list of models, got {type(models)}.")
     

@@ -18,6 +18,8 @@ import urllib
 import warnings
 import zipfile
 from typing import List, Union
+import pkg_resources
+from functools import wraps
 
 import numpy as np
 import numpy.typing as npt
@@ -60,7 +62,6 @@ def download_file_from_zip_url(url, file="montblanc_tracks.h5"):
             except zipfile.error:
                 pass
     return pathlib.Path(foldername) / "data" / file
-
 
 def _is_mps_availabe(torch):
     available = False
@@ -121,3 +122,24 @@ def get_loader_options(dataset: "cebra.data.Dataset") -> List[str]:
         "The 'get_loader_options' function has been moved to 'cebra.data.helpers' module. "
         "Please update your imports.", DeprecationWarning)
     return cebra.data.helper.get_loader_options
+
+def requires_package_version(module, version):
+    required_version = pkg_resources.parse_version(version)
+
+    def _requires_package_version(function):
+        @wraps(function)
+        def wrapper(*args, patched_version=None, **kwargs):
+            if patched_version != None:
+                installed_version = pkg_resources.parse_version(patched_version) # Use the patched version if provided
+            else:
+                installed_version = pkg_resources.parse_version(module.__version__)
+
+            if installed_version < required_version:
+                raise ImportError(f"The function '{function.__name__}' requires {module.__name__} "
+                                  f"version {required_version} or higher, but you have {installed_version}. "
+                                  f"Please upgrade {module.__name__}.")
+            return function(*args, **kwargs)
+
+        return wrapper
+
+    return _requires_package_version

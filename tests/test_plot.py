@@ -158,12 +158,9 @@ def test_compare_models_with_different_versions(matplotlib_version):
     # minimum version of matplotlib 
     minimum_version = "3.6"
     
-    # Patch the matplotlib version
-    matplotlib.__version__ = matplotlib_version
-
     if pkg_resources.parse_version(matplotlib_version) < pkg_resources.parse_version(minimum_version):
         with pytest.raises(ImportError):
-            cebra_plot.compare_models(models=fitted_models)
+            cebra_plot.compare_models(models=fitted_models, patched_version = matplotlib_version)
 
 def test_compare_models():
     # example dataset
