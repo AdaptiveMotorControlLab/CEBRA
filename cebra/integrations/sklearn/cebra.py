@@ -1276,7 +1276,6 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> cebra_model.fit(dataset)
             CEBRA(max_iterations=10)
             >>> cebra_model = cebra_model.to("cpu")
-            >>> cebra_model.is_cuda()
         """
         
         # Check if device is a string or torch.device object
