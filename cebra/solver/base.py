@@ -285,7 +285,40 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         return decode_metric
 
     @torch.no_grad()
-    def transform(self, inputs: torch.Tensor) -> torch.Tensor:
+    def _transform(self, inputs, session_id):
+        output = self.model(inputs)
+        return output
+
+    
+    @torch.no_grad()
+    def _batched_transform(self, inputs, session_id, batch_size):
+        num_samples = inputs.shape[0]
+        num_batches = (num_samples + batch_size - 1) // batch_size
+        output = []
+
+        for i in range(num_batches):
+            start_idx = i * batch_size
+            end_idx = min((i + 1) * batch_size, num_samples)
+            batched_data = inputs[start_idx:end_idx]
+            output_batch = self.model(batched_data)
+            output.append(output_batch)
+
+        output = torch.cat(output)
+        return output
+    
+
+        # OPTION 2
+        #num_samples = inputs.shape[0]
+        #num_batches = (num_samples + batch_size - 1) // batch_size
+        #output = [self.model(inputs[i * batch_size : min((i + 1) * batch_size, num_samples)]) for i in range(num_batches)]
+        #output = torch.cat(output)
+        #return output
+
+    @torch.no_grad()
+    def transform(self,
+                  inputs: torch.Tensor,
+                  session_id: Optional[int] = None,
+                  batch_size: Optional[int] = None) -> torch.Tensor:
         """Compute the embedding.
 
         This function by default only applies the ``forward`` function
@@ -293,17 +326,26 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         Args:
             inputs: The input signal
-
+            session_id: The session ID, an :py:class:`int` between 0 and 
+                the number of sessions -1 for multisession, and set to 
+                ``None`` for single session.
+        
         Returns:
             The output embedding.
-
-        TODO:
-            * Remove eval mode
         """
 
-        self.model.eval()
-        return self.model(inputs)
+        
 
+        if batch_size is not None:
+            #TODO: padding properly with convolutions!!
+            output = self._batched_transform(inputs, session_id, batch_size)
+
+        else:
+            output = self._transform(inputs, session_id)
+
+        return output
+    
+    
     @abc.abstractmethod
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
         """Given a batch of input examples, return the model outputs.
