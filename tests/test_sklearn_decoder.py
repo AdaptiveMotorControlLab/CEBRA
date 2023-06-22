@@ -101,3 +101,8 @@ def test_sklearn_decoder(decoder):
         decoder.fit(X, y_str)
     with pytest.raises(ValueError, match="Invalid.*shape"):
         decoder.fit(X, y_d_short)
+
+    assert decoder._is_floating(torch.Tensor([4.5]))
+    assert decoder._is_integer(torch.LongTensor([4]))
+    assert decoder._is_floating(np.array([4.5]))
+    assert decoder._is_integer(np.array([4]))

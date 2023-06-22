@@ -25,6 +25,39 @@ import torch
 class Decoder(abc.ABC, sklearn.base.BaseEstimator):
     """Abstract base class for implementing a decoder."""
 
+    def _is_integer(self, y: Union[npt.NDArray, torch.Tensor]) -> bool:
+        """Check if the values in `y` are :py:class:`int`.
+ 
+        Args:
+            y: The labels, either either as a :py:func:`numpy.array` or a :py:class:`torch.Tensor`.
+        
+        Returns:
+            `True` if `y` contains :py:class:`int`.
+        """
+        return (isinstance(y, np.ndarray) and np.issubdtype(
+            y.dtype, np.integer)) or (isinstance(y, torch.Tensor) and
+                                      (not torch.is_floating_point(y) and
+                                       not torch.is_complex(y)))
+
+    def _is_floating(self, y: Union[npt.NDArray, torch.Tensor]) -> bool:
+        """Check if the values in `y` are :py:class:`int`.
+        
+        Note: 
+            There is no `torch` method to check that the `dtype` of a :py:class:`torch.Tensor`
+            is a :py:class:`float`, consequently, we check that it is not :py:class:`int` nor
+            :py:class:`complex`.
+ 
+        Args:
+            y: The labels, either either as a :py:func:`numpy.array` or a :py:class:`torch.Tensor`.
+        
+        Returns:
+            `True` if `y` contains :py:class:`float`.
+        """
+
+        return (isinstance(y, np.ndarray) and np.issubdtype(
+            y.dtype, np.floating)) or (isinstance(y, torch.Tensor) and
+                                       torch.is_floating_point(y))
+
     @abc.abstractmethod
     def fit(
         self,
@@ -118,15 +151,10 @@ class KNNDecoder(Decoder):
             )
 
         # Use regression or classification, based on if the targets are continuous or discrete
-        if (isinstance(y, np.ndarray) and
-                np.issubdtype(y.dtype, np.floating)) or (isinstance(
-                    y, torch.Tensor) and torch.is_floating_point(y)):
+        if self._is_floating(y):
             self.knn = sklearn.neighbors.KNeighborsRegressor(
                 n_neighbors=self.n_neighbors, metric=self.metric)
-        elif (isinstance(y, np.ndarray) and
-              np.issubdtype(y.dtype, np.integer)) or (
-                  isinstance(y, torch.Tensor) and
-                  (not torch.is_floating_point(y) and not torch.is_complex(y))):
+        elif self._is_integer(y):
             self.knn = sklearn.neighbors.KNeighborsClassifier(
                 n_neighbors=self.n_neighbors, metric=self.metric)
         else:
@@ -208,13 +236,7 @@ class L1LinearRegressor(Decoder):
                 f"Invalid shape: y and X must have the same number of samples, got y:{len(y)} and X:{len(X)}."
             )
 
-        if not (
-            (isinstance(y, np.ndarray) and
-             (np.issubdtype(y.dtype, np.floating) or
-              np.issubdtype(y.dtype, np.integer))) or
-            (isinstance(y, torch.Tensor) and
-             (torch.is_floating_point(y) or
-              (not torch.is_floating_point(y) and not torch.is_complex(y))))):
+        if not (self._is_integer(y) or self._is_floating(y)):
             raise NotImplementedError(
                 f"Invalid type: targets must be numeric, got y:{y.dtype}")
 
