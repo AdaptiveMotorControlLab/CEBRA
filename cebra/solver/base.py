@@ -44,6 +44,7 @@ import cebra.io
 import cebra.models
 from cebra.solver.util import Meter
 from cebra.solver.util import ProgressBar
+import numpy as np
 
 
 @dataclasses.dataclass
@@ -57,6 +58,11 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         criterion: The criterion computed from the similarities between positive pairs
             and negative pairs. The criterion can have trainable parameters on its own.
         optimizer: A PyTorch optimizer for updating model and criterion parameters.
+        pad_before_transform: If ``False``, no padding is applied to the input sequence.
+            and the output sequence will be smaller than the input sequence due to the 
+            receptive field of the model. If the input sequence is ``n`` steps long, 
+            and a model with receptive field ``m`` is used, the output sequence would 
+            only be ``n-m+1`` steps long.
         history: Deprecated since 0.0.2. Use :py:attr:`log`.
         decode_history: Deprecated since 0.0.2. Use a hook during training for validation and
             decoding. See the arguments of :py:meth:`fit`.
@@ -69,6 +75,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     model: torch.nn.Module
     criterion: torch.nn.Module
     optimizer: torch.optim.Optimizer
+    pad_before_transform: bool = True
     history: List = dataclasses.field(default_factory=list)
     decode_history: List = dataclasses.field(default_factory=list)
     log: Dict = dataclasses.field(default_factory=lambda: ({
@@ -95,6 +102,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         return {
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
+            "pad_before_transform": self.pad_before_transform,
             "loss": torch.tensor(self.history),
             "decode": self.decode_history,
             "criterion": self.criterion.state_dict(),
@@ -130,6 +138,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             self.criterion.load_state_dict(_get("criterion"))
         if _contains("optimizer"):
             self.optimizer.load_state_dict(_get("optimizer"))
+        if _contains("pad_before_transform"):
+            self.pad_before_transform = _get("pad_before_transform")
         # TODO(stes): This will be deprecated at some point; the "log" attribute
         # holds the same information.
         if _contains("loss"):
@@ -286,12 +296,55 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
     @torch.no_grad()
     def _transform(self, inputs, session_id):
+
+        #model = self.select_model(n_inputs_features=inputs.shape[1],
+        #                          session_id=session_id)
+        #model.to(inputs.device)
+        #offset = model.get_offset()
+#
+        #model.eval()
+#
+        #if self.pad_before_transform:
+        #    device = inputs.device
+        #    inputs = np.pad(inputs.cpu().numpy(),
+        #                    ((offset.left, offset.right - 1), (0, 0)),
+        #                    mode="edge")
+        #    inputs = torch.from_numpy(inputs).float().to(device)
+#
+        #if isinstance(model, cebra.models.ConvolutionalModelMixin):
+        #    # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
+        #    inputs = inputs.transpose(1, 0).unsqueeze(0)
+        #    output = model(inputs).squeeze(0).transpose(1, 0)
+        #else:
+        #    # Standard evaluation, (T, C, dt)
+        #    output = model(inputs)
+        
         output = self.model(inputs)
         return output
 
+
+    def _get_batched_data_with_padding(self, inputs, offset, start_idx, end_idx, batch_id, num_batches):
+
+        if batch_id == 0:
+            batched_data = inputs[start_idx:(end_idx+offset.right)]
+            batched_data = np.pad(batched_data.cpu().numpy(),
+                            ((offset.left, 0), (0, 0)),
+                            mode="edge")
+                    
+        elif batch_id == num_batches - 1: #Last batch 
+            batched_data = inputs[(start_idx-offset.left):end_idx]
+            batched_data = np.pad(batched_data.cpu().numpy(),
+                            ((0, offset.right-1), (0, 0)),
+                            mode="edge")
+            
+        else: # Middle batches  
+            batched_data = inputs[(start_idx-offset.left):(end_idx+offset.right-1)]
+
+        return torch.from_numpy(batched_data) if isinstance(batched_data, np.ndarray) else batched_data    
     
+
     @torch.no_grad()
-    def _batched_transform(self, inputs, session_id, batch_size):
+    def _batched_transform(self, inputs, offset, session_id, batch_size):
         num_samples = inputs.shape[0]
         num_batches = (num_samples + batch_size - 1) // batch_size
         output = []
@@ -300,12 +353,23 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             start_idx = i * batch_size
             end_idx = min((i + 1) * batch_size, num_samples)
             batched_data = inputs[start_idx:end_idx]
-            output_batch = self.model(batched_data)
+
+            if self.pad_before_transform:
+                batched_data = self._get_batched_data_with_padding(inputs, offset, start_idx, end_idx, i, num_batches)
+
+            if isinstance(self.model, cebra.models.ConvolutionalModelMixin):
+                # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
+                batched_data = batched_data.transpose(1, 0).unsqueeze(0)
+                output_batch = self.model(batched_data).squeeze(0).transpose(1, 0)
+            else:
+                output_batch = self.model(batched_data)
+            
+
             output.append(output_batch)
 
         output = torch.cat(output)
+        
         return output
-    
 
         # OPTION 2
         #num_samples = inputs.shape[0]
@@ -334,11 +398,13 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             The output embedding.
         """
 
+        offset = self.model.get_offset()
+
         
 
         if batch_size is not None:
             #TODO: padding properly with convolutions!!
-            output = self._batched_transform(inputs, session_id, batch_size)
+            output = self._batched_transform(inputs, offset, session_id, batch_size)
 
         else:
             output = self._transform(inputs, session_id)
