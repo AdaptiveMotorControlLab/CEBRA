@@ -29,6 +29,7 @@ import cebra.data
 import cebra.datasets
 import cebra.models
 import cebra.solver
+import numpy as np
 
 device = "cpu"
 
@@ -168,3 +169,36 @@ def test_multi_session(data_name, loader_initfunc, solver_initfunc):
     assert isinstance(log, dict)
 
     solver.fit(loader)
+
+
+def test_batched_transform(data_name, loader_initfunc, solver_initfunc):
+    """
+    test to know if we are getting the batches right without padding
+    """
+
+    loader = _get_loader(data_name, loader_initfunc)
+    model = _make_model(loader.dataset)
+    criterion = cebra.models.InfoNCE()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+    solver = solver_initfunc(model=model,
+                             criterion=criterion,
+                             optimizer=optimizer,
+                             pad_before_transform = False)
+
+    solver.fit(loader)
+
+    # batched_transform
+    batch_size = 1024
+
+    # should pad_before_transform be an argument of the transform() method?
+    embedding_batched = solver.transform(batch_size = batch_size)
+    embedding = solver.transform(batch_size = None)
+
+    assert embedding_batched.shape == embedding.shape
+    assert np.allclose(embedding_batched, embedding)
+
+
+    # TODO: how can I check that the batches are correct?
+    # maybe it is good enough if I compare to the embedding
+    # without batch size.
