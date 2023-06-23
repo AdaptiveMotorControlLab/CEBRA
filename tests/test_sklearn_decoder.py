@@ -102,7 +102,9 @@ def test_sklearn_decoder(decoder):
     with pytest.raises(ValueError, match="Invalid.*shape"):
         decoder.fit(X, y_d_short)
 
-    assert decoder._is_floating(torch.Tensor([4.5]))
-    assert decoder._is_integer(torch.LongTensor([4]))
-    assert decoder._is_floating(np.array([4.5]))
-    assert decoder._is_integer(np.array([4]))
+
+def test_dtype_checker():
+    assert cebra_sklearn_decoder._is_floating(torch.Tensor([4.5]))
+    assert cebra_sklearn_decoder._is_integer(torch.LongTensor([4]))
+    assert cebra_sklearn_decoder._is_floating(np.array([4.5]))
+    assert cebra_sklearn_decoder._is_integer(np.array([4]))
