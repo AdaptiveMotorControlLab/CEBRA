@@ -23,13 +23,13 @@ import torch
 
 
 def _is_integer(y: Union[npt.NDArray, torch.Tensor]) -> bool:
-    """Check if the values in `y` are :py:class:`int`.
+    """Check if the values in ``y`` are :py:class:`int`.
 
     Args:
         y: An array, either as a :py:func:`numpy.array` or a :py:class:`torch.Tensor`.
     
     Returns:
-        `True` if `y` contains :py:class:`int`.
+        ``True`` if ``y`` contains :py:class:`int`.
     """
     return (isinstance(y, np.ndarray) and np.issubdtype(y.dtype, np.integer)
            ) or (isinstance(y, torch.Tensor) and
@@ -37,10 +37,10 @@ def _is_integer(y: Union[npt.NDArray, torch.Tensor]) -> bool:
 
 
 def _is_floating(y: Union[npt.NDArray, torch.Tensor]) -> bool:
-    """Check if the values in `y` are :py:class:`int`.
+    """Check if the values in ``y`` are :py:class:`int`.
     
     Note: 
-        There is no `torch` method to check that the `dtype` of a :py:class:`torch.Tensor`
+        There is no ``torch`` method to check that the ``dtype`` of a :py:class:`torch.Tensor`
         is a :py:class:`float`, consequently, we check that it is not :py:class:`int` nor
         :py:class:`complex`.
 
@@ -48,7 +48,7 @@ def _is_floating(y: Union[npt.NDArray, torch.Tensor]) -> bool:
         y: An array, either as a :py:func:`numpy.array` or a :py:class:`torch.Tensor`.
     
     Returns:
-        `True` if `y` contains :py:class:`float`.
+        ``True`` if ``y`` contains :py:class:`float`.
     """
 
     return (isinstance(y, np.ndarray) and
