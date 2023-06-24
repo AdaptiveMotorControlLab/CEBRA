@@ -62,7 +62,7 @@ class OrthogonalProcrustesAlignment:
             Procrustes problem on.
     """
 
-    def __init__(self, top_k: int = 5, subsample: int = 500):
+    def __init__(self, top_k: int = 5, subsample: Optional[int] = None):
         self.subsample = subsample
         self.top_k = top_k
 
