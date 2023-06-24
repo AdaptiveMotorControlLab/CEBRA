@@ -9,7 +9,7 @@ For reference, or for printing and emailing or mailing the form it is reproduced
 
 CLA Version as of March 17th, 2023.
 
-Thank you for your interest in software from The Mathis Laboratory of 
+Thank you for your interest in software from The Mathis Laboratory of
 Adaptive Motor Control, UPMWMATHIS ("Lab").
 In order to clarify the intellectual property license
 granted with Contributions from any person or entity, the Lab
