@@ -163,8 +163,9 @@ def _consistency_datasets(
         labels: List of labels corresponding to each embedding and to use for alignment
             between them.
         num_discretization_bins: Number of values for the digitalized common labels. The discretized labels are used
-            for embedding alignment. Also see the ``n_bins`` argument in :py:mod:`~..helpers.align_embeddings`
-            for more information on how this parameter is used internally. This argument is only used if ``labels``
+            for embedding alignment. Also see the ``n_bins`` argument in
+            :py:mod:`cebra.integrations.sklearn.helpers.align_embeddings` for more information on how this
+            parameter is used internally. This argument is only used if ``labels``
             is not ``None`` and the given labels are continuous and not already discrete.
 
     Returns:
@@ -327,8 +328,9 @@ def consistency_score(
             trained on the **same dataset**. *Consistency between datasets* means the consistency between embeddings
             obtained from models trained on **different datasets**, such as different animals, sessions, etc.
         num_discretization_bins: Number of values for the digitalized common labels. The discretized labels are used
-            for embedding alignment. Also see the ``n_bins`` argument in :py:mod:`~..helpers.align_embeddings`
-            for more information on how this parameter is used internally. This argument is only used if ``labels``
+            for embedding alignment. Also see the ``n_bins`` argument in 
+            :py:mod:`cebra.integrations.sklearn.helpers.align_embeddings` for more information on how this
+            parameter is used internally. This argument is only used if ``labels``
             is not ``None``, alignment between datasets is used (``between = "datasets"``), and the given labels
             are continuous and not already discrete.
 
