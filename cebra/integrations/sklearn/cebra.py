@@ -1220,44 +1220,38 @@ class CEBRA(BaseEstimator, TransformerMixin):
         import inspect
 
         if backend == "torch":
-            pass
+            torch.save(self, filename)
+        
         elif backend == "sklearn":
-
-            constructor_signature = inspect.signature(self.__init__)
-            arg_names = list(constructor_signature.parameters.keys())
-            cebra_args = {arg_name: getattr(self, arg_name) for arg_name in arg_names}
-            # KEY:VALUE pair of args that user passed to get the object!
-                         
             #TODO:
             # - disctintion between fitted and nonfitted (e.g solver_)
             # - disctintion between single session and multisession
-
+            # - solver_name is in loaded object but not in saved object.
+            
             if sklearn_utils.check_fitted(self):
-                #raise ValueError("CEBRA object is not fitted. Does not make sense to save it.")
                 state = {
                     key: value for key, value in self.__dict__.items()
                      if key not in ['self', 'solver_', 'model_']
                     }
                 state.update({'solver_name' : self.__dict__['solver_']._variant_name})
 
-            else:
-                state = {}
+            else: # (???)
+                raise ValueError("CEBRA object is not fitted. Does not make sense to save it.")
+                #state = {}
 
             
             torch.save(
                 {
-                'cebra_args':cebra_args,
-                'state':state,
-                'solver_state_dict': self.solver_.state_dict(),
-                'criterion' : self.solver_.criterion,
+                'args': self.get_params(),
+                'state': state,
+                'state_dict': self.solver_.state_dict(),
                 },
                 filename)
         
-
         else:
             raise NotImplementedError(f"Unsupported backend: {backend}")
-       
-        return arg_names, cebra_args, state
+
+        return state
     
     @classmethod
     def load(cls,
@@ -1287,70 +1281,61 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> embedding = loaded_model.transform(dataset)
 
         """    
+        if backend == "torch":
+            model = torch.load(filename, **kwargs)
+            if not isinstance(model, cls):
+                raise RuntimeError("Model loaded from file is not compatible with "
+                                    "the current CEBRA version.")
 
-        
-        if backend != "torch":
+
+        elif backend == "sklearn":
+
+            # TODO:
+            # multisession
+            cebra_info = torch.load(filename)
+            cebra_args = cebra_info['args']
+            state = cebra_info['state']
+            solver_state_dict = cebra_info['state_dict']
+
+            # create CEBRA object
+            cebra_obj = cls(**cebra_args)
+
+            #FIRST: reconstruct model
+            model = cebra.models.init(
+                state["model_architecture"],
+                num_neurons=state["n_features_in_"], 
+                num_units=state["num_hidden_units"],
+                num_output=state["output_dimension"],
+            )
+            
+            criterion  = cebra_obj._prepare_criterion()
+            criterion.to(state['device_'])
+
+            optimizer = torch.optim.Adam(
+                list(model.parameters()) + list(criterion.parameters()),
+                lr=state['learning_rate'],
+                **dict(state['optimizer_kwargs']),
+            )
+
+            solver = cebra.solver.init(
+                state['solver_name'], 
+                model=model,
+                criterion=criterion,
+                optimizer=optimizer,
+                tqdm_on=cebra_args['verbose'],
+            )
+
+            solver.load_state_dict(solver_state_dict)
+            solver.to(state['device_'])
+            
+            cebra_obj.model_ = model
+            cebra_obj.solver_ = solver
+
+            state_minus_args = {key: value for key, value in state.items() if key not in cebra_args.keys()}
+            for key, value in state_minus_args.items():
+                setattr(cebra_obj, key, value)
+      
+        else:
             raise NotImplementedError(f"Unsupported backend: {backend}")
-    
-        cebra_info = torch.load(filename)
-
-        cebra_args = cebra_info['cebra_args']
-        state = cebra_info['state']
-        solver_state_dict = cebra_info['solver_state_dict']
-
-        # create CEBRA object
-        cebra_obj = cls(**cebra_args)
-
-        #FIRST: reconstruct model
-        model = cebra.models.init(
-            state["model_architecture"],
-            num_neurons=state["n_features_in_"], 
-            num_units=state["num_hidden_units"],
-            num_output=state["output_dimension"],
-        )
-        
-        criterion = cebra_info['criterion']
-        #optimizer = torch.optim.Adam()
-        
-        optimizer = torch.optim.Adam(
-            list(model.parameters()) + list(criterion.parameters()),
-            lr=state['learning_rate'],
-            **dict(state['optimizer_kwargs']),
-        )
-
-        solver = cebra.solver.init(
-            state['solver_name'], 
-            model=model,
-            criterion=criterion,
-            optimizer=optimizer,
-            tqdm_on=cebra_args['verbose'],
-        )
-
-        solver.load_state_dict(solver_state_dict)
-
-        
-        cebra_obj.model_ = model
-        cebra_obj.solver_ = solver
-        
-        #CEBRA.offset_ = model.get_offset()
-        #CEBRA.device_ = state['device_']
-        #CEBRA._label_types = state['_label_types']
-        #CEBRA.n_features_ = state['n_features_']
-        #CEBRA.n_features_in_ = state['n_features_in_']
-        #CEBRA.num_sessions_ = state['num_sessions_']
-
-
-        # TODO:
-        # check if I need to move object .to(device) both for model and solver.
-        # I think its missing num_sessions: for multisession
-
-        #list(set(dir(cebra_model)) - set(dir(cebra_obj)))
-        #'n_features_in_',
-        #'n_features_',
-        #'device_',
-        #'num_sessions_',
-        #'_label_types',
-        #'offset_'
         
         return cebra_obj
-#

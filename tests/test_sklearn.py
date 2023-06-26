@@ -813,7 +813,21 @@ def test_save_and_load(action):
 
 
 def test_save_singlesession_model():
-    pass
+    data = np.random.uniform(0, 1, (1000, 4))
+
+    model_architecture = "offset10-model"
+
+    original_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture=model_architecture, max_iterations=5)
+    
+
+    original_model.fit(data)
+
+    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
+        original_model.save(savefile.name, backend = "sklearn")
+        loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name, "sklearn")
+    _assert_equal(original_model, loaded_model)
+
 
 def test_save_multisession_model():
     pass
@@ -821,3 +835,13 @@ def test_save_multisession_model():
 def test_save_singlesession_fitted_model():
     pass
 
+
+# THINGS TO CHECK
+# device of saved and loaded models are the same
+# it contains the same number of methods/attributes e.g. list(set(dir(saved_model)) - set(dir(loaded_model)))
+# you can train a model after loading it if it has been trained before / fitted vs unfitted models
+# that it works both for single session and for multisession
+# multiple model architectures -> specially the ones using @parametrize
+# temperature: auto vs fixed, make sure that we keep 
+# behavior vs time contrastive
+# ... 
