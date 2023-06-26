@@ -123,12 +123,12 @@ def test_orthogonal_alignment_shapes(ref_data, data, ref_labels, labels):
     assert _does_shape_match(data, aligned_embedding)
 
     # Test with non-default parameters
-    #alignment_model = cebra_data_helper.OrthogonalProcrustesAlignment(
-    #    top_k=10)
-#
-#    aligned_embedding = alignment_model.fit_transform(ref_data, data,
-#                                                      ref_labels, labels)
-#    assert _does_shape_match(data, aligned_embedding), (data.shape, aligned_embedding.shape)
+    alignment_model = cebra_data_helper.OrthogonalProcrustesAlignment(
+        top_k=10)
+
+    aligned_embedding = alignment_model.fit_transform(ref_data, data,
+                                                      ref_labels, labels)
+    assert _does_shape_match(data, aligned_embedding), (data.shape, aligned_embedding.shape)
 
 
 @pytest.mark.parametrize("ref_data,data,ref_labels,labels,match",
