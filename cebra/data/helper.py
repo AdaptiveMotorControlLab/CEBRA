@@ -10,6 +10,7 @@
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
 import copy
+import warnings
 from typing import List, Optional, Union
 
 import joblib
@@ -17,7 +18,6 @@ import numpy as np
 import numpy.typing as npt
 import scipy.linalg
 import torch
-import warnings
 
 
 def _require_numpy_array(array: Union[npt.NDArray, torch.Tensor]):
@@ -190,15 +190,13 @@ class OrthogonalProcrustesAlignment:
                     f"should be larger than the 'subsample' "
                     f"parameter ({self.subsample}). Ignoring subsampling and "
                     f"computing alignment on the full dataset instead, which will "
-                    f"give better results."
-                )
+                    f"give better results.")
             else:
                 if self.subsample < 1000:
                     warnings.warn(
                         "This function is experimental when the subsample dimension "
                         "is less than 1000. You can probably use the whole dataset "
-                        "for alignment by setting subsample=None."
-                    )
+                        "for alignment by setting subsample=None.")
 
                 idc = np.random.choice(len(X), self.subsample)
                 X = X[idc]
