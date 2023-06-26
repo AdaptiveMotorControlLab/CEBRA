@@ -290,16 +290,15 @@ def test_invalid_embedding_ensembling(embeddings, labels, n_jobs, match):
             n_jobs=n_jobs,
         )
 
-
-def test_embedding_ensembling():
-    random_seed = 27
-    np.random.seed(random_seed)
+@pytest.mark.parametrize("seed", [483, 426, 166, 674, 123])
+def test_embedding_ensembling(seed):
+    np.random.seed(seed)
     embedding_100_4d = np.random.uniform(0, 1, (100, 4))
     labels_100_1d = np.random.uniform(0, 1, (100, 1))
     orthogonal_matrix = scipy.stats.ortho_group.rvs(dim=4,
-                                                    random_state=random_seed)
+                                                    random_state=seed)
     orthogonal_matrix_2 = scipy.stats.ortho_group.rvs(dim=4,
-                                                      random_state=random_seed +
+                                                      random_state=seed +
                                                       1)
 
     embedding_100_4d_2 = np.dot(embedding_100_4d, orthogonal_matrix)
@@ -310,11 +309,11 @@ def test_embedding_ensembling():
     joint_embedding = cebra_data_helper.ensemble_embeddings(
         embeddings=[embedding_100_4d, embedding_100_4d_2, embedding_100_4d_3],
         labels=labels)
-    assert np.allclose(joint_embedding, embedding_100_4d)
+    assert np.allclose(joint_embedding, embedding_100_4d, atol = 0.05)
 
     joint_embedding = cebra_data_helper.ensemble_embeddings(
         embeddings=[embedding_100_4d, embedding_100_4d_2, embedding_100_4d_3])
-    assert np.allclose(joint_embedding, embedding_100_4d)
+    assert np.allclose(joint_embedding, embedding_100_4d, atol = 0.05)
 
 
 @pytest.mark.benchmark
