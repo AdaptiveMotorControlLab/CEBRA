@@ -185,11 +185,20 @@ class OrthogonalProcrustesAlignment:
         # Augment data and reference data so that same size
         if self.subsample is not None:
             if self.subsample > len(X):
-                warnings.warn(f"The number of datapoints in the dataset should be larger "
-                                 f"than the susbample dimension. Subsampling won't be performed.")
+                warnings.warn(
+                    f"The number of datapoints in the dataset ({len(X)}) "
+                    f"should be larger than the 'subsample' "
+                    f"parameter ({self.subsample}). Ignoring subsampling and "
+                    f"computing alignment on the full dataset instead, which will "
+                    f"give better results."
+                )
             else:
                 if self.subsample < 1000:
-                    warnings.warn(f"This function is experimental when the subsample dimension is less than 1000.")
+                    warnings.warn(
+                        "This function is experimental when the subsample dimension "
+                        "is less than 1000. You can probably use the whole dataset "
+                        "for alignment by setting subsample=None."
+                    )
 
                 idc = np.random.choice(len(X), self.subsample)
                 X = X[idc]
