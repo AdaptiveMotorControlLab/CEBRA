@@ -17,6 +17,7 @@ import numpy as np
 import numpy.typing as npt
 import scipy.linalg
 import torch
+import warnings
 
 
 def _require_numpy_array(array: Union[npt.NDArray, torch.Tensor]):
@@ -183,6 +184,13 @@ class OrthogonalProcrustesAlignment:
 
         # Augment data and reference data so that same size
         if self.subsample is not None:
+            if self.subsample > len(X):
+                raise ValueError(f"The number of datapoints in the dataset should be larger "
+                                 f"than the susbample dimension.")
+           
+            if self.subsample < 1000:
+                warnings.warn(f"This function is experimental when the subsample dimension is less than 1000.")
+                
             idc = np.random.choice(len(X), self.subsample)
             X = X[idc]
             Y = Y[idc]
