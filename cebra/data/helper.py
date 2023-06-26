@@ -179,21 +179,21 @@ class OrthogonalProcrustesAlignment:
 
         # Get the whole data to align and only the selected closest samples
         # from the reference data.
-        X = data[:, None].repeat(5, axis=1).reshape(-1, data.shape[1])
+        X = data[:, None].repeat(self.top_k, axis=1).reshape(-1, data.shape[1])
         Y = ref_data[target_idx].reshape(-1, ref_data.shape[1])
 
         # Augment data and reference data so that same size
         if self.subsample is not None:
             if self.subsample > len(X):
-                raise ValueError(f"The number of datapoints in the dataset should be larger "
-                                 f"than the susbample dimension.")
-           
-            if self.subsample < 1000:
-                warnings.warn(f"This function is experimental when the subsample dimension is less than 1000.")
-                
-            idc = np.random.choice(len(X), self.subsample)
-            X = X[idc]
-            Y = Y[idc]
+                warnings.warn(f"The number of datapoints in the dataset should be larger "
+                                 f"than the susbample dimension. Subsampling won't be performed.")
+            else:
+                if self.subsample < 1000:
+                    warnings.warn(f"This function is experimental when the subsample dimension is less than 1000.")
+
+                idc = np.random.choice(len(X), self.subsample)
+                X = X[idc]
+                Y = Y[idc]
 
         # Compute orthogonal matrix that most closely maps X to Y using the orthogonal Procrustes problem.
         self._transform, _ = scipy.linalg.orthogonal_procrustes(X, Y)
