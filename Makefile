@@ -16,7 +16,7 @@ archlinux:
 # NOTE(stes): Ensure that no old tempfiles are present. Ideally, move this into
 # the test pipeline directly.
 clean_test:
-	rm -rf auxiliary_behavior_data.h5 data.npz neural_data.npz saved_models
+	rm -rf auxiliary_behavior_data.h5 data.npz neural_data.npz saved_models grid_search_models
 
 test: clean_test
 	python -m pytest --ff --doctest-modules -m "not requires_dataset" tests ./docs/source/usage.rst cebra
