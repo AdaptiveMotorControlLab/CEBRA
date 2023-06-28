@@ -22,6 +22,7 @@ from sklearn.base import BaseEstimator
 from sklearn.base import ClassifierMixin
 from sklearn.base import TransformerMixin
 from torch import nn
+import warnings
 
 import cebra.data
 import cebra.integrations.sklearn
@@ -1190,6 +1191,25 @@ class CEBRA(BaseEstimator, TransformerMixin):
         # NOTE(stes): This tag is needed as seeding is not fully implemented in the
         # current version of CEBRA.
         return {"non_deterministic": True}
+    
+    
+    def _get_state_dict(self):
+        if sklearn_utils.check_fitted(self):
+                state = {
+                    key: value for key, value in self.__dict__.items()
+                     if key not in ['self', 'solver_', 'model_']
+                    }
+                state.update({'solver_name' : self.__dict__['solver_']._variant_name})
+
+        else:   
+            state = {
+                    key: value for key, value in self.__dict__.items()
+                     if key not in ['self']
+                    }
+            warnings.warn("CEBRA object is not fitted. Are you sure you want to save it?")
+
+        return state
+
 
     def save(self, filename: str, backend: Literal["torch"] = "sklearn"):
         """Save the model to disk.
@@ -1216,8 +1236,6 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> cebra_model.save('/tmp/foo.pt')
 
         """
-        
-        import inspect
 
         if backend == "torch":
             torch.save(self, filename)
@@ -1228,31 +1246,19 @@ class CEBRA(BaseEstimator, TransformerMixin):
             # - disctintion between single session and multisession
             # - solver_name is in loaded object but not in saved object.
             
-            if sklearn_utils.check_fitted(self):
-                state = {
-                    key: value for key, value in self.__dict__.items()
-                     if key not in ['self', 'solver_', 'model_']
-                    }
-                state.update({'solver_name' : self.__dict__['solver_']._variant_name})
-
-            else: # (???)
-                raise ValueError("CEBRA object is not fitted. Does not make sense to save it.")
-                #state = {}
-
             
             torch.save(
                 {
                 'args': self.get_params(),
-                'state': state,
-                'state_dict': self.solver_.state_dict(),
+                'state': self._get_state_dict(),
+                'state_dict': self.solver_.state_dict() if sklearn_utils.check_fitted(self) else None,
                 },
                 filename)
         
         else:
             raise NotImplementedError(f"Unsupported backend: {backend}")
-
-        return state
     
+
     @classmethod
     def load(cls,
              filename: str,
@@ -1287,55 +1293,71 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 raise RuntimeError("Model loaded from file is not compatible with "
                                     "the current CEBRA version.")
 
-
         elif backend == "sklearn":
+            saved_info = torch.load(filename)
+            args, state, state_dict = saved_info['args'], saved_info['state'], saved_info['state_dict']
+            cebra_ = cls(**args)
 
-            # TODO:
-            # multisession
-            cebra_info = torch.load(filename)
-            cebra_args = cebra_info['args']
-            state = cebra_info['state']
-            solver_state_dict = cebra_info['state_dict']
-
-            # create CEBRA object
-            cebra_obj = cls(**cebra_args)
-
-            #FIRST: reconstruct model
-            model = cebra.models.init(
-                state["model_architecture"],
-                num_neurons=state["n_features_in_"], 
-                num_units=state["num_hidden_units"],
-                num_output=state["output_dimension"],
-            )
-            
-            criterion  = cebra_obj._prepare_criterion()
-            criterion.to(state['device_'])
-
-            optimizer = torch.optim.Adam(
-                list(model.parameters()) + list(criterion.parameters()),
-                lr=state['learning_rate'],
-                **dict(state['optimizer_kwargs']),
-            )
-
-            solver = cebra.solver.init(
-                state['solver_name'], 
-                model=model,
-                criterion=criterion,
-                optimizer=optimizer,
-                tqdm_on=cebra_args['verbose'],
-            )
-
-            solver.load_state_dict(solver_state_dict)
-            solver.to(state['device_'])
-            
-            cebra_obj.model_ = model
-            cebra_obj.solver_ = solver
-
-            state_minus_args = {key: value for key, value in state.items() if key not in cebra_args.keys()}
+            state_minus_args = {key: value for key, value in state.items() if key not in args.keys()}
             for key, value in state_minus_args.items():
-                setattr(cebra_obj, key, value)
-      
+                setattr(cebra_, key, value)
+
+            if sklearn_utils.check_fitted(cebra_):
+
+                if cebra_.num_sessions_ is None:
+                    model = cebra.models.init(
+                        state["model_architecture"],
+                        num_neurons=state["n_features_in_"], 
+                        num_units=state["num_hidden_units"],
+                        num_output=state["output_dimension"],
+                    ).to(state['device_'])
+
+                else:
+                    pass
+                    #model = nn.ModuleList([
+                    #    cebra.models.init(
+                    #        state["model_architecture"],
+                    #        num_neurons=state["n_features_in_"],
+                    #        num_units=state["num_hidden_units"],
+                    #        num_output=state["output_dimension"],
+                    #    ) for dataset in dataset.iter_sessions()
+                    #]).to(state['device_'])    
+                     
+                    
+                    #model = nn.ModuleList([
+                    #cebra.models.init(
+                    #self.model_architecture,
+                    #num_neurons=dataset.input_dimension,
+                    #num_units=self.num_hidden_units,
+                    #num_output=self.output_dimension,
+                    #) for dataset in dataset.iter_sessions()
+                    #    ]).to(self.device_)
+
+                    
+                
+                criterion  = cebra_._prepare_criterion()
+                criterion.to(state['device_'])
+
+                optimizer = torch.optim.Adam(
+                    list(model.parameters()) + list(criterion.parameters()),
+                    lr=state['learning_rate'],
+                    **dict(state['optimizer_kwargs']),
+                )
+
+                solver = cebra.solver.init(
+                    state['solver_name'], 
+                    model=model,
+                    criterion=criterion,
+                    optimizer=optimizer,
+                    tqdm_on=args['verbose'],
+                )
+                solver.load_state_dict(state_dict)
+                solver.to(state['device_'])
+
+                cebra_.model_ = model
+                cebra_.solver_ = solver
+
         else:
             raise NotImplementedError(f"Unsupported backend: {backend}")
         
-        return cebra_obj
+        return cebra_
