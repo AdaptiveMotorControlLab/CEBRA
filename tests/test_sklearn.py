@@ -851,4 +851,4 @@ def test_save_and_load_singlesession_sklearn_backend(action):
 # multiple model architectures -> specially the ones using @parametrize
 # temperature: auto vs fixed, make sure that we keep 
 # behavior vs time contrastive
-# TODO: now the solvername is added to the model but shouldnt!
+# TODO: now the solvername is added to the model but shouldn't!
