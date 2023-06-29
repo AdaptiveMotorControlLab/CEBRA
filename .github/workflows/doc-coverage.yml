@@ -8,7 +8,7 @@ name: PR Status
 # opens a PR.
 # IMPORTANT: DO NOT EXPOSE REPOSITORY SECRETS WITHIN THIS PR!
 on:
-  pull_request_target:
+  pull_request:
     branches:
       - main 
       - public
