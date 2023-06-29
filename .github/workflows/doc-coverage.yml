@@ -3,13 +3,20 @@ name: PR Status
 # Apache 2.0 licensed
 
 
+# NOTE(stes): Use pull_request_target instead of pull_request to allow
+# to post comments on the current PR, even when an external contributor
+# opens a PR.
+# IMPORTANT: DO NOT EXPOSE REPOSITORY SECRETS WITHIN THIS PR!
 on:
   pull_request:
     branches:
       - main 
       - public
       - dev
-    
+
+permissions: 
+  pull-requests: write 
+
 jobs:
   documentation-status:
     runs-on: ubuntu-latest
