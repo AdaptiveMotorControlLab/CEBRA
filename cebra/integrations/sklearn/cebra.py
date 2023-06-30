@@ -1288,7 +1288,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
         """    
         if backend == "torch":
-            model = torch.load(filename, **kwargs)
+            cebra_ = torch.load(filename, **kwargs)
             if not isinstance(model, cls):
                 raise RuntimeError("Model loaded from file is not compatible with "
                                     "the current CEBRA version.")
