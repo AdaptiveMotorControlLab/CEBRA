@@ -8,11 +8,7 @@ name: PR Status
 # opens a PR.
 # IMPORTANT: DO NOT EXPOSE REPOSITORY SECRETS WITHIN THIS PR!
 on:
-  # NOTE(stes): Use pull_request_target instead of pull_request to allow
-  # to post comments on the current PR, even when an external contributor
-  # opens a PR.
-  # IMPORTANT: DO NOT EXPOSE REPOSITORY SECRETS WITHIN THIS PR!
-  pull_request_target:
+  pull_request:
     branches:
       - main 
       - public
