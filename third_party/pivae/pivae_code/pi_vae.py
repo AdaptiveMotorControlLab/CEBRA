@@ -1,4 +1,4 @@
-"""Original implmentation of piVAE.
+"""Original implementation of piVAE.
 https://github.com/zhd96/pi-vae/blob/3d31fae18bf9dda5290ac74435296b94eb05f854/code/pi_vae.py
 tf.log has edited to tf.math.log.
 """
