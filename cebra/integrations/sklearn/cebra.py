@@ -1206,12 +1206,12 @@ class CEBRA(BaseEstimator, TransformerMixin):
                     key: value for key, value in self.__dict__.items()
                      if key not in ['self']
                     }
-            warnings.warn("CEBRA object is not fitted. Are you sure you want to save it?")
+            raise ValueError("CEBRA object is not fitted. Saving it is not possible.")
 
         return state
 
 
-    def save(self, filename: str, backend: Literal["torch"] = "sklearn"):
+    def save(self, filename: str, backend: str = "torch"):
         """Save the model to disk.
 
         Args:
@@ -1312,29 +1312,17 @@ class CEBRA(BaseEstimator, TransformerMixin):
                         num_output=state["output_dimension"],
                     ).to(state['device_'])
 
-                else:
-                    pass
-                    #model = nn.ModuleList([
-                    #    cebra.models.init(
-                    #        state["model_architecture"],
-                    #        num_neurons=state["n_features_in_"],
-                    #        num_units=state["num_hidden_units"],
-                    #        num_output=state["output_dimension"],
-                    #    ) for dataset in dataset.iter_sessions()
-                    #]).to(state['device_'])    
-                     
+                elif isinstance(cebra_.num_sessions_, int):
                     
-                    #model = nn.ModuleList([
-                    #cebra.models.init(
-                    #self.model_architecture,
-                    #num_neurons=dataset.input_dimension,
-                    #num_units=self.num_hidden_units,
-                    #num_output=self.output_dimension,
-                    #) for dataset in dataset.iter_sessions()
-                    #    ]).to(self.device_)
-
-                    
-                
+                    model = nn.ModuleList([
+                        cebra.models.init(
+                            state["model_architecture"],
+                            num_neurons= n_features,
+                            num_units=state["num_hidden_units"],
+                            num_output=state["output_dimension"],
+                        ) for n_features in state["n_features_in_"]
+                    ]).to(state['device_'])    
+              
                 criterion  = cebra_._prepare_criterion()
                 criterion.to(state['device_'])
 
