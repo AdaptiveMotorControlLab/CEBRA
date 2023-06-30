@@ -3,6 +3,10 @@ name: PR Status
 # Apache 2.0 licensed
 
 
+# NOTE(stes): Use pull_request_target instead of pull_request to allow
+# to post comments on the current PR, even when an external contributor
+# opens a PR.
+# IMPORTANT: DO NOT EXPOSE REPOSITORY SECRETS WITHIN THIS PR!
 on:
   # NOTE(stes): Use pull_request_target instead of pull_request to allow
   # to post comments on the current PR, even when an external contributor
@@ -13,7 +17,10 @@ on:
       - main 
       - public
       - dev
-    
+
+permissions: 
+  pull-requests: write 
+
 jobs:
   documentation-status:
     runs-on: ubuntu-latest
@@ -63,14 +70,14 @@ jobs:
         RESULT="${RESULT//$'\r'/'%0D'}"
         echo "::set-output name=result::$RESULT"
       continue-on-error: true
-    - name: comment documentation result on PR
-      uses: thollander/actions-comment-pull-request@v1
-      with:
-        message: |
-          ## Docstring Coverage Report
-          ${{ steps.documentation.outputs.result }}
-        comment_includes: '## Docstring Coverage Report'
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #- name: comment documentation result on PR
+    #  uses: thollander/actions-comment-pull-request@v1
+    #  with:
+    #    message: |
+    #      ## Docstring Coverage Report
+    #      ${{ steps.documentation.outputs.result }}
+    #    comment_includes: '## Docstring Coverage Report'
+    #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     # following snippet borrowed from
     # https://stackoverflow.com/a/58003436
     # CC BY-SA 4.0, Peter Evans
