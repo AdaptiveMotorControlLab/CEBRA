@@ -757,12 +757,18 @@ def _iterate_actions():
     def do_nothing(model):
         return model
 
-    def fit_model(model):
+    def fit_singlession_model(model):
         X = np.linspace(-1, 1, 1000)[:, None]
         model.fit(X)
         return model
+    
+    def fit_multisession_model(model):
+        X = np.linspace(-1, 1, 1000)[:, None]
+        model.fit([X, X], [X, X])
+        return model
 
-    return [do_nothing, fit_model]
+
+    return [do_nothing, fit_singlession_model, fit_multisession_model]
 
 
 def _assert_same_state_dict(first, second):
@@ -810,3 +816,27 @@ def test_save_and_load(action):
         original_model.save(savefile.name)
         loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
     _assert_equal(original_model, loaded_model)
+
+#let's contribute a test to test_sklearn that checks devices for training for all solvers, and link it in the issue here.
+
+@pytest.mark.parametrize("device", ["cuda", "cpu"])
+@pytest.mark.parametrize("action", _iterate_actions())
+def test_check_devices(action, device):
+    cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture="offset1-model",
+        time_offsets=10,
+        learning_rate=3e-4,
+        max_iterations=5,
+        device=device,
+        output_dimension=4,
+        batch_size=42,
+        verbose=True,
+    )
+    cebra_model = action(cebra_model)
+    assert cebra_model.device == device
+
+    if action.__name__ != "do_nothing":
+        if device == "cuda":
+            #TODO(rodrigo): remove once https://github.com/AdaptiveMotorControlLab/CEBRA/pull/34 is merged.
+            device = torch.device(device, index = 0)
+        assert next(cebra_model.model_.parameters()).device == torch.device(device)
