@@ -161,14 +161,35 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
         else:
             return datasets
 
+    def _assert_datasets_same_device(
+            self, datasets: List[cebra_data.SingleSessionDataset]) -> str:
+    
+        """Checks if the list of datasets are all on the same device.
+
+        Args:
+            datasets: List of datasets.
+
+        Returns:
+            str: The device name if all datasets are on the same device.
+
+        Raises:
+            ValueError: If datasets are not all on the same device.
+        """
+        devices = set([dataset.device for dataset in datasets])
+        if len(devices) != 1:
+            raise ValueError("Datasets are not all on the same device")
+        return devices.pop()
+
     def __init__(
         self,
         *datasets: cebra_data.SingleSessionDataset,
     ):
-        super().__init__()
         self._datasets: List[
             cebra_data.SingleSessionDataset] = self._unpack_dataset_arguments(
                 datasets)
+       
+        device = self._assert_datasets_same_device(self._datasets)
+        super().__init__(device = device)
 
         continuous = all(
             self._has_not_none_attribute(session, "continuous_index")
