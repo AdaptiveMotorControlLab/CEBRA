@@ -137,8 +137,18 @@ def check_device(device: str) -> str:
         return "cuda:0"
     elif device == "cpu":
         return device
+    elif device == "mps":
+        if not torch.backends.mps.is_available():
+            if not torch.backends.mps.is_built():
+                raise ValueError("MPS not available because the current PyTorch install was not " 
+                                 "built with MPS enabled.")
+        else:
+            raise ValueError("MPS not available because the current MacOS version is not 12.3+ "
+                             "and/or you do not have an MPS-enabled device on this machine.")
+
+        return device
     
-    raise ValueError(f"Device needs to be cuda or cpu, but got {device}.")
+    raise ValueError(f"Device needs to be cuda, cpu or mps, but got {device}.")
 
 
 def check_fitted(model: "cebra.models.Model") -> bool:

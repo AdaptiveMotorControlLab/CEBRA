@@ -1262,7 +1262,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
         Args:
             device: The device to move the cebra model to. This can be a string representing
-                    the device ('cpu','cuda', cuda:1 etc) or a torch.device object.
+                    the device ('cpu','cuda', cuda:device_id, or 'mps') or a torch.device object.
 
         Returns:
             The cebra model instance.
@@ -1281,13 +1281,13 @@ class CEBRA(BaseEstimator, TransformerMixin):
         if not isinstance(device, (str, torch.device)):
             raise TypeError("The 'device' parameter must be a string or torch.device object.")
         
-        if not device == 'cpu' and not device.startswith('cuda'):
+        if (not device == 'cpu') and (not device.startswith('cuda')) and (not device == 'mps'):
             raise ValueError("The 'device' parameter must be a valid device string or device object.")
         
         if isinstance(device, str):
             device = torch.device(device)
     
-        if not device.type == 'cpu' and not device.type.startswith('cuda'):
+        if (not device.type == 'cpu') and (not device.type.startswith('cuda')) and (not device == 'mps'):
             raise ValueError("The 'device' parameter must be a valid device string or device object.")
         
         if hasattr(self, "device_"):
