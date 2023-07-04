@@ -27,8 +27,10 @@ def download_file_with_progress_bar(url: str,
                                     location: str,
                                     file_name: str,
                                     retry_count: int = 0) -> Optional[str]:
-    """
-    Downloads a file from the given URL with a progress bar and performs checksum verification.
+    """Download a file from the given URL.
+    
+    During download, progress is reported using a progress bar. The downloaded
+    file's checksum is compared to the provided ``expected_checksum``.
 
     Args:
         url: The URL to download the file from.
@@ -41,7 +43,7 @@ def download_file_with_progress_bar(url: str,
         The path of the downloaded file if the download is successful, None otherwise.
 
     Raises:
-        RuntimeError: If the maximum retry count is exceeded.
+        RuntimeError: If the maximum ``retry count`` is exceeded.
     """
 
     # Check if the file already exists in the location
@@ -113,14 +115,13 @@ def download_file_with_progress_bar(url: str,
 
 
 def calculate_checksum(file_path: str) -> str:
-    """
-    Calculates the MD5 checksum of a file.
+    """Calculate the MD5 checksum of a file.
 
     Args:
         file_path: The path to the file.
 
     Returns:
-        str: The MD5 checksum of the file.
+        The MD5 checksum of the file.
     """
     checksum = hashlib.md5()
     with open(file_path, "rb") as file:
