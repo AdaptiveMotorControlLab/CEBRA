@@ -142,9 +142,9 @@ def check_device(device: str) -> str:
             if not torch.backends.mps.is_built():
                 raise ValueError("MPS not available because the current PyTorch install was not " 
                                  "built with MPS enabled.")
-        else:
-            raise ValueError("MPS not available because the current MacOS version is not 12.3+ "
-                             "and/or you do not have an MPS-enabled device on this machine.")
+            else:
+                raise ValueError("MPS not available because the current MacOS version is not 12.3+ "
+                                 "and/or you do not have an MPS-enabled device on this machine.")
 
         return device
     
