@@ -817,9 +817,11 @@ def get_ordered_cuda_devices():
         available_devices.append(f'cuda:{i}')
     return available_devices
 
-ordered_cuda_devices = get_ordered_cuda_devices()
 
-@pytest.mark.parametrize("device", ['cpu'] + (ordered_cuda_devices if torch.cuda.is_available() else []))
+ordered_cuda_devices = get_ordered_cuda_devices if torch.cuda.is_available() else []
+mps_device = ["mps"] if torch.backends.mps.is_available() else []
+
+@pytest.mark.parametrize("device", ['cpu'] + ordered_cuda_devices + mps_device)
 def test_to_device(device):
 
     # example dataset
