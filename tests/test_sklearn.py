@@ -778,6 +778,9 @@ def _assert_same_state_dict(first, second):
 
 def _assert_equal(original_model, loaded_model):
     assert original_model.get_params() == loaded_model.get_params()
+    assert original_model.device == loaded_model.device
+    assert next(original_model.parameters()).device == next(loaded_model.parameters()).device
+
 
     def check_fitted(model):
         """Check if a model is fitted.
@@ -799,56 +802,25 @@ def _assert_equal(original_model, loaded_model):
         assert np.allclose(loaded_model.transform(X),
                            original_model.transform(X))
 
-
-@pytest.mark.parametrize("action", _iterate_actions())
-def test_save_and_load_torch_backend(action):
-    model_architecture = "offset10-model"
-    original_model = cebra_sklearn_cebra.CEBRA(
-        model_architecture=model_architecture, max_iterations=5)
-    original_model = action(original_model)
-    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
-        original_model.save(savefile.name)
-        loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
-    _assert_equal(original_model, loaded_model)
-
 @pytest.mark.parametrize("action", _iterate_actions())
 def test_save_and_load_singlesession_sklearn_backend(action):
-    #data = np.random.uniform(0, 1, (1000, 1)) #TODO: only works if num dim = 1 because _assert equal X = (100, 1)
     model_architecture = "offset10-model"
     original_model = cebra_sklearn_cebra.CEBRA(
-        model_architecture=model_architecture, max_iterations=5)
+        model_architecture=model_architecture, max_iterations=5, batch_size=100)
     
     original_model = action(original_model)
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
-        original_model.save(savefile.name, backend = "sklearn")
-        loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name, "sklearn")
-    
-    _assert_equal(original_model, loaded_model)
-
-#@pytest.mark.parametrize("action", _iterate_actions())
-#
-#def test_save_and_load_multisession_sklearn_backend():
-#    X = np.random.uniform(0, 1, (1000, 4)) #TODO: only works if num dim = 1 because _assert equal X = (100, 1)
-#    model_architecture = "offset10-model"
-#    original_model = cebra_sklearn_cebra.CEBRA(
-#        model_architecture=model_architecture, batch_size=512, max_iterations=5)
-#    
-#    original_model.fit([X, X], [X, X])
-#    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
-#        original_model.save(savefile.name, backend = "sklearn")
-#        loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name, "sklearn")
-#    
-#    _assert_equal(original_model, loaded_model)
-
+        if action.__name__ == "do_nothing":
+            with pytest.raises(ValueError):
+                original_model.save(savefile.name, backend = "sklearn")
+        else:
+            original_model.save(savefile.name, backend = "sklearn")
+            loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name, "sklearn")
+            _assert_equal(original_model, loaded_model)
 
 
 # THINGS TO CHECK
-# device of saved and loaded models are the same: i thhink this is checked already
-# it contains the same number of methods/attributes e.g. list(set(dir(saved_model)) - set(dir(loaded_model)))
-
 # you can train a model after loading it if it has been trained before / fitted vs unfitted models
-# that it works both for single session and for multisession
 # multiple model architectures -> specially the ones using @parametrize
-# temperature: auto vs fixed, make sure that we keep 
+# temperature: auto vs fixed, make sure that we keep the parameters.
 # behavior vs time contrastive
-# TODO: now the solvername is added to the model but shouldn't!
