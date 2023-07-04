@@ -1202,10 +1202,6 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 state.update({'solver_name' : self.__dict__['solver_']._variant_name})
 
         else:   
-            state = {
-                    key: value for key, value in self.__dict__.items()
-                     if key not in ['self']
-                    }
             raise ValueError("CEBRA object is not fitted. Saving it is not possible.")
 
         return state
@@ -1302,48 +1298,48 @@ class CEBRA(BaseEstimator, TransformerMixin):
             for key, value in state_minus_args.items():
                 setattr(cebra_, key, value)
 
-            if sklearn_utils.check_fitted(cebra_):
+            if not sklearn_utils.check_fitted(cebra_):
+                raise ValueError("The cebra model is not fitted. Can't be loaded.")
 
-                if cebra_.num_sessions_ is None:
-                    model = cebra.models.init(
+            if cebra_.num_sessions_ is None:
+                model = cebra.models.init(
+                    state["model_architecture"],
+                    num_neurons=state["n_features_in_"], 
+                    num_units=state["num_hidden_units"],
+                    num_output=state["output_dimension"],
+                ).to(state['device_'])
+
+            elif isinstance(cebra_.num_sessions_, int):
+                model = nn.ModuleList([
+                    cebra.models.init(
                         state["model_architecture"],
-                        num_neurons=state["n_features_in_"], 
+                        num_neurons= n_features,
                         num_units=state["num_hidden_units"],
                         num_output=state["output_dimension"],
-                    ).to(state['device_'])
+                    ) for n_features in state["n_features_in_"]
+                ]).to(state['device_'])    
+            
+            criterion  = cebra_._prepare_criterion()
+            criterion.to(state['device_'])
 
-                elif isinstance(cebra_.num_sessions_, int):
-                    
-                    model = nn.ModuleList([
-                        cebra.models.init(
-                            state["model_architecture"],
-                            num_neurons= n_features,
-                            num_units=state["num_hidden_units"],
-                            num_output=state["output_dimension"],
-                        ) for n_features in state["n_features_in_"]
-                    ]).to(state['device_'])    
-              
-                criterion  = cebra_._prepare_criterion()
-                criterion.to(state['device_'])
+            optimizer = torch.optim.Adam(
+                list(model.parameters()) + list(criterion.parameters()),
+                lr=state['learning_rate'],
+                **dict(state['optimizer_kwargs']),
+            )
 
-                optimizer = torch.optim.Adam(
-                    list(model.parameters()) + list(criterion.parameters()),
-                    lr=state['learning_rate'],
-                    **dict(state['optimizer_kwargs']),
-                )
+            solver = cebra.solver.init(
+                state['solver_name'], 
+                model=model,
+                criterion=criterion,
+                optimizer=optimizer,
+                tqdm_on=args['verbose'],
+            )
+            solver.load_state_dict(state_dict)
+            solver.to(state['device_'])
 
-                solver = cebra.solver.init(
-                    state['solver_name'], 
-                    model=model,
-                    criterion=criterion,
-                    optimizer=optimizer,
-                    tqdm_on=args['verbose'],
-                )
-                solver.load_state_dict(state_dict)
-                solver.to(state['device_'])
-
-                cebra_.model_ = model
-                cebra_.solver_ = solver
+            cebra_.model_ = model
+            cebra_.solver_ = solver
 
         else:
             raise NotImplementedError(f"Unsupported backend: {backend}")
