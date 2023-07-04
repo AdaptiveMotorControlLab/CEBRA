@@ -10,17 +10,23 @@
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
 
-import requests
-import os
-import tqdm
-import re
 import hashlib
+import os
+import re
 import warnings
 from typing import Optional
 
+import requests
+import tqdm
+
 _MAX_RETRY_COUNT = 2
 
-def download_file_with_progress_bar(url: str, expected_checksum: str, location: str, file_name: str, retry_count: int = 0) -> Optional[str]:
+
+def download_file_with_progress_bar(url: str,
+                                    expected_checksum: str,
+                                    location: str,
+                                    file_name: str,
+                                    retry_count: int = 0) -> Optional[str]:
     """
     Downloads a file from the given URL with a progress bar and performs checksum verification.
 
@@ -44,26 +50,33 @@ def download_file_with_progress_bar(url: str, expected_checksum: str, location: 
         existing_checksum = calculate_checksum(file_path)
         if existing_checksum == expected_checksum:
             return file_path
-    
-    if retry_count >= _MAX_RETRY_COUNT:
-        raise RuntimeError(f"Exceeded maximum retry count ({_MAX_RETRY_COUNT}). "
-                           f"Unable to download the file from {url}")
 
-    
+    if retry_count >= _MAX_RETRY_COUNT:
+        raise RuntimeError(
+            f"Exceeded maximum retry count ({_MAX_RETRY_COUNT}). "
+            f"Unable to download the file from {url}")
+
     response = requests.get(url, stream=True)
 
     # Check if the request was successful
     if response.status_code != 200:
-        raise requests.HTTPError(f"Error occurred while downloading the file. Response code: {response.status_code}")
+        raise requests.HTTPError(
+            f"Error occurred while downloading the file. Response code: {response.status_code}"
+        )
 
     # Check if the response headers contain the 'Content-Disposition' header
     if 'Content-Disposition' not in response.headers:
-        raise ValueError("Unable to determine the filename. 'Content-Disposition' header not found.")
+        raise ValueError(
+            "Unable to determine the filename. 'Content-Disposition' header not found."
+        )
 
     # Extract the filename from the 'Content-Disposition' header
-    filename_match = re.search(r'filename="(.+)"', response.headers.get("Content-Disposition"))
+    filename_match = re.search(r'filename="(.+)"',
+                               response.headers.get("Content-Disposition"))
     if not filename_match:
-        raise ValueError("Unable to determine the filename from the 'Content-Disposition' header.")
+        raise ValueError(
+            "Unable to determine the filename from the 'Content-Disposition' header."
+        )
 
     # Create the directory and any necessary parent directories
     os.makedirs(location, exist_ok=True)
@@ -75,10 +88,12 @@ def download_file_with_progress_bar(url: str, expected_checksum: str, location: 
     checksum = hashlib.md5()  # create checksum
 
     with open(file_path, "wb") as file:
-        with tqdm.tqdm(total=total_size, unit="B", unit_scale=True) as progress_bar:
+        with tqdm.tqdm(total=total_size, unit="B",
+                       unit_scale=True) as progress_bar:
             for data in response.iter_content(chunk_size=1024):
                 file.write(data)
-                checksum.update(data)  # Update the checksum with the downloaded data
+                checksum.update(
+                    data)  # Update the checksum with the downloaded data
                 progress_bar.update(len(data))
 
     downloaded_checksum = checksum.hexdigest()  # Get the checksum value
@@ -89,7 +104,9 @@ def download_file_with_progress_bar(url: str, expected_checksum: str, location: 
 
         # Retry download using a for loop
         for _ in range(retry_count + 1, _MAX_RETRY_COUNT + 1):
-            return download_file_with_progress_bar(url, expected_checksum, location, file_name, retry_count + 1)
+            return download_file_with_progress_bar(url, expected_checksum,
+                                                   location, file_name,
+                                                   retry_count + 1)
     else:
         print(f"Download complete. Dataset saved in '{file_path}'")
         return url

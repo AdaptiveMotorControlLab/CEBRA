@@ -19,6 +19,7 @@ import literate_dataclasses as dataclasses
 import numpy as np
 import torch
 
+import cebra.data.assets as cebra_data_assets
 import cebra.distributions
 import cebra.io
 from cebra.data.datatypes import Batch
@@ -41,9 +42,39 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
             ``__getitem__`` and :py:meth:`expand_index` methods.
     """
 
-    def __init__(self, device="cpu"):
+    def __init__(self,
+                 device="cpu",
+                 download=False,
+                 data_url=None,
+                 data_checksum=None,
+                 location=None,
+                 file_name=None):
+
         self.offset: Offset = cebra.data.Offset(0, 1)
         super().__init__(device)
+
+        self.download = download
+        self.data_url = data_url
+        self.data_checksum = data_checksum
+        self.location = location
+        self.file_name = file_name
+
+        if self.download:
+            if self.data_url is None:
+                raise ValueError(
+                    "Missing data URL. Please provide the URL to download the data."
+                )
+
+            if self.data_checksum is None:
+                raise ValueError(
+                    "Missing data checksum. Please provide the checksum to verify the data integrity."
+                )
+
+            cebra_data_assets.download_file_with_progress_bar(
+                url=self.data_url,
+                expected_checksum=self.data_checksum,
+                location=self.location,
+                file_name=self.file_name)
 
     @property
     @abc.abstractmethod

@@ -10,18 +10,19 @@
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
 import os
+import tempfile
+from unittest.mock import patch
+
 import numpy as np
 import pytest
+import requests
 import torch
 
 import cebra.data
 import cebra.datasets
-import cebra.datasets.assets 
+import cebra.datasets.assets
 import cebra.registry
 from cebra.datasets import poisson
-from unittest.mock import patch
-import requests
-import tempfile
 
 
 def test_registry():
@@ -284,24 +285,35 @@ def test_poisson_sampling(spike_rate, refractory_period):
 
     _assert_histograms_close(spike_counts.flatten().numpy(), reference_counts)
 
+
 def parametrize_data(function):
-  return pytest.mark.parametrize(
-      "filename, url, expected_checksum",
-      [
-          ("achilles.jl", "https://figshare.com/ndownloader/files/40849463?private_link=9f91576cbbcc8b0d8828",  "c52f9b55cbc23c66d57f3842214058b8"),
-          ("buddy.jl",     "https://figshare.com/ndownloader/files/40849460?private_link=9f91576cbbcc8b0d8828", "36341322907708c466871bf04bc133c2"),
-          ("cicero.jl",   "https://figshare.com/ndownloader/files/40849457?private_link=9f91576cbbcc8b0d8828",  "a83b02dbdc884fdd7e53df362499d42f"),
-          ("gatsby.jl",   "https://figshare.com/ndownloader/files/40849454?private_link=9f91576cbbcc8b0d8828",  "2b889da48178b3155011c12555342813")
-      ]
-  )(function)
+    return pytest.mark.parametrize("filename, url, expected_checksum", [
+        ("achilles.jl",
+         "https://figshare.com/ndownloader/files/40849463?private_link=9f91576cbbcc8b0d8828",
+         "c52f9b55cbc23c66d57f3842214058b8"),
+        ("buddy.jl",
+         "https://figshare.com/ndownloader/files/40849460?private_link=9f91576cbbcc8b0d8828",
+         "36341322907708c466871bf04bc133c2"),
+        ("cicero.jl",
+         "https://figshare.com/ndownloader/files/40849457?private_link=9f91576cbbcc8b0d8828",
+         "a83b02dbdc884fdd7e53df362499d42f"),
+        ("gatsby.jl",
+         "https://figshare.com/ndownloader/files/40849454?private_link=9f91576cbbcc8b0d8828",
+         "2b889da48178b3155011c12555342813")
+    ])(function)
+
 
 @parametrize_data
 def test_download_file_successful_download(filename, url, expected_checksum):
     with tempfile.TemporaryDirectory() as temp_dir:
-        cebra.datasets.assets.download_file_with_progress_bar(url = url, expected_checksum= expected_checksum,
-                                        location= temp_dir,file_name= filename)
-        
-        downloaded_checksum = cebra.datasets.assets.calculate_checksum(os.path.join(temp_dir, filename))
+        cebra.datasets.assets.download_file_with_progress_bar(
+            url=url,
+            expected_checksum=expected_checksum,
+            location=temp_dir,
+            file_name=filename)
+
+        downloaded_checksum = cebra.datasets.assets.calculate_checksum(
+            os.path.join(temp_dir, filename))
         assert downloaded_checksum == expected_checksum
 
 
@@ -310,19 +322,29 @@ def test_download_file_wrong_checksum(filename, url, expected_checksum):
     wrong_checksum = ''.join(reversed(expected_checksum))
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(RuntimeError):
-            cebra.datasets.assets.download_file_with_progress_bar(url = url, expected_checksum = wrong_checksum,
-                                            location= temp_dir,file_name= filename, retry_count=2)
+            cebra.datasets.assets.download_file_with_progress_bar(
+                url=url,
+                expected_checksum=wrong_checksum,
+                location=temp_dir,
+                file_name=filename,
+                retry_count=2)
+
 
 @parametrize_data
 def test_download_file_wrong_url(filename, url, expected_checksum):
-    wrong_url =  "https://figshare.com/wrongurl"
+    wrong_url = "https://figshare.com/wrongurl"
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(requests.HTTPError):
-            cebra.datasets.assets.download_file_with_progress_bar(url = wrong_url, expected_checksum = expected_checksum,
-                                                                  location= temp_dir, file_name = filename)
+            cebra.datasets.assets.download_file_with_progress_bar(
+                url=wrong_url,
+                expected_checksum=expected_checksum,
+                location=temp_dir,
+                file_name=filename)
+
 
 @parametrize_data
-def test_download_file_wrong_content_disposition(filename, url, expected_checksum):
+def test_download_file_wrong_content_disposition(filename, url,
+                                                 expected_checksum):
     with tempfile.TemporaryDirectory() as temp_dir:
         with patch("requests.get") as mock_get:
             mock_response = mock_get.return_value
@@ -330,10 +352,16 @@ def test_download_file_wrong_content_disposition(filename, url, expected_checksu
             mock_response.headers = {}
 
             with pytest.raises(ValueError):
-                cebra.datasets.assets.download_file_with_progress_bar(url = url, expected_checksum= expected_checksum,
-                                                location= temp_dir,file_name= filename)
+                cebra.datasets.assets.download_file_with_progress_bar(
+                    url=url,
+                    expected_checksum=expected_checksum,
+                    location=temp_dir,
+                    file_name=filename)
 
             mock_response.headers = {"Content-Disposition": "invalid_header"}
             with pytest.raises(ValueError):
-                cebra.datasets.assets.download_file_with_progress_bar(url = url, expected_checksum= expected_checksum,
-                                                                      location= temp_dir,file_name= filename)
+                cebra.datasets.assets.download_file_with_progress_bar(
+                    url=url,
+                    expected_checksum=expected_checksum,
+                    location=temp_dir,
+                    file_name=filename)
