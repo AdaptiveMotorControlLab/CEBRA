@@ -20,7 +20,7 @@ import torch
 
 import cebra.data
 import cebra.datasets
-import cebra.datasets.assets
+import cebra.data.assets as cebra_data_assets
 import cebra.registry
 from cebra.datasets import poisson
 
@@ -306,13 +306,13 @@ def parametrize_data(function):
 @parametrize_data
 def test_download_file_successful_download(filename, url, expected_checksum):
     with tempfile.TemporaryDirectory() as temp_dir:
-        cebra.datasets.assets.download_file_with_progress_bar(
+        cebra_data_assets.download_file_with_progress_bar(
             url=url,
             expected_checksum=expected_checksum,
             location=temp_dir,
             file_name=filename)
 
-        downloaded_checksum = cebra.datasets.assets.calculate_checksum(
+        downloaded_checksum = cebra_data_assets.calculate_checksum(
             os.path.join(temp_dir, filename))
         assert downloaded_checksum == expected_checksum
 
@@ -322,7 +322,7 @@ def test_download_file_wrong_checksum(filename, url, expected_checksum):
     wrong_checksum = ''.join(reversed(expected_checksum))
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(RuntimeError):
-            cebra.datasets.assets.download_file_with_progress_bar(
+            cebra_data_assets.download_file_with_progress_bar(
                 url=url,
                 expected_checksum=wrong_checksum,
                 location=temp_dir,
@@ -335,7 +335,7 @@ def test_download_file_wrong_url(filename, url, expected_checksum):
     wrong_url = "https://figshare.com/wrongurl"
     with tempfile.TemporaryDirectory() as temp_dir:
         with pytest.raises(requests.HTTPError):
-            cebra.datasets.assets.download_file_with_progress_bar(
+            cebra_data_assets.download_file_with_progress_bar(
                 url=wrong_url,
                 expected_checksum=expected_checksum,
                 location=temp_dir,
@@ -352,7 +352,7 @@ def test_download_file_wrong_content_disposition(filename, url,
             mock_response.headers = {}
 
             with pytest.raises(ValueError):
-                cebra.datasets.assets.download_file_with_progress_bar(
+                cebra_data_assets.download_file_with_progress_bar(
                     url=url,
                     expected_checksum=expected_checksum,
                     location=temp_dir,
@@ -360,7 +360,7 @@ def test_download_file_wrong_content_disposition(filename, url,
 
             mock_response.headers = {"Content-Disposition": "invalid_header"}
             with pytest.raises(ValueError):
-                cebra.datasets.assets.download_file_with_progress_bar(
+                cebra_data_assets.download_file_with_progress_bar(
                     url=url,
                     expected_checksum=expected_checksum,
                     location=temp_dir,
