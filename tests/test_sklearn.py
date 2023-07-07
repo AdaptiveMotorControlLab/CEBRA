@@ -757,7 +757,7 @@ def _iterate_actions():
     def do_nothing(model):
         return model
 
-    def fit_singlession_model(model):
+    def fit_singlesession_model(model):
         X = np.linspace(-1, 1, 1000)[:, None]
         model.fit(X)
         return model
@@ -768,7 +768,7 @@ def _iterate_actions():
         return model
 
 
-    return [do_nothing, fit_singlession_model, fit_multisession_model]
+    return [do_nothing, fit_singlesession_model, fit_multisession_model]
 
 
 def _assert_same_state_dict(first, second):
@@ -824,13 +824,9 @@ def test_save_and_load(action):
 def test_check_devices(action, device):
     cebra_model = cebra_sklearn_cebra.CEBRA(
         model_architecture="offset1-model",
-        time_offsets=10,
-        learning_rate=3e-4,
         max_iterations=5,
         device=device,
-        output_dimension=4,
         batch_size=42,
-        verbose=True,
     )
     cebra_model = action(cebra_model)
     assert cebra_model.device == device
