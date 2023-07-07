@@ -4,13 +4,9 @@ on:
   push:
     branches:
       - main 
-      - public
-      - dev
   pull_request:
     branches:
-      - main 
-      - public
-      - dev
+      - main
 
 jobs:
   build:
