@@ -119,7 +119,7 @@ class KNNDecoder(Decoder):
         if cebra.helper._is_floating(y):
             self.knn = sklearn.neighbors.KNeighborsRegressor(
                 n_neighbors=self.n_neighbors, metric=self.metric)
-        elif cebra.helper_is_integer(y):
+        elif cebra.helper._is_integer(y):
             self.knn = sklearn.neighbors.KNeighborsClassifier(
                 n_neighbors=self.n_neighbors, metric=self.metric)
         else:
@@ -201,7 +201,7 @@ class L1LinearRegressor(Decoder):
                 f"Invalid shape: y and X must have the same number of samples, got y:{len(y)} and X:{len(X)}."
             )
 
-        if not (cebra.helper._is_integer(y) or cebra.helper_is_floating(y)):
+        if not (cebra.helper._is_integer(y) or cebra.helper._is_floating(y)):
             raise NotImplementedError(
                 f"Invalid type: targets must be numeric, got y:{y.dtype}")
 
