@@ -14,7 +14,7 @@ import pytest
 import torch
 
 import cebra.integrations.sklearn.decoder as cebra_sklearn_decoder
-
+import cebra.helper
 
 def test_imports():
     import cebra
@@ -104,7 +104,7 @@ def test_sklearn_decoder(decoder):
 
 
 def test_dtype_checker():
-    assert cebra_sklearn_decoder._is_floating(torch.Tensor([4.5]))
-    assert cebra_sklearn_decoder._is_integer(torch.LongTensor([4]))
-    assert cebra_sklearn_decoder._is_floating(np.array([4.5]))
-    assert cebra_sklearn_decoder._is_integer(np.array([4]))
+    assert cebra.helper._is_floating(torch.Tensor([4.5]))
+    assert cebra.helper._is_integer(torch.LongTensor([4]))
+    assert cebra.helper._is_floating(np.array([4.5]))
+    assert cebra.helper._is_integer(np.array([4]))
