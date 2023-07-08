@@ -14,6 +14,7 @@ import itertools
 import pytest
 import torch
 from torch import nn
+from typing import List
 
 import cebra
 import cebra.config
@@ -22,6 +23,8 @@ import cebra.datasets
 import cebra.helper
 import cebra.models
 import cebra.solver
+
+
 
 
 def _init_single_session_solver(loader, args):
@@ -80,13 +83,45 @@ def _list_data_loaders():
         prefixes.add(prefix)
 
 
+def get_loader_options(dataset: cebra.data.Dataset) -> List[str]:
+    """Return all possible dataloaders for the given dataset."""
+
+    loader_options = []
+    if isinstance(dataset, cebra.data.SingleSessionDataset):
+        mixed = True
+        if dataset.continuous_index is not None:
+            loader_options.append(cebra.data.ContinuousDataLoader)
+        else:
+            mixed = False
+        if dataset.discrete_index is not None:
+            loader_options.append(cebra.data.DiscreteDataLoader)
+        else:
+            mixed = False
+        if mixed:
+            loader_options.append(cebra.data.MixedDataLoader)
+    elif isinstance(dataset, cebra.data.MultiSessionDataset):
+        mixed = True
+        if dataset.continuous_index is not None:
+            loader_options.append(cebra.data.ContinuousMultiSessionDataLoader)
+        else:
+            mixed = False
+        if dataset.discrete_index is not None:
+            pass  # not implemented yet
+        else:
+            mixed = False
+        if mixed:
+            pass  # not implemented yet
+    else:
+        raise TypeError(f"Invalid dataset type: {dataset}")
+    return loader_options
+
 @pytest.mark.requires_dataset
 @pytest.mark.parametrize("dataset_name, loader_type", _list_data_loaders())
 def test_train(dataset_name, loader_type):
     args = cebra.config.Config(num_steps=1, device="cuda").as_namespace()
 
     dataset = cebra.datasets.init(dataset_name)
-    if loader_type not in cebra.data.helper.get_loader_options(dataset):
+    if loader_type not in get_loader_options(dataset):
         # skip this test, since the data/loader combination is not valid.
         pytest.skip("Not a valid dataset/loader combination.")
     loader = loader_type(
