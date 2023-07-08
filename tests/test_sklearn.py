@@ -757,12 +757,17 @@ def _iterate_actions():
     def do_nothing(model):
         return model
 
-    def fit_model(model):
+    def fit_singlesession_model(model):
         X = np.linspace(-1, 1, 1000)[:, None]
         model.fit(X)
         return model
-
-    return [do_nothing, fit_model]
+    
+    def fit_multisession_model(model):
+        X = np.linspace(-1, 1, 1000)[:, None]
+        model.fit([X, X], [X, X])
+        return model
+    
+    return [do_nothing, fit_singlesession_model, fit_multisession_model]
 
 
 def _assert_same_state_dict(first, second):
@@ -775,23 +780,21 @@ def _assert_same_state_dict(first, second):
         else:
             assert first[key] == second[key]
 
-
-def _assert_equal(original_model, loaded_model):
-    assert original_model.get_params() == loaded_model.get_params()
-    assert original_model.device == loaded_model.device
-    assert next(original_model.parameters()).device == next(loaded_model.parameters()).device
-
-
-    def check_fitted(model):
-        """Check if a model is fitted.
+def check_fitted(model):
+    """Check if a model is fitted.
 
         Args:
             model: The model to assess.
 
         Returns:
             True if fitted.
-        """
-        return hasattr(model, "n_features_")
+    """
+    return hasattr(model, "n_features_")
+
+def _assert_equal(original_model, loaded_model):
+    assert original_model.get_params() == loaded_model.get_params()
+    assert original_model.device == loaded_model.device
+    assert next(original_model.model_.parameters()).device == next(loaded_model.model_.parameters()).device
 
     assert check_fitted(loaded_model) == check_fitted(original_model)
 
@@ -799,28 +802,73 @@ def _assert_equal(original_model, loaded_model):
         _assert_same_state_dict(original_model.state_dict_,
                                 loaded_model.state_dict_)
         X = np.random.normal(0, 1, (100, 1))
-        assert np.allclose(loaded_model.transform(X),
-                           original_model.transform(X))
+        
+        if loaded_model.num_sessions is not None:
+            assert np.allclose(loaded_model.transform(X, session_id = 0),
+                               original_model.transform(X, session_id = 0))
+        
+        else:
+            assert np.allclose(loaded_model.transform(X),
+                               original_model.transform(X))
+
+import torch.nn as nn
+import cebra.models.model
+from cebra.models import parametrize
+@parametrize(
+    "parametrized-model-{output_dim}",
+    output_dim=(5, 10),
+)
+class ParametrizedModelExample(cebra.models.model._OffsetModel):
+    """CEBRA model with a single sample receptive field, without output normalization."""
+
+    def __init__(self, num_neurons, num_units, num_output, output_dim, normalize=False,):
+        super().__init__(
+            nn.Flatten(start_dim=1, end_dim=-1),
+            nn.Linear(num_neurons,output_dim,
+            ),
+            num_input=num_neurons,
+            num_output=num_output,
+            normalize=normalize,
+        )
+
+    def get_offset(self) -> cebra.data.datatypes.Offset:
+        """See :py:meth:`~.Model.get_offset`"""
+        return cebra.data.Offset(0, 1)
+    
 
 @pytest.mark.parametrize("action", _iterate_actions())
-def test_save_and_load_singlesession_sklearn_backend(action):
-    model_architecture = "offset10-model"
+@pytest.mark.parametrize("backend_save", ["torch", "sklearn"])
+@pytest.mark.parametrize("backend_load", ["auto", "torch", "sklearn"])
+@pytest.mark.parametrize("model_architecture", ["offset0-model", "parametrize-model-5"])
+@pytest.mark.parametrize("device", ["cpu"] + ["cuda"] if torch.cuda.is_available() else [])
+def test_save_and_load(action, backend_save, backend_load, model_architecture, device):
+    model_architecture = "parametrized-model-5"
     original_model = cebra_sklearn_cebra.CEBRA(
-        model_architecture=model_architecture, max_iterations=5, batch_size=100)
+                            model_architecture=model_architecture,
+                            max_iterations=5,
+                            batch_size=100,
+                            device = device)
     
     original_model = action(original_model)
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
-        if action.__name__ == "do_nothing":
+
+        # SAVING TESTS
+        if not check_fitted(original_model):
             with pytest.raises(ValueError):
-                original_model.save(savefile.name, backend = "sklearn")
+                original_model.save(savefile.name, backend = backend_save)
         else:
-            original_model.save(savefile.name, backend = "sklearn")
-            loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name, "sklearn")
-            _assert_equal(original_model, loaded_model)
+            # this means it is fitted!
+            if "parametrized" in original_model.model_architecture and backend_save == "torch":
+                with pytest.raises(AttributeError):
+                    original_model.save(savefile.name, backend = backend_save)
+            else:    
+                original_model.save(savefile.name, backend = backend_save)
 
-
-# THINGS TO CHECK
-# you can train a model after loading it if it has been trained before / fitted vs unfitted models
-# multiple model architectures -> specially the ones using @parametrize
-# temperature: auto vs fixed, make sure that we keep the parameters.
-# behavior vs time contrastive
+                # LOADING TESTS
+                if (backend_load != "auto") and (backend_save != backend_load):
+                    with pytest.raises(ValueError):
+                            cebra_sklearn_cebra.CEBRA.load(savefile.name, backend_load)
+                else:
+                    loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name, backend_load)
+                    _assert_equal(original_model, loaded_model)
+                    action(loaded_model)
