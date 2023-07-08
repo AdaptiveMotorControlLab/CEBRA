@@ -93,13 +93,3 @@ def _is_floating(y: Union[npt.NDArray, torch.Tensor]) -> bool:
     return (isinstance(y, np.ndarray) and
             np.issubdtype(y.dtype, np.floating)) or (isinstance(
                 y, torch.Tensor) and torch.is_floating_point(y))
-
-def __getattr__(key):
-    if key == "get_loader_options":
-        import cebra.data.helper
-        warnings.warn(
-            "The 'get_loader_options' function has been moved to 'cebra.data.helpers' module. "
-            "Please update your imports.",
-            DeprecationWarning
-        )
-        return cebra.data.helper.get_loader_options
