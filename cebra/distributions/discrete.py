@@ -19,7 +19,7 @@ import scipy.interpolate
 import torch
 
 import cebra.distributions.base as abc_
-import cebra.data.helper as cebra_data_helper
+import cebra.helper
 
 
 class Discrete(abc_.ConditionalDistribution, abc_.HasGenerator):
@@ -39,7 +39,7 @@ class Discrete(abc_.ConditionalDistribution, abc_.HasGenerator):
                                            npt.NDArray]) -> npt.NDArray:
         if isinstance(samples, torch.Tensor):
             samples = samples.cpu().numpy()
-        if not cebra_data_helper._is_integer(samples):
+        if not cebra.helper._is_integer(samples):
             samples = samples.astype(int)
         return samples
 
