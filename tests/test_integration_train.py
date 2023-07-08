@@ -68,7 +68,7 @@ def _list_data_loaders():
     ]
     # TODO limit this to the valid combinations---however this
     # requires to adapt the dataset API slightly; it is currently
-    # required to initialize the dataset to run cebra.helper.get_loader_options.
+    # required to initialize the dataset to run cebra.data.helper.get_loader_options.
     prefixes = set()
     for dataset_name, loader in itertools.product(cebra.datasets.get_options(),
                                                   loaders):
@@ -86,7 +86,7 @@ def test_train(dataset_name, loader_type):
     args = cebra.config.Config(num_steps=1, device="cuda").as_namespace()
 
     dataset = cebra.datasets.init(dataset_name)
-    if loader_type not in cebra.helper.get_loader_options(dataset):
+    if loader_type not in cebra.data.helper.get_loader_options(dataset):
         # skip this test, since the data/loader combination is not valid.
         pytest.skip("Not a valid dataset/loader combination.")
     loader = loader_type(
