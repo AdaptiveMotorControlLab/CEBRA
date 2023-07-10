@@ -103,7 +103,7 @@ intersphinx_mapping = {
 }
 
 # Config is documented here: https://sphinx-copybutton.readthedocs.io/en/latest/
-copybutton_prompt_text = r">>> |\$ "
+copybutton_prompt_text = r">>> |\$ |\.\.\. "
 copybutton_prompt_is_regexp = True
 copybutton_only_copy_prompt_lines = True
 
