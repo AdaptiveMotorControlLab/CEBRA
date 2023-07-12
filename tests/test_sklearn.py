@@ -802,15 +802,20 @@ def _assert_equal(original_model, loaded_model):
         _assert_same_state_dict(original_model.state_dict_,
                                 loaded_model.state_dict_)
         X = np.random.normal(0, 1, (100, 1))
-        assert np.allclose(loaded_model.transform(X),
-                           original_model.transform(X))
+
+        if loaded_model.num_sessions is not None:
+             assert np.allclose(loaded_model.transform(X, session_id=0),
+                             original_model.transform(X, session_id=0))
+        else:
+            assert np.allclose(loaded_model.transform(X),
+                               original_model.transform(X))
 
 
 @pytest.mark.parametrize("action", _iterate_actions())
 def test_save_and_load(action):
     model_architecture = "offset10-model"
     original_model = cebra_sklearn_cebra.CEBRA(
-        model_architecture=model_architecture, max_iterations=5)
+        model_architecture=model_architecture, max_iterations=5, batch_size=42)
     original_model = action(original_model)
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
         original_model.save(savefile.name)
