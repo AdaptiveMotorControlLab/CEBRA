@@ -23,6 +23,7 @@ import cebra.data as cebra_data
 import cebra.integrations.sklearn.cebra as cebra_sklearn_cebra
 import cebra.integrations.sklearn.dataset as cebra_sklearn_dataset
 import cebra.models
+import cebra.helper
 
 if torch.cuda.is_available():
     _DEVICES = "cpu", "cuda"
@@ -818,8 +819,8 @@ def get_ordered_cuda_devices():
     return available_devices
 
 
-ordered_cuda_devices = get_ordered_cuda_devices if torch.cuda.is_available() else []
-mps_device = ["mps"] if torch.backends.mps.is_available() else []
+ordered_cuda_devices = get_ordered_cuda_devices() if torch.cuda.is_available() else []
+mps_device = ["mps"] if cebra.helper._is_mps_availabe(torch) else []
 
 @pytest.mark.parametrize("device", ['cpu'] + ordered_cuda_devices + mps_device)
 def test_to_device(device):

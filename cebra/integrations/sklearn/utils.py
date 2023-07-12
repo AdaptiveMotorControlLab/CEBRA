@@ -14,6 +14,7 @@ import warnings
 import numpy.typing as npt
 import sklearn.utils.validation as sklearn_utils_validation
 import torch
+import cebra.helper
 
 
 def update_old_param(old: dict, new: dict, kwargs: dict, default) -> tuple:
@@ -120,6 +121,8 @@ def check_device(device: str) -> str:
     if device == "cuda_if_available":
         if torch.cuda.is_available():
             return "cuda"
+        elif cebra.helper._is_mps_availabe(torch):
+            return "mps"
         else:
             return "cpu"
     elif device.startswith("cuda:") and len(device) > 5:
