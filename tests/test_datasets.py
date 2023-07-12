@@ -181,7 +181,7 @@ def test_all_multisubject(dataset):
 def test_compat_fix611(dataset):
     """Check that confirm the fix applied in internal PR #611
 
-    The PR removed the explicit continuous and discrete args from the 
+    The PR removed the explicit continuous and discrete args from the
     datasets used to parametrize this function. We manually check that
     the continuous index is available, and no discrete index is set.
 

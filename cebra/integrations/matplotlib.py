@@ -736,8 +736,10 @@ def plot_overview(
     figsize: tuple = (15, 4),
     dpi: int = 100,
     **kwargs,
-) -> Tuple[matplotlib.figure.Figure, Tuple[
-        matplotlib.axes.Axes, matplotlib.axes.Axes, matplotlib.axes.Axes],]:
+) -> Tuple[
+        matplotlib.figure.Figure,
+        Tuple[matplotlib.axes.Axes, matplotlib.axes.Axes, matplotlib.axes.Axes],
+]:
     """Plot an overview of a trained CEBRA model.
 
     Args:

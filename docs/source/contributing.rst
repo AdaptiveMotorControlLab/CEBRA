@@ -1,8 +1,8 @@
 Contribution Guide
 ==================
 
-CEBRA is an actively developed package and we welcome community development 
-and involvement. We are happy to receive code extensions, bug fixes, documentation 
+CEBRA is an actively developed package and we welcome community development
+and involvement. We are happy to receive code extensions, bug fixes, documentation
 updates, etc, but please sign the `Contributor License Agreement (CLA) <https://forms.gle/SYbceYvot64ngNxJ9>`_
 and note that it was signed in your pull request.
 
@@ -12,7 +12,7 @@ Development setup
 Development should be done inside the provided docker environment.
 All essential commands are included in the project ``Makefile``.
 
-To start an interactive console, run: 
+To start an interactive console, run:
 
 .. code:: bash
 
@@ -24,7 +24,7 @@ We use ``pytest`` for running tests. The full test suite can be run with:
 
     $ make test
 
-A faster version of the test suite, only running one iteration of each longer tests, can be run with: 
+A faster version of the test suite, only running one iteration of each longer tests, can be run with:
 
 .. code:: bash
 
@@ -46,7 +46,7 @@ Code is formatted using `Google code style <https://google.github.io/styleguide/
 The specification is in ``.style.yapf`` and ``.style.yapf``.
 We use ``yapf`` for automated formatting and ``isort`` for import statement formatting.
 
-Formatting the whole code base can be done with 
+Formatting the whole code base can be done with
 
 .. code:: bash
 
@@ -57,7 +57,7 @@ For in-depth information on how to adapt and contribute to CEBRA, please refer t
 Quick testing
 ^^^^^^^^^^^^^
 
-Upon development, you'll write new tests to assess the quality of your contribution. If those tests are lenghy (e.g., lots of iterations to run), an option for "quick testing" 
+Upon development, you'll write new tests to assess the quality of your contribution. If those tests are lenghy (e.g., lots of iterations to run), an option for "quick testing"
 upon ``git push`` is available.To mark a test as "slow",
 
 * Write the "slow" test function (name begins with ``test_``) in the file of your choice in the ``tests/`` folder.
@@ -66,10 +66,10 @@ upon ``git push`` is available.To mark a test as "slow",
 
 * We also have a special decorator ``@parametrize_with_checks_slow``, which replaces the ``sklearn.utils.estimator_checks.parametrize_with_checks`` pytest specific decorator and checks if an estimator provided as an argument adheres to the scikit-learn convention.
 
-* More concrete examples are available in ``tests/test_sklearn.py``. 
+* More concrete examples are available in ``tests/test_sklearn.py``.
 
 .. code:: python
-    
+
     from _utils import parametrize_slow
 
     @parametrize_slow(
@@ -87,7 +87,7 @@ label ``ready to merge`` to the PR. The tests will automatically launch. To reru
 
 **Working in "development mode"**
 
-To implement changes to the CEBRA package from your system and use them without having to rebuild the Python package, the ``-e`` or ``--editable`` option 
+To implement changes to the CEBRA package from your system and use them without having to rebuild the Python package, the ``-e`` or ``--editable`` option
 can be used with ``pip`` by running the following, in the root of your project directory:
 
 .. code:: bash
@@ -99,15 +99,15 @@ It will link the package to the local location, basically meaning any changes to
 Adding a Demo Jupyter Notebook
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-New demo notebooks should be placed in ``demo_notebooks/`` folder. 
-Then the new notebook needs to be added to the Demo Notebooks ``toctree`` in ``demo_notebooks/README.rst``. 
-For that, extend the ``toctree`` (at the end of the file) using the following template: 
+New demo notebooks should be placed in ``demo_notebooks/`` folder.
+Then the new notebook needs to be added to the Demo Notebooks ``toctree`` in ``demo_notebooks/README.rst``.
+For that, extend the ``toctree`` (at the end of the file) using the following template:
 
 .. code:: bash
 
     <notebook_title> <demo_notebooks/<notebook_name>.ipynb>
 
-**Example:** 
+**Example:**
 
 .. code:: bash
 

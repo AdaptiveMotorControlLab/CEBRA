@@ -12,11 +12,11 @@
 """Rat hippocampus dataset
 
 References:
-    * Grosmark, A.D., and Buzsáki, G. (2016). Diversity in neural firing dynamics supports both rigid and learned 
+    * Grosmark, A.D., and Buzsáki, G. (2016). Diversity in neural firing dynamics supports both rigid and learned
        hippocampal sequences. Science 351, 1440–1443.
-    * Chen, Z., Grosmark, A.D., Penagos, H., and Wilson, M.A. (2016). Uncovering representations of sleep-associated 
+    * Chen, Z., Grosmark, A.D., Penagos, H., and Wilson, M.A. (2016). Uncovering representations of sleep-associated
        hippocampal ensemble spike activity. Sci. Rep. 6, 32193.
-    * Grosmark, A.D., Long J. and Buzsáki, G. (2016); Recordings from hippocampal area CA1, PRE, during and POST 
+    * Grosmark, A.D., Long J. and Buzsáki, G. (2016); Recordings from hippocampal area CA1, PRE, during and POST
       novel spatial learning. CRCNS.org. http://dx.doi.org/10.6080/K0862DC5
 
 """

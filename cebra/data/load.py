@@ -508,8 +508,8 @@ class _PickleLoader(_BaseLoader):
                 loaded_array = loaded_data
             elif type(loaded_data) is dict:
                 if key is not None:
-                    if (key in loaded_data.keys() and type(loaded_data[key]) is
-                            np.ndarray):  # check that key is valid
+                    if (key in loaded_data.keys() and type(loaded_data[key])
+                            is np.ndarray):  # check that key is valid
                         loaded_array = loaded_data[key]
                     else:
                         raise AttributeError(

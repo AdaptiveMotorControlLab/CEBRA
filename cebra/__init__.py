@@ -9,7 +9,7 @@
 # Please see LICENSE.md for the full license document:
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
-"""CEBRA is a library for estimating Consistent Embeddings of high-dimensional Recordings 
+"""CEBRA is a library for estimating Consistent Embeddings of high-dimensional Recordings
 using Auxiliary variables. It contains self-supervised learning algorithms implemented in
 PyTorch, and has support for a variety of different datasets common in biology and neuroscience.
 """

@@ -53,8 +53,8 @@ def infonce_loss(
         >>> cebra_model = cebra.CEBRA(max_iterations=10)
         >>> cebra_model.fit(neural_data)
         CEBRA(max_iterations=10)
-        >>> loss = cebra.sklearn.metrics.infonce_loss(cebra_model, 
-        ...                                           neural_data, 
+        >>> loss = cebra.sklearn.metrics.infonce_loss(cebra_model,
+        ...                                           neural_data,
         ...                                           num_batches=5)
 
     """
