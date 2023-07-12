@@ -824,7 +824,7 @@ def test_save_and_load(action):
 
 #let's contribute a test to test_sklearn that checks devices for training for all solvers, and link it in the issue here.
 
-@pytest.mark.parametrize("device", ["cuda", "cpu"])
+@pytest.mark.parametrize("device", ["cpu"] + ["cuda"] if torch.cuda.is_available() else [])
 @pytest.mark.parametrize("action", _iterate_actions())
 def test_check_devices(action, device):
     cebra_model = cebra_sklearn_cebra.CEBRA(
