@@ -25,6 +25,7 @@ these components in other contexts and research code bases.
    api/sklearn/cebra
    api/sklearn/metrics
    api/sklearn/decoder
+   api/sklearn/helpers
    
 
 
