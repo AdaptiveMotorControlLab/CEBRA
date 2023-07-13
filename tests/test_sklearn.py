@@ -440,8 +440,9 @@ def test_adapt_model():
     assert before_adapt.keys() == after_adapt.keys()
     for key in before_adapt.keys():
         if key in adaptation_param_key:
-            assert (before_adapt[key].shape != after_adapt[key].shape
-                   ) or not torch.allclose(before_adapt[key], after_adapt[key])
+            assert (before_adapt[key].shape
+                    != after_adapt[key].shape) or not torch.allclose(
+                        before_adapt[key], after_adapt[key])
         else:
             assert torch.allclose(before_adapt[key], after_adapt[key])
 
@@ -758,12 +759,17 @@ def _iterate_actions():
     def do_nothing(model):
         return model
 
-    def fit_model(model):
+    def fit_singlesession_model(model):
         X = np.linspace(-1, 1, 1000)[:, None]
         model.fit(X)
         return model
 
-    return [do_nothing, fit_model]
+    def fit_multisession_model(model):
+        X = np.linspace(-1, 1, 1000)[:, None]
+        model.fit([X, X], [X, X])
+        return model
+
+    return [do_nothing, fit_singlesession_model, fit_multisession_model]
 
 
 def _assert_same_state_dict(first, second):
@@ -797,27 +803,31 @@ def _assert_equal(original_model, loaded_model):
         _assert_same_state_dict(original_model.state_dict_,
                                 loaded_model.state_dict_)
         X = np.random.normal(0, 1, (100, 1))
-        assert np.allclose(loaded_model.transform(X),
-                           original_model.transform(X))
+
+        if loaded_model.num_sessions is not None:
+            assert np.allclose(loaded_model.transform(X, session_id=0),
+                               original_model.transform(X, session_id=0))
+        else:
+            assert np.allclose(loaded_model.transform(X),
+                               original_model.transform(X))
 
 
 @pytest.mark.parametrize("action", _iterate_actions())
 def test_save_and_load(action):
     model_architecture = "offset10-model"
     original_model = cebra_sklearn_cebra.CEBRA(
-        model_architecture=model_architecture, max_iterations=5)
+        model_architecture=model_architecture, max_iterations=5, batch_size=42)
     original_model = action(original_model)
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
         original_model.save(savefile.name)
         loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
     _assert_equal(original_model, loaded_model)
-
+    
 def get_ordered_cuda_devices():
     available_devices = ['cuda']
     for i in range(torch.cuda.device_count()):
         available_devices.append(f'cuda:{i}')
     return available_devices
-
 
 ordered_cuda_devices = get_ordered_cuda_devices() if torch.cuda.is_available() else []
 mps_device = ["mps"] if cebra.helper._is_mps_availabe(torch) else []
@@ -861,3 +871,23 @@ def test_to_device(device):
         loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
 
     assert cebra_model.device == loaded_model.device
+
+@pytest.mark.parametrize("device", ["cpu"] +
+                         ["cuda"] if torch.cuda.is_available() else [])
+@pytest.mark.parametrize("action", _iterate_actions())
+def test_check_devices(action, device):
+    cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture="offset1-model",
+        max_iterations=5,
+        device=device,
+        batch_size=42,
+    )
+    cebra_model = action(cebra_model)
+    assert cebra_model.device == device
+
+    if action.__name__ != "do_nothing":
+        if device == "cuda":
+            #TODO(rodrigo): remove once https://github.com/AdaptiveMotorControlLab/CEBRA/pull/34 is merged.
+            device = torch.device(device, index=0)
+        assert next(
+            cebra_model.model_.parameters()).device == torch.device(device)

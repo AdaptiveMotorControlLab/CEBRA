@@ -746,8 +746,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
             else:
                 label_types_idx = self._label_types[i][session_id]
 
-            if (len(label_types_idx[1]) > 1 and len(y[i].shape) >
-                    1):  # is there more than one feature in the index
+            if (len(label_types_idx[1]) > 1 and len(y[i].shape)
+                    > 1):  # is there more than one feature in the index
                 if label_types_idx[1][1] != y[i].shape[1]:
                     raise ValueError(
                         f"Labels invalid: must have the same number of features as the ones used for fitting,"

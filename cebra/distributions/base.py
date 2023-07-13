@@ -15,7 +15,7 @@ Contrastive learning in CEBRA requires a prior and conditional distribution.
 Distributions are defined in terms of _indices_ that reference samples within
 the dataset.
 
-The appropriate base classes are defined in this module: An :py:class:`Index` is the 
+The appropriate base classes are defined in this module: An :py:class:`Index` is the
 part of the dataset used to inform the prior and conditional distributions;
 and could for example be time, or information about an experimental condition.
 """

@@ -1,6 +1,6 @@
 # Changelog
 
-When contributing a PR, please add the title, link and a short 1-2 line description of the 
+When contributing a PR, please add the title, link and a short 1-2 line description of the
 PR to this document. If you are an external contributor, please also add your github handle.
 You can use markdown formatting in this document.
 
@@ -19,8 +19,8 @@ in this file to the released code version using the name of the github tag (e.g.
   Add ``ensemble_embeddings`` that aligns multiple embeddings and combine them into an averaged one.
 
 - **Move `max_validation_iterations` from `cebra.CEBRA` to `cebra.metrics.infonce_loss` [#527](https://github.com/AdaptiveMotorControlLab/CEBRA-dev/pull/527)**:
-  Move `max_validation_iterations` from `cebra.CEBRA` to `cebra.metrics.infonce_loss` and 
-  rename the variable to `num_batches`. 
+  Move `max_validation_iterations` from `cebra.CEBRA` to `cebra.metrics.infonce_loss` and
+  rename the variable to `num_batches`.
 
 - **Add `plot_consistency` and demo notebook [#502](https://github.com/AdaptiveMotorControlLab/CEBRA-dev/pull/502)**:
   Add `plot_consistency` helper function and complete the corresponding notebook.
@@ -50,7 +50,7 @@ It is the official first release distributed along with the publication of the C
   - **Add cebra.plot package [#385](https://github.com/stes/neural_cl/pull/385)**:
     Simplify post-hoc analysis of model performance and embeddings by collecting plotting functions for the most common usecases.
   - **Multisession API integration [#333](https://github.com/stes/neural_cl/pull/333)**:
-    Add multisession implementation compatibility to the sklearn API. 
+    Add multisession implementation compatibility to the sklearn API.
 - v0.0.2rc1
   - **Implementation for general dataloading [#305](https://github.com/stes/neural_cl/pull/305)**:
     Implement `load`, a general function to convert any supported data file types to ``numpy.array``.
@@ -59,7 +59,7 @@ It is the official first release distributed along with the publication of the C
   - **Add quick testing option [#318](https://github.com/stes/neural_cl/pull/318)**:
     Add slow marker for longer tests and a quick testing option for pytest and in github workflow.
   - **Add CITATION.cff file [#339](https://github.com/stes/neural_cl/pull/339)**:
-    Add CITATION.cff file for easy-to-use citation of the pre-print paper. 
+    Add CITATION.cff file for easy-to-use citation of the pre-print paper.
   - **Update sklearn dependency [#317](https://github.com/stes/neural_cl/pull/317)**:
     The sklearn dependency was updated to `scikit-learn` as discussed
     [in the scikit-learn docs](https://github.com/scikit-learn/sklearn-pypi-package)
