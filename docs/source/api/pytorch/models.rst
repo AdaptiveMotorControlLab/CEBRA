@@ -14,9 +14,9 @@ Registration and initialization
 
 .. autofunction:: get_options
 
-.. autofunction:: register 
+.. autofunction:: register
 
-.. autofunction:: parametrize 
+.. autofunction:: parametrize
 
 
 Models
@@ -50,5 +50,5 @@ Multi-objective models
    :private-members:
    :show-inheritance:
 
-.. 
+..
    - projector

@@ -9,7 +9,7 @@
 # Please see LICENSE.md for the full license document:
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
-"""Ephys neural and behavior data used for the monkey reaching experiment. 
+"""Ephys neural and behavior data used for the monkey reaching experiment.
 
 References:
     * Chowdhury, Raeed H., Joshua I. Glaser, and Lee E. Miller. "Area 2 of primary somatosensory cortex encodes kinematics of the whole arm." Elife 9 (2020).
@@ -136,17 +136,17 @@ def _load_data(
 class Area2BumpDataset(cebra.data.SingleSessionDataset):
     """Base dataclass to generate monkey reaching datasets.
 
-    Ephys and behavior recording from -100ms and 500ms from the movement 
+    Ephys and behavior recording from -100ms and 500ms from the movement
     onset in 1ms bin size.
     Neural recording is smoothened with Gaussian kernel with 40ms std.
-    The behavior labels can include trial types, target directions and the 
+    The behavior labels can include trial types, target directions and the
     x,y hand positions.
-    After initialization of the dataset, split method can splits the data 
+    After initialization of the dataset, split method can splits the data
     into 'train', 'valid' and 'test' split.
 
     Args:
         path: The path to the directory where the preloaded data is.
-        session: The trial type. Choose between 'active', 'passive', 
+        session: The trial type. Choose between 'active', 'passive',
             'all', 'active-passive'.
 
     """
@@ -169,9 +169,9 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
     def split(self, split):
         """Split the dataset.
 
-        The train trials are the same as one defined in Neural Latent 
+        The train trials are the same as one defined in Neural Latent
         Benchmark (NLB) Dataset.
-        The half of the valid trials defined in NLBDataset is used as 
+        The half of the valid trials defined in NLBDataset is used as
         the valid set and the other half is used as the test set.
 
         Args:
@@ -242,18 +242,18 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
 class Area2BumpShuffledDataset(Area2BumpDataset):
     """Base dataclass to generate shuffled monkey reaching datasets.
 
-    Ephys and behavior recording from -100ms and 500ms from the movement 
+    Ephys and behavior recording from -100ms and 500ms from the movement
     onset in 1ms bin size.
     Neural recording is smoothened with Gaussian kernel with 40ms std.
-    The shuffled behavior labels can include trial types, target directions 
+    The shuffled behavior labels can include trial types, target directions
     and the x,y hand positions.
 
-    After initialization of the dataset, split method can splits the data 
+    After initialization of the dataset, split method can splits the data
     into 'train', 'valid' and 'test' split.
 
     Args:
         path: The path to the directory where the preloaded data is.
-        session: The trial type. Choose between 'active', 'passive', 'all', 
+        session: The trial type. Choose between 'active', 'passive', 'all',
             'active-passive'.
 
     """
@@ -297,7 +297,7 @@ def _create_area2_dataset():
     """Register the monkey reaching datasets of different trial types, behavior labels.
 
     The trial types are 'active', 'passive', 'all' and 'active-passive'.
-    The 'active-passive' type distinguishes movement direction between active, passive 
+    The 'active-passive' type distinguishes movement direction between active, passive
     (0-7 for active and 8-15 for passive) and 'all' does not (0-7).
 
     """
@@ -310,12 +310,12 @@ def _create_area2_dataset():
             """Monkey reaching dataset with hand position labels.
 
             The dataset loads continuous x,y hand position as behavior labels.
-            For the 'active-passive' trial type, it additionally loads discrete binary 
+            For the 'active-passive' trial type, it additionally loads discrete binary
             label of active(0)/passive(1).
 
             Args:
                 path: The path to the directory where the preloaded data is.
-                session: The trial type. Choose between 'active', 'passive', 'all', 
+                session: The trial type. Choose between 'active', 'passive', 'all',
                     'active-passive'.
 
             """
@@ -342,7 +342,7 @@ def _create_area2_dataset():
 
             Args:
                 path: The path to the directory where the preloaded data is.
-                session: The trial type. Choose between 'active', 'passive', 'all', 
+                session: The trial type. Choose between 'active', 'passive', 'all',
                     'active-passive'.
 
             """
@@ -365,14 +365,14 @@ def _create_area2_dataset():
         class Dataset(Area2BumpDataset):
             """Monkey reaching dataset with hand position labels and discrete target labels.
 
-            The dataset loads continuous x,y hand position and discrete target labels (0-7) 
+            The dataset loads continuous x,y hand position and discrete target labels (0-7)
             as behavior labels.
-            For active-passive type, the discrete target labels 0-7 for active and 8-16 for 
+            For active-passive type, the discrete target labels 0-7 for active and 8-16 for
             passive are loaded.
 
             Args:
                 path: The path to the directory where the preloaded data is.
-                session: The trial type. Choose between 'active', 'passive', 'all', 
+                session: The trial type. Choose between 'active', 'passive', 'all',
                 'active-passive'.
 
             """
@@ -396,7 +396,7 @@ def _create_area2_shuffled_dataset():
     """Register the shuffled monkey reaching datasets of different trial types, behavior labels.
 
     The trial types are 'active' and 'active-passive'.
-    The behavior labels are randomly shuffled and the trial types are shuffled 
+    The behavior labels are randomly shuffled and the trial types are shuffled
     in case of 'shuffled-trial' datasets.
 
     """
@@ -408,12 +408,12 @@ def _create_area2_shuffled_dataset():
         class Dataset(Area2BumpShuffledDataset):
             """Monkey reaching dataset with the shuffled trial type.
 
-            The dataset loads the discrete binary trial type label active(0)/passive(1) 
+            The dataset loads the discrete binary trial type label active(0)/passive(1)
             in randomly shuffled order.
 
             Args:
                 path: The path to the directory where the preloaded data is.
-                session: The trial type. Choose between 'active', 'passive', 'all', 
+                session: The trial type. Choose between 'active', 'passive', 'all',
                     'active-passive'.
 
             """
@@ -437,12 +437,12 @@ def _create_area2_shuffled_dataset():
             """Monkey reaching dataset with the shuffled hand position.
 
             The dataset loads continuous x,y hand position in randomly shuffled order.
-            For the 'active-passive' trial type, it additionally loads discrete binary label 
+            For the 'active-passive' trial type, it additionally loads discrete binary label
             of active(0)/passive(1).
 
             Args:
                 path: The path to the directory where the preloaded data is.
-                session: The trial type. Choose between 'active', 'passive', 'all', 
+                session: The trial type. Choose between 'active', 'passive', 'all',
                     'active-passive'.
 
             """
@@ -465,12 +465,12 @@ def _create_area2_shuffled_dataset():
         class Dataset(Area2BumpShuffledDataset):
             """Monkey reaching dataset with the shuffled hand position.
 
-            The dataset loads discrete target direction (0-7 for active and 0-15 for active-passive) 
+            The dataset loads discrete target direction (0-7 for active and 0-15 for active-passive)
             in randomly shuffled order.
 
             Args:
                 path: The path to the directory where the preloaded data is.
-                session: The trial type. Choose between 'active', 'passive', 'all', 
+                session: The trial type. Choose between 'active', 'passive', 'all',
                     'active-passive'.
 
             """

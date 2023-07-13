@@ -4,11 +4,12 @@ This file can be called as a python script without arguments. For
 configuration, see the instructions in NOTICE.yml.
 """
 
-import tempfile
-import glob
-import yaml
 import fnmatch
+import glob
 import subprocess
+import tempfile
+
+import yaml
 
 
 def load_config(filename):
@@ -53,7 +54,8 @@ def main(input_file="NOTICE.yml"):
             print(entry['header'])
             header_file.flush()
             header_file.seek(0)
-            command = ["licenseheaders", "-t", str(header_file.name), "-f"] + filelist
+            command = ["licenseheaders", "-t",
+                       str(header_file.name), "-f"] + filelist
             result = subprocess.run(command, capture_output=True)
             if result.returncode != 0:
                 print(result.stdout.decode())
