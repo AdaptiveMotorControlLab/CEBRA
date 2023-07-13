@@ -9,8 +9,8 @@ build: dist
 
 archlinux:
 	mkdir -p dist/arch
-	cp PKGBUILD dist/arch 
-	cp dist/cebra-0.2.0.tar.gz dist/arch 
+	cp PKGBUILD dist/arch
+	cp dist/cebra-0.2.0.tar.gz dist/arch
 	(cd dist/arch; makepkg --skipchecksums -f)
 
 # NOTE(stes): Ensure that no old tempfiles are present. Ideally, move this into
@@ -83,7 +83,7 @@ format:
 	# https://github.com/PyCQA/docformatter/issues/119
 	# is resolved.
 	# docformatter --config pyproject.toml -i cebra
-	# docformatter --config pyproject.toml -i tests 
+	# docformatter --config pyproject.toml -i tests
 	isort cebra/
 	isort tests/
 
@@ -99,4 +99,3 @@ report: check_docker format .coverage .pylint
 	coverage report
 
 .PHONY: dist build archlinux clean_test test doctest test_parallel test_parallel_debug test_all test_fast test_debug test_benchmark interrogate docs docs-touch docs-strict serve_docs serve_page format codespell check_for_binary
-

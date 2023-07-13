@@ -321,15 +321,15 @@ def add_docstring(module: Union[types.ModuleType, str]):
         >>> print({module.__name__}.get_options())
         {_shorten(options)}
 
-    To obtain an initialized instance, call ``{module.__name__}.init``, 
-    defined in :py:func:`cebra.registry.add_helper_functions`. 
-    The first parameter to provide is the {toplevel_name} name to use, 
+    To obtain an initialized instance, call ``{module.__name__}.init``,
+    defined in :py:func:`cebra.registry.add_helper_functions`.
+    The first parameter to provide is the {toplevel_name} name to use,
     which is one of the available options presented above.
-    Then the required positional arguments specific to the module are provided, if 
-    needed. 
+    Then the required positional arguments specific to the module are provided, if
+    needed.
 
     You can register additional options by defining and registering
-    classes with a name. To do that, you can add a decorator on top of it: 
+    classes with a name. To do that, you can add a decorator on top of it:
     ``@{module.__name__}.register("my-{module.__name__.replace('.', '-')}")``.
 
     Later, initialize your class similarly to the pre-defined options, using ``{module.__name__}.init``

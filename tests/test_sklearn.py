@@ -439,8 +439,9 @@ def test_adapt_model():
     assert before_adapt.keys() == after_adapt.keys()
     for key in before_adapt.keys():
         if key in adaptation_param_key:
-            assert (before_adapt[key].shape != after_adapt[key].shape
-                   ) or not torch.allclose(before_adapt[key], after_adapt[key])
+            assert (before_adapt[key].shape
+                    != after_adapt[key].shape) or not torch.allclose(
+                        before_adapt[key], after_adapt[key])
         else:
             assert torch.allclose(before_adapt[key], after_adapt[key])
 

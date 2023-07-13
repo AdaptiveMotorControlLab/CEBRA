@@ -29,7 +29,7 @@ Plots
    :members:
 
 
-Grid-Search 
+Grid-Search
 -----------
 
 .. automodule:: cebra.grid_search
