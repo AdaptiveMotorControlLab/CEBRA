@@ -23,7 +23,7 @@ import cebra.datasets
 import cebra.helper
 import cebra.models
 import cebra.solver
-
+import cebra.data.helper as cebra_data_helper
 
 
 
@@ -71,7 +71,7 @@ def _list_data_loaders():
     ]
     # TODO limit this to the valid combinations---however this
     # requires to adapt the dataset API slightly; it is currently
-    # required to initialize the dataset to run cebra.data.helper.get_loader_options.
+    # required to initialize the dataset to run cebra_data_helper.get_loader_options.
     prefixes = set()
     for dataset_name, loader in itertools.product(cebra.datasets.get_options(),
                                                   loaders):
@@ -82,46 +82,13 @@ def _list_data_loaders():
             return
         prefixes.add(prefix)
 
-
-def get_loader_options(dataset: cebra.data.Dataset) -> List[str]:
-    """Return all possible dataloaders for the given dataset."""
-
-    loader_options = []
-    if isinstance(dataset, cebra.data.SingleSessionDataset):
-        mixed = True
-        if dataset.continuous_index is not None:
-            loader_options.append(cebra.data.ContinuousDataLoader)
-        else:
-            mixed = False
-        if dataset.discrete_index is not None:
-            loader_options.append(cebra.data.DiscreteDataLoader)
-        else:
-            mixed = False
-        if mixed:
-            loader_options.append(cebra.data.MixedDataLoader)
-    elif isinstance(dataset, cebra.data.MultiSessionDataset):
-        mixed = True
-        if dataset.continuous_index is not None:
-            loader_options.append(cebra.data.ContinuousMultiSessionDataLoader)
-        else:
-            mixed = False
-        if dataset.discrete_index is not None:
-            pass  # not implemented yet
-        else:
-            mixed = False
-        if mixed:
-            pass  # not implemented yet
-    else:
-        raise TypeError(f"Invalid dataset type: {dataset}")
-    return loader_options
-
 @pytest.mark.requires_dataset
 @pytest.mark.parametrize("dataset_name, loader_type", _list_data_loaders())
 def test_train(dataset_name, loader_type):
     args = cebra.config.Config(num_steps=1, device="cuda").as_namespace()
 
     dataset = cebra.datasets.init(dataset_name)
-    if loader_type not in get_loader_options(dataset):
+    if loader_type not in cebra_data_helper.get_loader_options(dataset):
         # skip this test, since the data/loader combination is not valid.
         pytest.skip("Not a valid dataset/loader combination.")
     loader = loader_type(
