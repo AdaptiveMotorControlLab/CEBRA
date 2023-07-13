@@ -851,20 +851,16 @@ def test_save_and_load(action, backend_save, backend_load, model_architecture, d
     
     original_model = action(original_model)
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
-
-        # SAVING TESTS
         if not check_fitted(original_model):
             with pytest.raises(ValueError):
                 original_model.save(savefile.name, backend = backend_save)
         else:
-            # this means it is fitted!
             if "parametrized" in original_model.model_architecture and backend_save == "torch":
                 with pytest.raises(AttributeError):
                     original_model.save(savefile.name, backend = backend_save)
             else:    
                 original_model.save(savefile.name, backend = backend_save)
 
-                # LOADING TESTS
                 if (backend_load != "auto") and (backend_save != backend_load):
                     with pytest.raises(ValueError):
                             cebra_sklearn_cebra.CEBRA.load(savefile.name, backend_load)
