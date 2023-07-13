@@ -115,7 +115,7 @@ def check_device(device: str) -> str:
         device: The device to return, if possible.
 
     Returns:
-        Either cuda, cuda:device_id or cpu depending on {device} and availability in the environment.
+        Either cuda, cuda:device_id, mps, or cpu depending on {device} and availability in the environment.
     """
 
     if device == "cuda_if_available":
