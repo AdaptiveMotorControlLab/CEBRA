@@ -116,7 +116,7 @@ def _assert_datasets_same_device(
         datasets: List of datasets.
 
     Returns:
-        str: The device name if all datasets are on the same device.
+        The device name if all datasets are on the same device.
 
     Raises:
         ValueError: If datasets are not all on the same device.
