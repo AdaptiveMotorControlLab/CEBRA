@@ -261,68 +261,96 @@ def _init_loader(
             f"information to your bug report: \n" + error_message)
     
 def _load_cebra_with_torch_backend(cebra_info, cls):
-        cebra_ = cebra_info['cebra_object']
-        
-        if not isinstance(cebra_, cls):
-            raise RuntimeError("Model loaded from file is not compatible with "
-                                "the current CEBRA version.")
-        if not sklearn_utils.check_fitted(cebra_):
-            raise ValueError("CEBRA model is not fitted. Loading it it's not supported.")
-        
-        return cebra_
+    """
+    Loads a CEBRA model with a Torch backend.
+
+    Args:
+        cebra_info (dict): A dictionary containing information about the CEBRA model.
+        cls: The expected class of the CEBRA model.
+
+    Returns:
+        The loaded CEBRA object.
+
+    Raises:
+        RuntimeError: If the loaded CEBRA object is not an instance of the expected class (cls),
+                      indicating incompatibility with the current CEBRA version.
+        ValueError: If the loaded CEBRA model is not fitted, indicating that loading it is not supported.
+    """
+    cebra_ = cebra_info['cebra_object']
+    
+    if not isinstance(cebra_, cls):
+        raise RuntimeError("Model loaded from file is not compatible with "
+                            "the current CEBRA version.")
+    if not sklearn_utils.check_fitted(cebra_):
+        raise ValueError("CEBRA model is not fitted. Loading it it's not supported.")
+    
+    return cebra_
 
 def _load_cebra_with_sklearn_backend(cebra_info, cls):
-        args, state, state_dict = cebra_info['args'], cebra_info['state'], cebra_info['state_dict']
-        cebra_ = cls(**args)
+    """
+    Loads a CEBRA model with a Sklearn backend.
 
-        state_minus_args = {key: value for key, value in state.items() if key not in args.keys()}
-        for key, value in state_minus_args.items():
-            setattr(cebra_, key, value)
+    Args:
+        cebra_info (dict): A dictionary containing information about the CEBRA model.
+        cls: The expected class of the CEBRA model. 
 
-        if not sklearn_utils.check_fitted(cebra_):
-            raise ValueError("CEBRA model is not fitted. Loading it it's not supported.")
-        
-        if cebra_.num_sessions_ is None:
-            model = cebra.models.init(
+    Returns:
+       The loaded CEBRA object.
+
+    Raises:
+        ValueError: If the loaded CEBRA model is not fitted, indicating that loading it is not supported.
+    """
+    args, state, state_dict = cebra_info['args'], cebra_info['state'], cebra_info['state_dict']
+    cebra_ = cls(**args)
+
+    state_minus_args = {key: value for key, value in state.items() if key not in args.keys()}
+    for key, value in state_minus_args.items():
+        setattr(cebra_, key, value)
+
+    if not sklearn_utils.check_fitted(cebra_):
+        raise ValueError("CEBRA model is not fitted. Loading it it's not supported.")
+    
+    if cebra_.num_sessions_ is None:
+        model = cebra.models.init(
+            state["model_architecture"],
+            num_neurons=state["n_features_in_"], 
+            num_units=state["num_hidden_units"],
+            num_output=state["output_dimension"],
+        ).to(state['device_'])
+
+    elif isinstance(cebra_.num_sessions_, int):
+        model = nn.ModuleList([
+            cebra.models.init(
                 state["model_architecture"],
-                num_neurons=state["n_features_in_"], 
+                num_neurons= n_features,
                 num_units=state["num_hidden_units"],
                 num_output=state["output_dimension"],
-            ).to(state['device_'])
+            ) for n_features in state["n_features_in_"]
+        ]).to(state['device_'])    
+    
+    criterion  = cebra_._prepare_criterion()
+    criterion.to(state['device_'])
 
-        elif isinstance(cebra_.num_sessions_, int):
-            model = nn.ModuleList([
-                cebra.models.init(
-                    state["model_architecture"],
-                    num_neurons= n_features,
-                    num_units=state["num_hidden_units"],
-                    num_output=state["output_dimension"],
-                ) for n_features in state["n_features_in_"]
-            ]).to(state['device_'])    
-        
-        criterion  = cebra_._prepare_criterion()
-        criterion.to(state['device_'])
+    optimizer = torch.optim.Adam(
+        list(model.parameters()) + list(criterion.parameters()),
+        lr=state['learning_rate'],
+        **dict(state['optimizer_kwargs']),
+    )
 
-        optimizer = torch.optim.Adam(
-            list(model.parameters()) + list(criterion.parameters()),
-            lr=state['learning_rate'],
-            **dict(state['optimizer_kwargs']),
-        )
+    solver = cebra.solver.init(
+        state['solver_name'], 
+        model=model,
+        criterion=criterion,
+        optimizer=optimizer,
+        tqdm_on=args['verbose'],
+    )
+    solver.load_state_dict(state_dict)
+    solver.to(state['device_'])
 
-        solver = cebra.solver.init(
-            state['solver_name'], 
-            model=model,
-            criterion=criterion,
-            optimizer=optimizer,
-            tqdm_on=args['verbose'],
-        )
-        solver.load_state_dict(state_dict)
-        solver.to(state['device_'])
+    cebra_.model_ = model
+    cebra_.solver_ = solver
 
-        cebra_.model_ = model
-        cebra_.solver_ = solver
-
-        return cebra_
+    return cebra_
 
 
 class CEBRA(BaseEstimator, TransformerMixin):
@@ -1271,14 +1299,13 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
         Args:
             filename: The path to the file in which to save the trained model.
-            backend: A string identifying the used backend.
+            backend: A string identifying the used backend. Default is "sklearn".
 
         Returns:
             The saved model checkpoint.
 
         Note:
-            Experimental functionality. Do not expect the save/load functionalities to be
-            backward compatible yet between CEBRA versions!
+            Using the ``sklearn`` backend is recommended to ensure future backward compatibility.
 
         Example:
 
@@ -1327,10 +1354,6 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
         Return:
             The model to load.
-
-        Note:
-            Experimental functionality. Do not expect the save/load functionalities to be
-            backward compatible yet between CEBRA versions!
 
         Example:
 
