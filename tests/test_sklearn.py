@@ -18,11 +18,14 @@ import numpy as np
 import pytest
 import sklearn.utils.estimator_checks
 import torch
+import torch.nn as nn
 
 import cebra.data as cebra_data
 import cebra.integrations.sklearn.cebra as cebra_sklearn_cebra
 import cebra.integrations.sklearn.dataset as cebra_sklearn_dataset
 import cebra.models
+import cebra.models.model
+from cebra.models import parametrize
 
 if torch.cuda.is_available():
     _DEVICES = "cpu", "cuda"
@@ -811,9 +814,6 @@ def _assert_equal(original_model, loaded_model):
             assert np.allclose(loaded_model.transform(X),
                                original_model.transform(X))
 
-import torch.nn as nn
-import cebra.models.model
-from cebra.models import parametrize
 @parametrize(
     "parametrized-model-{output_dim}",
     output_dim=(5, 10),
