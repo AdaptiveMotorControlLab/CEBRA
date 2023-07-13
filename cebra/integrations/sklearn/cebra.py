@@ -23,6 +23,7 @@ from sklearn.base import ClassifierMixin
 from sklearn.base import TransformerMixin
 from torch import nn
 import warnings
+import itertools
 
 import cebra.data
 import cebra.integrations.sklearn
@@ -57,7 +58,7 @@ def _init_loader(
             algorithm, which might (depending on the arguments for this function)
             be passed to the data loader.
 
-    Raises
+    Raises:
         ValueError: If an argument is missing in ``extra_kwargs`` or ``shared_kwargs``
             needed to run the requested configuration.
         NotImplementedError: If the requested combinations of arguments is not yet
@@ -65,7 +66,7 @@ def _init_loader(
             is implemented in :py:mod:`cebra.data`, and consider using the CEBRA
             PyTorch API directly.
 
-    Returns
+    Returns:
         the data loader and name of a suitable solver
 
     Note:
@@ -260,25 +261,28 @@ def _init_loader(
             f"Index combination not covered. Please report this issue and add the following "
             f"information to your bug report: \n" + error_message)
     
-def _load_cebra_with_torch_backend(cebra_info, cls):
-    """
-    Loads a CEBRA model with a Torch backend.
+def _load_cebra_with_torch_backend(cebra_info: dict) -> "CEBRA":
+    """Loads a CEBRA model with a Torch backend.
 
     Args:
-        cebra_info (dict): A dictionary containing information about the CEBRA model.
-        cls: The expected class of the CEBRA model.
-
+        cebra_info: A dictionary containing information about the CEBRA model.
+    
     Returns:
         The loaded CEBRA object.
 
     Raises:
-        RuntimeError: If the loaded CEBRA object is not an instance of the expected class (cls),
+        RuntimeError: If the loaded CEBRA object is not an instance of cebra.CEBRA class,
                       indicating incompatibility with the current CEBRA version.
         ValueError: If the loaded CEBRA model is not fitted, indicating that loading it is not supported.
     """
-    cebra_ = cebra_info['cebra_object']
-    
-    if not isinstance(cebra_, cls):
+    required_keys = ['cebra_object']
+    missing_keys = [key for key in required_keys if key not in cebra_info]
+    if missing_keys:
+        raise ValueError(f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
+                         f"You can try loading the CEBRA object with a different backend.")
+
+    cebra_ = cebra_info['cebra_object']    
+    if not isinstance(cebra_, cebra.CEBRA):
         raise RuntimeError("Model loaded from file is not compatible with "
                             "the current CEBRA version.")
     if not sklearn_utils.check_fitted(cebra_):
@@ -286,13 +290,11 @@ def _load_cebra_with_torch_backend(cebra_info, cls):
     
     return cebra_
 
-def _load_cebra_with_sklearn_backend(cebra_info, cls):
-    """
-    Loads a CEBRA model with a Sklearn backend.
+def _load_cebra_with_sklearn_backend(cebra_info: dict) -> "CEBRA":
+    """Loads a CEBRA model with a Sklearn backend.
 
     Args:
-        cebra_info (dict): A dictionary containing information about the CEBRA model.
-        cls: The expected class of the CEBRA model. 
+        cebra_info: A dictionary containing information about the CEBRA model.
 
     Returns:
        The loaded CEBRA object.
@@ -300,15 +302,21 @@ def _load_cebra_with_sklearn_backend(cebra_info, cls):
     Raises:
         ValueError: If the loaded CEBRA model is not fitted, indicating that loading it is not supported.
     """
+    required_keys = ['args', 'state', 'state_dict']
+    missing_keys = [key for key in required_keys if key not in cebra_info]
+    if missing_keys:
+        raise ValueError(f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
+                         f"You can try loading the CEBRA model with a different backend.")
+                         
     args, state, state_dict = cebra_info['args'], cebra_info['state'], cebra_info['state_dict']
-    cebra_ = cls(**args)
+    cebra_ = cebra.CEBRA(**args)
 
-    state_minus_args = {key: value for key, value in state.items() if key not in args.keys()}
-    for key, value in state_minus_args.items():
+    state_without_args = {key: value for key, value in state.items() if key not in args.keys()}
+    for key, value in state_without_args.items():
         setattr(cebra_, key, value)
 
     if not sklearn_utils.check_fitted(cebra_):
-        raise ValueError("CEBRA model is not fitted. Loading it it's not supported.")
+        raise ValueError("CEBRA model is not fitted. Loading it is not supported.")
     
     if cebra_.num_sessions_ is None:
         model = cebra.models.init(
@@ -332,7 +340,7 @@ def _load_cebra_with_sklearn_backend(cebra_info, cls):
     criterion.to(state['device_'])
 
     optimizer = torch.optim.Adam(
-        list(model.parameters()) + list(criterion.parameters()),
+        itertools.chain(model.parameters(), criterion.parameters()),
         lr=state['learning_rate'],
         **dict(state['optimizer_kwargs']),
     )
@@ -887,7 +895,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
         criterion = self._prepare_criterion()
         criterion.to(self.device_)
         optimizer = torch.optim.Adam(
-            list(model.parameters()) + list(criterion.parameters()),
+            itertools.chain(model.parameters(), criterion.parameters()),
             lr=self.learning_rate,
             **dict(self.optimizer_kwargs),
         )
@@ -1305,7 +1313,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
             The saved model checkpoint.
 
         Note:
-            Using the ``sklearn`` backend is recommended to ensure future backward compatibility.
+            Experimental functionality. Do not expect the save/load functionalities to be
+            backward compatible yet between CEBRA versions!
 
         Example:
 
@@ -1337,8 +1346,11 @@ class CEBRA(BaseEstimator, TransformerMixin):
                     filename)
             else:
                 raise NotImplementedError(f"Unsupported backend: {backend}")
-        else:
-            raise ValueError("CEBRA object is not fitted. Saving it is not supported.")
+        else:            
+            raise ValueError(
+                "CEBRA object is not fitted. "
+                "Saving a non-fitted model is not supported."
+            )
         
     @classmethod
     def load(cls,
@@ -1355,6 +1367,10 @@ class CEBRA(BaseEstimator, TransformerMixin):
         Return:
             The model to load.
 
+        Note:
+            Experimental functionality. Do not expect the save/load functionalities to be
+            backward compatible yet between CEBRA versions!
+
         Example:
 
             >>> import cebra
@@ -1369,18 +1385,18 @@ class CEBRA(BaseEstimator, TransformerMixin):
         
         if backend == "auto":
             if backend_save == "torch":
-                cebra_ = _load_cebra_with_torch_backend(cebra_info, cls)
+                cebra_ = _load_cebra_with_torch_backend(cebra_info)
             
             elif backend_save == "sklearn":
-                cebra_ = _load_cebra_with_sklearn_backend(cebra_info, cls)
+                cebra_ = _load_cebra_with_sklearn_backend(cebra_info)
 
         else:
             if backend != backend_save:
                 raise ValueError("Differents backends were used during saving and loading.")
             if backend == "torch":    
-                cebra_ = _load_cebra_with_torch_backend(cebra_info, cls)
+                cebra_ = _load_cebra_with_torch_backend(cebra_info)
             elif backend == "sklearn":
-                cebra_ = _load_cebra_with_sklearn_backend(cebra_info, cls)
+                cebra_ = _load_cebra_with_sklearn_backend(cebra_info)
             else:
                 raise NotImplementedError(f"Unsupported backend for saving: {backend}")
             
