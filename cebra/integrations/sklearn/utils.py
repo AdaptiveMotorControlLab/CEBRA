@@ -14,6 +14,7 @@ import warnings
 import numpy.typing as npt
 import sklearn.utils.validation as sklearn_utils_validation
 import torch
+
 import cebra.helper
 
 
@@ -133,9 +134,13 @@ def check_device(device: str) -> str:
             if device_id < device_count:
                 return f"cuda:{device_id}"
             else:
-                raise ValueError(f"CUDA device {device_id} is not available. Available device IDs are 0 to {device_count - 1}.")
+                raise ValueError(
+                    f"CUDA device {device_id} is not available. Available device IDs are 0 to {device_count - 1}."
+                )
         else:
-            raise ValueError(f"Invalid CUDA device ID format. Please use 'cuda:device_id' where '{cuda_device_id}' is an integer.")
+            raise ValueError(
+                f"Invalid CUDA device ID format. Please use 'cuda:device_id' where '{cuda_device_id}' is an integer."
+            )
     elif device == "cuda" and torch.cuda.is_available():
         return "cuda:0"
     elif device == "cpu":
@@ -143,14 +148,17 @@ def check_device(device: str) -> str:
     elif device == "mps":
         if not torch.backends.mps.is_available():
             if not torch.backends.mps.is_built():
-                raise ValueError("MPS not available because the current PyTorch install was not " 
-                                 "built with MPS enabled.")
+                raise ValueError(
+                    "MPS not available because the current PyTorch install was not "
+                    "built with MPS enabled.")
             else:
-                raise ValueError("MPS not available because the current MacOS version is not 12.3+ "
-                                 "and/or you do not have an MPS-enabled device on this machine.")
+                raise ValueError(
+                    "MPS not available because the current MacOS version is not 12.3+ "
+                    "and/or you do not have an MPS-enabled device on this machine."
+                )
 
         return device
-    
+
     raise ValueError(f"Device needs to be cuda, cpu or mps, but got {device}.")
 
 

@@ -20,10 +20,10 @@ import sklearn.utils.estimator_checks
 import torch
 
 import cebra.data as cebra_data
+import cebra.helper
 import cebra.integrations.sklearn.cebra as cebra_sklearn_cebra
 import cebra.integrations.sklearn.dataset as cebra_sklearn_dataset
 import cebra.models
-import cebra.helper
 
 if torch.cuda.is_available():
     _DEVICES = "cpu", "cuda"
@@ -822,22 +822,26 @@ def test_save_and_load(action):
         original_model.save(savefile.name)
         loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
     _assert_equal(original_model, loaded_model)
-    
+
+
 def get_ordered_cuda_devices():
     available_devices = ['cuda']
     for i in range(torch.cuda.device_count()):
         available_devices.append(f'cuda:{i}')
     return available_devices
 
-ordered_cuda_devices = get_ordered_cuda_devices() if torch.cuda.is_available() else []
+
+ordered_cuda_devices = get_ordered_cuda_devices() if torch.cuda.is_available(
+) else []
 mps_device = ["mps"] if cebra.helper._is_mps_availabe(torch) else []
+
 
 @pytest.mark.parametrize("device", ['cpu'] + ordered_cuda_devices + mps_device)
 def test_to_device(device):
 
     # example dataset
     X = np.random.uniform(0, 1, (1000, 50))
-    
+
     # Check if CUDA is available
     if not torch.cuda.is_available():
         pytest.skip("CUDA not available")
@@ -847,10 +851,9 @@ def test_to_device(device):
         pytest.skip(f"Device ID {device} not available")
 
     # Create CEBRA model
-    cebra_model = cebra_sklearn_cebra.CEBRA(
-        model_architecture="offset1-model",
-        max_iterations=5,
-        device=device)
+    cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",
+                                            max_iterations=5,
+                                            device=device)
 
     # Train model (time contrastive)
     cebra_model.fit(X)
@@ -863,7 +866,8 @@ def test_to_device(device):
     assert cebra_model.device == torch.device(new_device)
 
     # Check that the model parameters are on the correct device
-    assert next(cebra_model.solver_.model.parameters()).device == torch.device(new_device)
+    assert next(cebra_model.solver_.model.parameters()).device == torch.device(
+        new_device)
 
     # Check that if you save a model on one device, it stays on same device
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
@@ -871,6 +875,7 @@ def test_to_device(device):
         loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
 
     assert cebra_model.device == loaded_model.device
+
 
 @pytest.mark.parametrize("device", ["cpu"] +
                          ["cuda"] if torch.cuda.is_available() else [])
