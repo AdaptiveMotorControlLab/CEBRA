@@ -18,28 +18,33 @@ import numpy as np
 import numpy.typing as npt
 import scipy.linalg
 import torch
-import cebra.data
 
-def get_loader_options(dataset: cebra.data.Dataset) -> List[str]:
+import cebra.data.base as cebra_data_base
+import cebra.data.multi_session as cebra_data_multisession
+import cebra.data.single_session as cebra_data_singlesession
+
+
+def get_loader_options(dataset: cebra_data_base.Dataset) -> List[str]:
     """Return all possible dataloaders for the given dataset."""
 
     loader_options = []
-    if isinstance(dataset, cebra.data.SingleSessionDataset):
+    if isinstance(dataset, cebra_data_singlesession.SingleSessionDataset):
         mixed = True
         if dataset.continuous_index is not None:
-            loader_options.append(cebra.data.ContinuousDataLoader)
+            loader_options.append(cebra_data_singlesession.ContinuousDataLoader)
         else:
             mixed = False
         if dataset.discrete_index is not None:
-            loader_options.append(cebra.data.DiscreteDataLoader)
+            loader_options.append(cebra_data_singlesession.DiscreteDataLoader)
         else:
             mixed = False
         if mixed:
-            loader_options.append(cebra.data.MixedDataLoader)
-    elif isinstance(dataset, cebra.data.MultiSessionDataset):
+            loader_options.append(cebra_data_singlesession.MixedDataLoader)
+    elif isinstance(dataset, cebra_data_multisession.MultiSessionDataset):
         mixed = True
         if dataset.continuous_index is not None:
-            loader_options.append(cebra.data.ContinuousMultiSessionDataLoader)
+            loader_options.append(
+                cebra_data_multisession.ContinuousMultiSessionDataLoader)
         else:
             mixed = False
         if dataset.discrete_index is not None:
@@ -51,6 +56,7 @@ def get_loader_options(dataset: cebra.data.Dataset) -> List[str]:
     else:
         raise TypeError(f"Invalid dataset type: {dataset}")
     return loader_options
+
 
 def _require_numpy_array(array: Union[npt.NDArray, torch.Tensor]):
     if not isinstance(array, np.ndarray):

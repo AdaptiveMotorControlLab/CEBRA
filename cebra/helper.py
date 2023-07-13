@@ -15,17 +15,17 @@ import io
 import pathlib
 import tempfile
 import urllib
+import warnings
 import zipfile
-from typing import List
+from typing import List, Union
 
+import numpy as np
+import numpy.typing as npt
 import requests
+import torch
 
 import cebra.data
-import torch
-import numpy as np
-from typing import Union
-import numpy.typing as npt
-import warnings
+
 
 def download_file_from_url(url: str) -> str:
     """Download a fole from ``url``.
@@ -66,7 +66,7 @@ def _is_integer(y: Union[npt.NDArray, torch.Tensor]) -> bool:
 
     Args:
         y: An array, either as a :py:func:`numpy.array` or a :py:class:`torch.Tensor`.
-    
+
     Returns:
         ``True`` if ``y`` contains :py:class:`int`.
     """
@@ -77,15 +77,15 @@ def _is_integer(y: Union[npt.NDArray, torch.Tensor]) -> bool:
 
 def _is_floating(y: Union[npt.NDArray, torch.Tensor]) -> bool:
     """Check if the values in ``y`` are :py:class:`int`.
-    
-    Note: 
+
+    Note:
         There is no ``torch`` method to check that the ``dtype`` of a :py:class:`torch.Tensor`
         is a :py:class:`float`, consequently, we check that it is not :py:class:`int` nor
         :py:class:`complex`.
 
     Args:
         y: An array, either as a :py:func:`numpy.array` or a :py:class:`torch.Tensor`.
-    
+
     Returns:
         ``True`` if ``y`` contains :py:class:`float`.
     """
@@ -94,12 +94,18 @@ def _is_floating(y: Union[npt.NDArray, torch.Tensor]) -> bool:
             np.issubdtype(y.dtype, np.floating)) or (isinstance(
                 y, torch.Tensor) and torch.is_floating_point(y))
 
-def __getattr__(key):
-    if key == "get_loader_options":
-        import cebra.data.helper
-        warnings.warn(
-            "The 'get_loader_options' function has been moved to 'cebra.data.helpers' module. "
-            "Please update your imports.",
-            DeprecationWarning
-        )
-        return cebra.data.helper.get_loader_options 
+
+def get_loader_options(dataset: "cebra.data.Dataset") -> List[str]:
+    """Return all possible dataloaders for the given dataset.
+
+    Notes:
+        This function is deprecated and will be removed in an upcoming version of CEBRA.
+        Please use :py:mod:`cebra.data.helper.get_loader_options` instead, which is an
+        exact copy.
+    """
+
+    import cebra.data.helper
+    warnings.warn(
+        "The 'get_loader_options' function has been moved to 'cebra.data.helpers' module. "
+        "Please update your imports.", DeprecationWarning)
+    return cebra.data.helper.get_loader_options
