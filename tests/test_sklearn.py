@@ -762,12 +762,11 @@ def _iterate_actions():
         X = np.linspace(-1, 1, 1000)[:, None]
         model.fit(X)
         return model
-    
+
     def fit_multisession_model(model):
         X = np.linspace(-1, 1, 1000)[:, None]
         model.fit([X, X], [X, X])
         return model
-
 
     return [do_nothing, fit_singlesession_model, fit_multisession_model]
 
@@ -805,8 +804,8 @@ def _assert_equal(original_model, loaded_model):
         X = np.random.normal(0, 1, (100, 1))
 
         if loaded_model.num_sessions is not None:
-             assert np.allclose(loaded_model.transform(X, session_id=0),
-                             original_model.transform(X, session_id=0))
+            assert np.allclose(loaded_model.transform(X, session_id=0),
+                               original_model.transform(X, session_id=0))
         else:
             assert np.allclose(loaded_model.transform(X),
                                original_model.transform(X))
@@ -823,7 +822,9 @@ def test_save_and_load(action):
         loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
     _assert_equal(original_model, loaded_model)
 
-@pytest.mark.parametrize("device", ["cpu"] + ["cuda"] if torch.cuda.is_available() else [])
+
+@pytest.mark.parametrize("device", ["cpu"] +
+                         ["cuda"] if torch.cuda.is_available() else [])
 @pytest.mark.parametrize("action", _iterate_actions())
 def test_check_devices(action, device):
     cebra_model = cebra_sklearn_cebra.CEBRA(
@@ -838,5 +839,6 @@ def test_check_devices(action, device):
     if action.__name__ != "do_nothing":
         if device == "cuda":
             #TODO(rodrigo): remove once https://github.com/AdaptiveMotorControlLab/CEBRA/pull/34 is merged.
-            device = torch.device(device, index = 0)
-        assert next(cebra_model.model_.parameters()).device == torch.device(device)
+            device = torch.device(device, index=0)
+        assert next(
+            cebra_model.model_.parameters()).device == torch.device(device)

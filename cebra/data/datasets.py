@@ -107,9 +107,9 @@ class TensorDataset(cebra_data.SingleSessionDataset):
         index = self.expand_index(index)
         return self.neural[index].transpose(2, 1)
 
+
 def _assert_datasets_same_device(
         datasets: List[cebra_data.SingleSessionDataset]) -> str:
-
     """Checks if the list of datasets are all on the same device.
 
     Args:
@@ -125,6 +125,7 @@ def _assert_datasets_same_device(
     if len(devices) != 1:
         raise ValueError("Datasets are not all on the same device")
     return devices.pop()
+
 
 class DatasetCollection(cebra_data.MultiSessionDataset):
     """Multi session dataset made up of a list of datasets.
@@ -186,9 +187,9 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
         self._datasets: List[
             cebra_data.SingleSessionDataset] = self._unpack_dataset_arguments(
                 datasets)
-       
+
         device = _assert_datasets_same_device(self._datasets)
-        super().__init__(device = device)
+        super().__init__(device=device)
 
         continuous = all(
             self._has_not_none_attribute(session, "continuous_index")
