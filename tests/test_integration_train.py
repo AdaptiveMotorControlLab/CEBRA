@@ -10,21 +10,20 @@
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
 import itertools
+from typing import List
 
 import pytest
 import torch
 from torch import nn
-from typing import List
 
 import cebra
 import cebra.config
 import cebra.data
+import cebra.data.helper as cebra_data_helper
 import cebra.datasets
 import cebra.helper
 import cebra.models
 import cebra.solver
-import cebra.data.helper as cebra_data_helper
-
 
 
 def _init_single_session_solver(loader, args):
@@ -81,6 +80,7 @@ def _list_data_loaders():
             # TODO(stes) include all datasets again
             return
         prefixes.add(prefix)
+
 
 @pytest.mark.requires_dataset
 @pytest.mark.parametrize("dataset_name, loader_type", _list_data_loaders())

@@ -18,10 +18,10 @@ import numpy.typing as npt
 import torch
 
 import cebra.data
+import cebra.helper
 import cebra.integrations.sklearn.utils as cebra_sklearn_utils
 import cebra.models
 import cebra.solver
-import cebra.helper
 
 
 class SklearnDataset(cebra.data.SingleSessionDataset):

@@ -13,8 +13,9 @@ import numpy as np
 import pytest
 import torch
 
-import cebra.integrations.sklearn.decoder as cebra_sklearn_decoder
 import cebra.helper
+import cebra.integrations.sklearn.decoder as cebra_sklearn_decoder
+
 
 def test_imports():
     import cebra

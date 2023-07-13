@@ -13,13 +13,17 @@
 
 import abc
 from typing import Generator, Optional, Tuple, Union
+
 import numpy as np
 import numpy.typing as npt
 import sklearn
 import sklearn.base
 import sklearn.neighbors
 import torch
+
 import cebra.helper
+
+
 class Decoder(abc.ABC, sklearn.base.BaseEstimator):
     """Abstract base class for implementing a decoder."""
 
