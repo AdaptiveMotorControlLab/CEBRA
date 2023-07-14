@@ -15,6 +15,7 @@ import warnings
 
 import _util
 import numpy as np
+import pkg_resources
 import pytest
 import sklearn.utils.estimator_checks
 import torch
@@ -1023,13 +1024,11 @@ def test_check_device():
 
     device = "cuda:2"
     torch.cuda.device_count = lambda: 2
-    expected_error = ValueError
-    with pytest.raises(expected_error):
+    with pytest.raises(ValueError):
         cebra_sklearn_utils.check_device(device)
 
     device = "cuda:abc"
-    expected_error = ValueError
-    with pytest.raises(expected_error):
+    with pytest.raises(ValueError):
         cebra_sklearn_utils.check_device(device)
 
     device = "cuda"
@@ -1046,25 +1045,27 @@ def test_check_device():
     expected_result = "cpu"
     assert cebra_sklearn_utils.check_device(device) == expected_result
 
-    device = "mps"
-    torch.backends.mps.is_available = lambda: True
-    torch.backends.mps.is_built = lambda: True
-    expected_result = "mps"
-    assert cebra_sklearn_utils.check_device(device) == expected_result
-
-    device = "mps"
-    torch.backends.mps.is_available = lambda: False
-    torch.backends.mps.is_built = lambda: True
-    with pytest.raises(ValueError):
-        cebra_sklearn_utils.check_device(device)
-
-    device = "mps"
-    torch.backends.mps.is_available = lambda: False
-    torch.backends.mps.is_built = lambda: False
-    with pytest.raises(ValueError):
-        cebra_sklearn_utils.check_device(device)
-
     device = "invalid_device"
-    expected_error = ValueError
     with pytest.raises(ValueError):
         cebra_sklearn_utils.check_device(device)
+
+    if pkg_resources.parse_version(
+            torch.__version__) >= pkg_resources.parse_version("1.12"):
+
+        device = "mps"
+        torch.backends.mps.is_available = lambda: True
+        torch.backends.mps.is_built = lambda: True
+        expected_result = "mps"
+        assert cebra_sklearn_utils.check_device(device) == expected_result
+
+        device = "mps"
+        torch.backends.mps.is_available = lambda: False
+        torch.backends.mps.is_built = lambda: True
+        with pytest.raises(ValueError):
+            cebra_sklearn_utils.check_device(device)
+
+        device = "mps"
+        torch.backends.mps.is_available = lambda: False
+        torch.backends.mps.is_built = lambda: False
+        with pytest.raises(ValueError):
+            cebra_sklearn_utils.check_device(device)
