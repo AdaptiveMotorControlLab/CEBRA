@@ -988,83 +988,82 @@ def test_cuda(device):
 
 
 def test_check_device():
-    # Test case 1: Check for "cuda_if_available" when CUDA is available
+
     device = "cuda_if_available"
+    torch.cuda.is_available = lambda: True
     expected_result = "cuda"
     assert cebra_sklearn_utils.check_device(device) == expected_result
 
-    # Test case 2: Check for "cuda_if_available" when CUDA is not available but MPS is
+    torch.cuda.is_available = lambda: False
+    cebra.helper._is_mps_availabe = lambda x: True
+    expected_result = "mps"
+    assert cebra_sklearn_utils.check_device(device) == expected_result
+
+    torch.cuda.is_available = lambda: False
+    cebra.helper._is_mps_availabe = lambda x: False
+    expected_result = "cpu"
+    assert cebra_sklearn_utils.check_device(device) == expected_result
+
     device = "cuda_if_available"
     torch.cuda.is_available = lambda: False
     cebra.helper._is_mps_availabe = lambda x: True
     expected_result = "mps"
     assert cebra_sklearn_utils.check_device(device) == expected_result
 
-    # Test case 3: Check for "cuda_if_available" when neither CUDA nor MPS is available
     device = "cuda_if_available"
     torch.cuda.is_available = lambda: False
     cebra.helper._is_mps_availabe = lambda x: False
     expected_result = "cpu"
     assert cebra_sklearn_utils.check_device(device) == expected_result
 
-    # Test case 4: Check for valid "cuda:device_id"
     device = "cuda:1"
     torch.cuda.device_count = lambda: 2
     expected_result = "cuda:1"
     assert cebra_sklearn_utils.check_device(device) == expected_result
 
-    # Test case 5: Check for invalid "cuda:device_id" (device ID exceeds available devices)
     device = "cuda:2"
     torch.cuda.device_count = lambda: 2
     expected_error = ValueError
     with pytest.raises(expected_error):
         cebra_sklearn_utils.check_device(device)
 
-    # Test case 6: Check for invalid "cuda:device_id" (device ID is not an integer)
     device = "cuda:abc"
     expected_error = ValueError
     with pytest.raises(expected_error):
         cebra_sklearn_utils.check_device(device)
 
-    # Test case 7: Check for "cuda" when CUDA is available
     device = "cuda"
     torch.cuda.is_available = lambda: True
     expected_result = "cuda:0"
     assert cebra_sklearn_utils.check_device(device) == expected_result
 
-    # Test case 8: Check for "cuda" when CUDA is not available
     device = "cuda"
     torch.cuda.is_available = lambda: False
     with pytest.raises(ValueError):
         cebra_sklearn_utils.check_device(device)
 
-    # Test case 9: Check for "cpu"
     device = "cpu"
     expected_result = "cpu"
     assert cebra_sklearn_utils.check_device(device) == expected_result
 
-    # Test case 10: Check for "mps" when MPS is available
     device = "mps"
     torch.backends.mps.is_available = lambda: True
     torch.backends.mps.is_built = lambda: True
     expected_result = "mps"
     assert cebra_sklearn_utils.check_device(device) == expected_result
 
-    # Test case 11: Check for "mps" when MPS is not available but MPS is built
     device = "mps"
     torch.backends.mps.is_available = lambda: False
     torch.backends.mps.is_built = lambda: True
     with pytest.raises(ValueError):
         cebra_sklearn_utils.check_device(device)
 
-    # Test case 12: Check for "mps" when MPS is not available and MPS is not built
     device = "mps"
     torch.backends.mps.is_available = lambda: False
     torch.backends.mps.is_built = lambda: False
     with pytest.raises(ValueError):
         cebra_sklearn_utils.check_device(device)
 
-    # Test case 13: Check for an invalid device
     device = "invalid_device"
     expected_error = ValueError
     with pytest.raises(ValueError):
