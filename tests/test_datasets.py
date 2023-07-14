@@ -19,8 +19,8 @@ import requests
 import torch
 
 import cebra.data
-import cebra.datasets
 import cebra.data.assets as cebra_data_assets
+import cebra.datasets
 import cebra.registry
 from cebra.datasets import poisson
 
@@ -303,6 +303,7 @@ def parametrize_data(function):
     ])(function)
 
 
+@pytest.mark.requires_dataset
 @parametrize_data
 def test_download_file_successful_download(filename, url, expected_checksum):
     with tempfile.TemporaryDirectory() as temp_dir:
