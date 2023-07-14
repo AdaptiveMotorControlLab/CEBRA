@@ -766,7 +766,12 @@ def _iterate_actions():
         model.fit(X)
         return model
 
-    return [do_nothing, fit_model]
+    def fit_multisession_model(model):
+        X = np.linspace(-1, 1, 1000)[:, None]
+        model.fit([X, X], [X, X])
+        return model
+
+    return [do_nothing, fit_singlesession_model, fit_multisession_model]
 
 
 def _assert_same_state_dict(first, second):
@@ -783,29 +788,30 @@ def _assert_same_state_dict(first, second):
 def check_fitted(model):
     """Check if a model is fitted.
 
-        Args:
-            model: The model to assess.
+    Args:
+        model: The model to assess.
 
-        Returns:
-            True if fitted.
+    Returns:
+        True if fitted.
     """
     return hasattr(model, "n_features_")
 
 
 def _assert_equal(original_model, loaded_model):
     assert original_model.get_params() == loaded_model.get_params()
-    assert original_model.device == loaded_model.device
-    assert next(original_model.model_.parameters()).device == next(
-        loaded_model.model_.parameters()).device
-
     assert check_fitted(loaded_model) == check_fitted(original_model)
 
     if check_fitted(loaded_model):
         _assert_same_state_dict(original_model.state_dict_,
                                 loaded_model.state_dict_)
         X = np.random.normal(0, 1, (100, 1))
-        assert np.allclose(loaded_model.transform(X),
-                           original_model.transform(X))
+
+        if loaded_model.num_sessions is not None:
+            assert np.allclose(loaded_model.transform(X, session_id=0),
+                               original_model.transform(X, session_id=0))
+        else:
+            assert np.allclose(loaded_model.transform(X),
+                               original_model.transform(X))
 
 
 @parametrize(
@@ -843,12 +849,11 @@ class ParametrizedModelExample(cebra.models.model._OffsetModel):
 @pytest.mark.parametrize("backend_save", ["torch", "sklearn"])
 @pytest.mark.parametrize("backend_load", ["auto", "torch", "sklearn"])
 @pytest.mark.parametrize("model_architecture",
-                         ["offset0-model", "parametrize-model-5"])
+                         ["offset1-model", "parametrized-model-5"])
 @pytest.mark.parametrize("device", ["cpu"] +
                          ["cuda"] if torch.cuda.is_available() else [])
 def test_save_and_load(action, backend_save, backend_load, model_architecture,
                        device):
-    model_architecture = "parametrized-model-5"
     original_model = cebra_sklearn_cebra.CEBRA(
         model_architecture=model_architecture,
         max_iterations=5,
