@@ -746,8 +746,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
             else:
                 label_types_idx = self._label_types[i][session_id]
 
-            if (len(label_types_idx[1]) > 1 and len(y[i].shape) >
-                    1):  # is there more than one feature in the index
+            if (len(label_types_idx[1]) > 1 and len(y[i].shape)
+                    > 1):  # is there more than one feature in the index
                 if label_types_idx[1][1] != y[i].shape[1]:
                     raise ValueError(
                         f"Labels invalid: must have the same number of features as the ones used for fitting,"
@@ -1277,21 +1277,29 @@ class CEBRA(BaseEstimator, TransformerMixin):
             CEBRA(max_iterations=10)
             >>> cebra_model = cebra_model.to("cpu")
         """
-        
+
         if not isinstance(device, (str, torch.device)):
-            raise TypeError("The 'device' parameter must be a string or torch.device object.")
-        
-        if (not device == 'cpu') and (not device.startswith('cuda')) and (not device == 'mps'):
-            raise ValueError("The 'device' parameter must be a valid device string or device object.")
-        
+            raise TypeError(
+                "The 'device' parameter must be a string or torch.device object."
+            )
+
+        if (not device == 'cpu') and (not device.startswith('cuda')) and (
+                not device == 'mps'):
+            raise ValueError(
+                "The 'device' parameter must be a valid device string or device object."
+            )
+
         if isinstance(device, str):
             device = torch.device(device)
-    
-        if (not device.type == 'cpu') and (not device.type.startswith('cuda')) and (not device == 'mps'):
-            raise ValueError("The 'device' parameter must be a valid device string or device object.")
-        
+
+        if (not device.type == 'cpu') and (
+                not device.type.startswith('cuda')) and (not device == 'mps'):
+            raise ValueError(
+                "The 'device' parameter must be a valid device string or device object."
+            )
+
         if hasattr(self, "device_"):
-            self.device_ = device 
+            self.device_ = device
 
         self.device = device
         self.solver_.model.to(device)

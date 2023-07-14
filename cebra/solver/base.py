@@ -15,7 +15,7 @@ Solvers are used to package models, criterions and optimizers and implement trai
 loops. When subclassing abstract solvers, in the simplest case only the
 :py:meth:`Solver._inference` needs to be overridden.
 
-For more complex use cases, the :py:meth:`Solver.step` and 
+For more complex use cases, the :py:meth:`Solver.step` and
 :py:meth:`Solver.fit` method can be overridden to
 implement larger changes to the training loop.
 """

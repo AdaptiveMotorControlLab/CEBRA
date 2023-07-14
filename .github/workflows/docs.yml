@@ -3,10 +3,10 @@ name: Build docs
 on:
   push:
     branches:
-      - main 
+      - main
   pull_request:
     branches:
-      - main 
+      - main
       - public
       - dev
 
@@ -25,7 +25,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Checkout cebra figures 
+      - name: Checkout cebra figures
         uses: actions/checkout@v3
         with:
           repository: AdaptiveMotorControlLab/cebra-figures
@@ -44,7 +44,7 @@ jobs:
           cp -r assets/* .
           rm -r assets
 
-      - name: Checkout cebra demos 
+      - name: Checkout cebra demos
         uses: actions/checkout@v3
         with:
           repository: AdaptiveMotorControlLab/cebra-demos
@@ -70,12 +70,12 @@ jobs:
           export SPHINXOPTS="-W --keep-going -n"
           make docs
 
-      # NOTE(stes): To avoid issues as observed in 
+      # NOTE(stes): To avoid issues as observed in
       # https://github.com/AdaptiveMotorControlLab/CEBRA/pull/20, we modified
       # this workflow to not rely on PATs. All repos except for the website
       # repo are public and only read access is required, so we simply removed
       # the tokens from the checkout actions.
-      #  
+      #
       # For pushing the docs, I temporarily disabled the staging repo, which
       # does not add anything informative to the contributor anyways, as it just
       # tests whether or not docs can be pushed (the staging branch is not deployed).
@@ -108,5 +108,4 @@ jobs:
           destination-repository-name: 'cebra-ai'
           user-name: stes
           user-email: steffen@bethgelab.org
-          target-branch: main 
-
+          target-branch: main

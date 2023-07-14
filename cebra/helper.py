@@ -17,8 +17,8 @@ import tempfile
 import urllib
 import zipfile
 from typing import List
-import pkg_resources
 
+import pkg_resources
 import requests
 
 import cebra.data
@@ -90,11 +90,13 @@ def download_file_from_zip_url(url, file="montblanc_tracks.h5"):
                 pass
     return pathlib.Path(foldername) / "data" / file
 
+
 def _is_mps_availabe(torch):
     available = False
-    if pkg_resources.parse_version(torch.__version__) >= pkg_resources.parse_version("1.12"):
+    if pkg_resources.parse_version(
+            torch.__version__) >= pkg_resources.parse_version("1.12"):
         if torch.backends.mps.is_available():
             if torch.backends.mps.is_built():
                 available = True
-                
+
     return available

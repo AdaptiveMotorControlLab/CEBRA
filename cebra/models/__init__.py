@@ -12,7 +12,7 @@
 """Pre-defined neural network model architectures
 
 This package contains everything related to implementing data encoders and the loss functions
-applied to the feature spaces. :py:mod:`cebra.models.criterions` contains the implementations of 
+applied to the feature spaces. :py:mod:`cebra.models.criterions` contains the implementations of
 InfoNCE and other contrastive losses. All additions regarding how data is encoded and losses are
 computed should be added to this package.
 
