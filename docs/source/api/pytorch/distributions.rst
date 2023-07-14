@@ -47,4 +47,3 @@ Multi-session
 .. automodule:: cebra.distributions.multisession
    :members:
    :show-inheritance:
-

@@ -12,6 +12,8 @@
 """Define the CEBRA model."""
 
 import copy
+import itertools
+import warnings
 from typing import Callable, Iterable, List, Literal, Optional, Tuple, Union
 
 import numpy as np
@@ -22,8 +24,6 @@ from sklearn.base import BaseEstimator
 from sklearn.base import ClassifierMixin
 from sklearn.base import TransformerMixin
 from torch import nn
-import warnings
-import itertools
 
 import cebra.data
 import cebra.integrations.sklearn
@@ -260,13 +260,14 @@ def _init_loader(
         raise RuntimeError(
             f"Index combination not covered. Please report this issue and add the following "
             f"information to your bug report: \n" + error_message)
-    
+
+
 def _load_cebra_with_torch_backend(cebra_info: dict) -> "CEBRA":
     """Loads a CEBRA model with a Torch backend.
 
     Args:
         cebra_info: A dictionary containing information about the CEBRA model.
-    
+
     Returns:
         The loaded CEBRA object.
 
@@ -278,17 +279,20 @@ def _load_cebra_with_torch_backend(cebra_info: dict) -> "CEBRA":
     required_keys = ['cebra_object']
     missing_keys = [key for key in required_keys if key not in cebra_info]
     if missing_keys:
-        raise ValueError(f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
-                         f"You can try loading the CEBRA object with a different backend.")
+        raise ValueError(
+            f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
+            f"You can try loading the CEBRA object with a different backend.")
 
-    cebra_ = cebra_info['cebra_object']    
+    cebra_ = cebra_info['cebra_object']
     if not isinstance(cebra_, cebra.CEBRA):
         raise RuntimeError("Model loaded from file is not compatible with "
-                            "the current CEBRA version.")
+                           "the current CEBRA version.")
     if not sklearn_utils.check_fitted(cebra_):
-        raise ValueError("CEBRA model is not fitted. Loading it it's not supported.")
-    
+        raise ValueError(
+            "CEBRA model is not fitted. Loading it it's not supported.")
+
     return cebra_
+
 
 def _load_cebra_with_sklearn_backend(cebra_info: dict) -> "CEBRA":
     """Loads a CEBRA model with a Sklearn backend.
@@ -305,23 +309,28 @@ def _load_cebra_with_sklearn_backend(cebra_info: dict) -> "CEBRA":
     required_keys = ['args', 'state', 'state_dict']
     missing_keys = [key for key in required_keys if key not in cebra_info]
     if missing_keys:
-        raise ValueError(f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
-                         f"You can try loading the CEBRA model with a different backend.")
-                         
-    args, state, state_dict = cebra_info['args'], cebra_info['state'], cebra_info['state_dict']
+        raise ValueError(
+            f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
+            f"You can try loading the CEBRA model with a different backend.")
+
+    args, state, state_dict = cebra_info['args'], cebra_info[
+        'state'], cebra_info['state_dict']
     cebra_ = cebra.CEBRA(**args)
 
-    state_without_args = {key: value for key, value in state.items() if key not in args.keys()}
+    state_without_args = {
+        key: value for key, value in state.items() if key not in args.keys()
+    }
     for key, value in state_without_args.items():
         setattr(cebra_, key, value)
 
     if not sklearn_utils.check_fitted(cebra_):
-        raise ValueError("CEBRA model is not fitted. Loading it is not supported.")
-    
+        raise ValueError(
+            "CEBRA model is not fitted. Loading it is not supported.")
+
     if cebra_.num_sessions_ is None:
         model = cebra.models.init(
             state["model_architecture"],
-            num_neurons=state["n_features_in_"], 
+            num_neurons=state["n_features_in_"],
             num_units=state["num_hidden_units"],
             num_output=state["output_dimension"],
         ).to(state['device_'])
@@ -330,13 +339,13 @@ def _load_cebra_with_sklearn_backend(cebra_info: dict) -> "CEBRA":
         model = nn.ModuleList([
             cebra.models.init(
                 state["model_architecture"],
-                num_neurons= n_features,
+                num_neurons=n_features,
                 num_units=state["num_hidden_units"],
                 num_output=state["output_dimension"],
             ) for n_features in state["n_features_in_"]
-        ]).to(state['device_'])    
-    
-    criterion  = cebra_._prepare_criterion()
+        ]).to(state['device_'])
+
+    criterion = cebra_._prepare_criterion()
     criterion.to(state['device_'])
 
     optimizer = torch.optim.Adam(
@@ -346,7 +355,7 @@ def _load_cebra_with_sklearn_backend(cebra_info: dict) -> "CEBRA":
     )
 
     solver = cebra.solver.init(
-        state['solver_name'], 
+        state['solver_name'],
         model=model,
         criterion=criterion,
         optimizer=optimizer,
@@ -847,8 +856,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
             else:
                 label_types_idx = self._label_types[i][session_id]
 
-            if (len(label_types_idx[1]) > 1 and len(y[i].shape) >
-                    1):  # is there more than one feature in the index
+            if (len(label_types_idx[1]) > 1 and len(y[i].shape)
+                    > 1):  # is there more than one feature in the index
                 if label_types_idx[1][1] != y[i].shape[1]:
                     raise ValueError(
                         f"Labels invalid: must have the same number of features as the ones used for fitting,"
@@ -1291,16 +1300,15 @@ class CEBRA(BaseEstimator, TransformerMixin):
         # NOTE(stes): This tag is needed as seeding is not fully implemented in the
         # current version of CEBRA.
         return {"non_deterministic": True}
-    
-    
+
     def _get_state_dict(self):
         state = {
-            key: value for key, value in self.__dict__.items()
-                if key not in ['self', 'solver_', 'model_']
-            }
-        state.update({'solver_name' : self.__dict__['solver_']._variant_name})
+            key: value
+            for key, value in self.__dict__.items()
+            if key not in ['self', 'solver_', 'model_']
+        }
+        state.update({'solver_name': self.__dict__['solver_']._variant_name})
         return state
-
 
     def save(self, filename: str, backend: str = "sklearn"):
         """Save the model to disk.
@@ -1332,26 +1340,27 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 torch.save({
                     'cebra_object': self,
                     'backend': backend,
-                    },
-                    filename)
-            
+                }, filename)
+
             elif backend == "sklearn":
                 torch.save(
                     {
-                    'args': self.get_params(),
-                    'state': self._get_state_dict(),
-                    'state_dict': self.solver_.state_dict() if sklearn_utils.check_fitted(self) else None,
-                    'backend': backend,
-                    },
-                    filename)
+                        'args':
+                            self.get_params(),
+                        'state':
+                            self._get_state_dict(),
+                        'state_dict':
+                            self.solver_.state_dict()
+                            if sklearn_utils.check_fitted(self) else None,
+                        'backend':
+                            backend,
+                    }, filename)
             else:
                 raise NotImplementedError(f"Unsupported backend: {backend}")
-        else:            
-            raise ValueError(
-                "CEBRA object is not fitted. "
-                "Saving a non-fitted model is not supported."
-            )
-        
+        else:
+            raise ValueError("CEBRA object is not fitted. "
+                             "Saving a non-fitted model is not supported.")
+
     @classmethod
     def load(cls,
              filename: str,
@@ -1379,25 +1388,27 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> loaded_model = cebra.CEBRA.load('/tmp/foo.pt')
             >>> embedding = loaded_model.transform(dataset)
 
-        """    
+        """
         cebra_info = torch.load(filename, **kwargs)
         backend_save = cebra_info['backend']
-        
+
         if backend == "auto":
             if backend_save == "torch":
                 cebra_ = _load_cebra_with_torch_backend(cebra_info)
-            
+
             elif backend_save == "sklearn":
                 cebra_ = _load_cebra_with_sklearn_backend(cebra_info)
 
         else:
             if backend != backend_save:
-                raise ValueError("Differents backends were used during saving and loading.")
-            if backend == "torch":    
+                raise ValueError(
+                    "Differents backends were used during saving and loading.")
+            if backend == "torch":
                 cebra_ = _load_cebra_with_torch_backend(cebra_info)
             elif backend == "sklearn":
                 cebra_ = _load_cebra_with_sklearn_backend(cebra_info)
             else:
-                raise NotImplementedError(f"Unsupported backend for saving: {backend}")
-            
+                raise NotImplementedError(
+                    f"Unsupported backend for saving: {backend}")
+
         return cebra_

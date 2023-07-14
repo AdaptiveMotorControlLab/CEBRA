@@ -351,16 +351,16 @@ class MultiSessionAllenCaLeave2Out(cebra.data.DatasetCollection):
 class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
     """A corrupted single mouse 30Hz calcium events dataset during the allen MOVIE1 stimulus with train/test splits.
 
-    A dataset of a single mouse 30Hz calcium events from the excitatory neurons 
-    in the primary visual cortex during the 10 repeats of the MOVIE1 stimulus 
+    A dataset of a single mouse 30Hz calcium events from the excitatory neurons
+    in the primary visual cortex during the 10 repeats of the MOVIE1 stimulus
     in session type A. The preprocessed data from *Deitch et al. (2021) are used.
-    The continuous labels corresponding to a DINO embedding of each stimulus frame, 
+    The continuous labels corresponding to a DINO embedding of each stimulus frame,
     but in randomly shuffled order.
-    A neural recording during the chosen repeat is used as a test set and the 
+    A neural recording during the chosen repeat is used as a test set and the
     remaining 9 repeats are used as a train set.
 
     Args:
-        session_id: The integer value to pick a session among 4 sessions with the 
+        session_id: The integer value to pick a session among 4 sessions with the
             largest number of recorded neruons. Choose between 0-3.
         repeat_no: The nth repeat to use as the test set. Choose between 0-9.
         split_flag: The `train`/`test` split to load.

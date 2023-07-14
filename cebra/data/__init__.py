@@ -16,7 +16,7 @@ in the various usage modes of CEBRA, e.g. single- and multi-session datasets.
 It is non-specific to a particular dataset (see :py:mod:`cebra.datasets` for actual dataset
 implementations). However, the base classes for all datasets are defined here, as well as helper
 functions to interact with datasets.
-  
+
 CEBRA supports different dataset types out-of-the box:
 
 - :py:class:`cebra.data.single_session.SingleSessionDataset` is the abstract base class for a single session dataset. Single session datasets
