@@ -117,6 +117,26 @@ def test_sklearn_dataset():
         cebra_data.datasets.DatasetCollection(*sessions)
 
 
+@pytest.mark.parametrize("int_type", [np.uint8, np.int8, np.int32])
+@pytest.mark.parametrize("float_type", [np.float16, np.float32, np.float64])
+def test_sklearn_dataset_type_index(int_type, float_type):
+    N = 100
+    X = np.random.uniform(0, 1, (N * 2, 2))
+    y = np.concatenate([np.zeros(N), np.ones(N)])
+
+    # integer type
+    y = y.astype(int_type)
+    _, _, loader, _ = cebra.CEBRA(batch_size=512)._prepare_fit(X, y)
+    assert loader.dataset.discrete_index is not None
+    assert loader.dataset.continuous_index is None
+
+    # floating type
+    y = y.astype(float_type)
+    _, _, loader, _ = cebra.CEBRA(batch_size=512)._prepare_fit(X, y)
+    assert loader.dataset.continuous_index is not None
+    assert loader.dataset.discrete_index is None
+
+
 @_util.parametrize_slow(
     arg_names="is_cont,is_disc,is_full,is_multi,is_hybrid",
     fast_arguments=list(
