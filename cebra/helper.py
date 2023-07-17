@@ -21,6 +21,7 @@ from typing import List, Union
 
 import numpy as np
 import numpy.typing as npt
+import pkg_resources
 import requests
 import torch
 
@@ -59,6 +60,17 @@ def download_file_from_zip_url(url, file="montblanc_tracks.h5"):
             except zipfile.error:
                 pass
     return pathlib.Path(foldername) / "data" / file
+
+
+def _is_mps_availabe(torch):
+    available = False
+    if pkg_resources.parse_version(
+            torch.__version__) >= pkg_resources.parse_version("1.12"):
+        if torch.backends.mps.is_available():
+            if torch.backends.mps.is_built():
+                available = True
+
+    return available
 
 
 def _is_integer(y: Union[npt.NDArray, torch.Tensor]) -> bool:

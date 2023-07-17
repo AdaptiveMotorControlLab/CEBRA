@@ -15,6 +15,8 @@ import numpy.typing as npt
 import sklearn.utils.validation as sklearn_utils_validation
 import torch
 
+import cebra.helper
+
 
 def update_old_param(old: dict, new: dict, kwargs: dict, default) -> tuple:
     """Handle deprecated arguments of a function until they are replaced.
@@ -114,16 +116,50 @@ def check_device(device: str) -> str:
         device: The device to return, if possible.
 
     Returns:
-        Either cuda or cpu depending on {device} and availability in the environment.
+        Either cuda, cuda:device_id, mps, or cpu depending on {device} and availability in the environment.
     """
+
     if device == "cuda_if_available":
         if torch.cuda.is_available():
             return "cuda"
+        elif cebra.helper._is_mps_availabe(torch):
+            return "mps"
         else:
             return "cpu"
-    elif device in ["cuda", "cpu"]:
+    elif device.startswith("cuda:") and len(device) > 5:
+        cuda_device_id = device[5:]
+        if cuda_device_id.isdigit():
+            device_count = torch.cuda.device_count()
+            device_id = int(cuda_device_id)
+            if device_id < device_count:
+                return f"cuda:{device_id}"
+            else:
+                raise ValueError(
+                    f"CUDA device {device_id} is not available. Available device IDs are 0 to {device_count - 1}."
+                )
+        else:
+            raise ValueError(
+                f"Invalid CUDA device ID format. Please use 'cuda:device_id' where '{cuda_device_id}' is an integer."
+            )
+    elif device == "cuda" and torch.cuda.is_available():
+        return "cuda:0"
+    elif device == "cpu":
         return device
-    raise ValueError(f"Device needs to be cuda or cpu, but got {device}.")
+    elif device == "mps":
+        if not torch.backends.mps.is_available():
+            if not torch.backends.mps.is_built():
+                raise ValueError(
+                    "MPS not available because the current PyTorch install was not "
+                    "built with MPS enabled.")
+            else:
+                raise ValueError(
+                    "MPS not available because the current MacOS version is not 12.3+ "
+                    "and/or you do not have an MPS-enabled device on this machine."
+                )
+
+        return device
+
+    raise ValueError(f"Device needs to be cuda, cpu or mps, but got {device}.")
 
 
 def check_fitted(model: "cebra.models.Model") -> bool:
