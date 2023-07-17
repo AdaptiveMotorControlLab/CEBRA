@@ -10,6 +10,7 @@
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
 import itertools
+from typing import List
 
 import pytest
 import torch
@@ -18,6 +19,7 @@ from torch import nn
 import cebra
 import cebra.config
 import cebra.data
+import cebra.data.helper as cebra_data_helper
 import cebra.datasets
 import cebra.helper
 import cebra.models
@@ -68,7 +70,7 @@ def _list_data_loaders():
     ]
     # TODO limit this to the valid combinations---however this
     # requires to adapt the dataset API slightly; it is currently
-    # required to initialize the dataset to run cebra.helper.get_loader_options.
+    # required to initialize the dataset to run cebra_data_helper.get_loader_options.
     prefixes = set()
     for dataset_name, loader in itertools.product(cebra.datasets.get_options(),
                                                   loaders):
@@ -86,7 +88,7 @@ def test_train(dataset_name, loader_type):
     args = cebra.config.Config(num_steps=1, device="cuda").as_namespace()
 
     dataset = cebra.datasets.init(dataset_name)
-    if loader_type not in cebra.helper.get_loader_options(dataset):
+    if loader_type not in cebra_data_helper.get_loader_options(dataset):
         # skip this test, since the data/loader combination is not valid.
         pytest.skip("Not a valid dataset/loader combination.")
     loader = loader_type(
