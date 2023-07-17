@@ -308,22 +308,21 @@ def _load_cebra_with_sklearn_backend(cebra_info: dict) -> "CEBRA":
     Raises:
         ValueError: If the loaded CEBRA model is not fitted, indicating that loading it is not supported.
     """
-    required_keys = ['args', 'state', 'state_dict']
+    required_keys = ['args', 'state_without_args', 'state_dict']
     missing_keys = [key for key in required_keys if key not in cebra_info]
     if missing_keys:
         raise ValueError(
             f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
             f"You can try loading the CEBRA model with a different backend.")
 
-    args, state, state_dict = cebra_info['args'], cebra_info[
-        'state'], cebra_info['state_dict']
+    args, state_without_args, state_dict = cebra_info['args'], cebra_info[
+        'state_without_args'], cebra_info['state_dict']
     cebra_ = cebra.CEBRA(**args)
 
-    state_without_args = {
-        key: value for key, value in state.items() if key not in args.keys()
-    }
     for key, value in state_without_args.items():
         setattr(cebra_, key, value)
+
+    state = {**args, **state_without_args}
 
     if not sklearn_utils.check_fitted(cebra_):
         raise ValueError(
@@ -1303,14 +1302,21 @@ class CEBRA(BaseEstimator, TransformerMixin):
         # current version of CEBRA.
         return {"non_deterministic": True}
 
-    def _get_state_dict(self):
+    def _get_state_without_args(self, args):
         state = {
             key: value
             for key, value in self.__dict__.items()
             if key not in ['self', 'solver_', 'model_']
         }
-        state.update({'solver_name': self.__dict__['solver_']._variant_name})
-        return state
+
+        state_without_args = {
+            key: value
+            for key, value in state.items()
+            if key not in args.keys()
+        }
+        state_without_args.update(
+            {'solver_name': self.__dict__['solver_']._variant_name})
+        return state_without_args
 
     def save(self, filename: str, backend: str = "sklearn"):
         """Save the model to disk.
@@ -1345,12 +1351,17 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 }, filename)
 
             elif backend == "sklearn":
+                args = self.get_params()
                 torch.save(
                     {
-                        'args': self.get_params(),
-                        'state': self._get_state_dict(),
-                        'state_dict': self.solver_.state_dict(),
-                        'backend': backend,
+                        'args':
+                            args,
+                        'state_without_args':
+                            self._get_state_without_args(args),
+                        'state_dict':
+                            self.solver_.state_dict(),
+                        'backend':
+                            backend,
                     }, filename)
             else:
                 raise NotImplementedError(f"Unsupported backend: {backend}")
