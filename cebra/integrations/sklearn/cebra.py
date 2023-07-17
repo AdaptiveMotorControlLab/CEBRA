@@ -272,9 +272,11 @@ def _load_cebra_with_torch_backend(cebra_info: dict) -> "CEBRA":
         The loaded CEBRA object.
 
     Raises:
-        RuntimeError: If the loaded CEBRA object is not an instance of cebra.CEBRA class,
-                      indicating incompatibility with the current CEBRA version.
-        ValueError: If the loaded CEBRA model is not fitted, indicating that loading it is not supported.
+        RuntimeError: If the loaded CEBRA object is not an instance of
+            :py:mod:`cebra.CEBRA` class, indicating incompatibility with
+            the current CEBRA version.
+        ValueError: If the loaded CEBRA model is not fitted, indicating that
+            loading it is not supported.
     """
     required_keys = ['cebra_object']
     missing_keys = [key for key in required_keys if key not in cebra_info]
@@ -1345,15 +1347,10 @@ class CEBRA(BaseEstimator, TransformerMixin):
             elif backend == "sklearn":
                 torch.save(
                     {
-                        'args':
-                            self.get_params(),
-                        'state':
-                            self._get_state_dict(),
-                        'state_dict':
-                            self.solver_.state_dict()
-                            if sklearn_utils.check_fitted(self) else None,
-                        'backend':
-                            backend,
+                        'args': self.get_params(),
+                        'state': self._get_state_dict(),
+                        'state_dict': self.solver_.state_dict(),
+                        'backend': backend,
                     }, filename)
             else:
                 raise NotImplementedError(f"Unsupported backend: {backend}")
