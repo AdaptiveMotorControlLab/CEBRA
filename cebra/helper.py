@@ -19,9 +19,9 @@ import warnings
 import zipfile
 from typing import List, Union
 
-import pkg_resources
 import numpy as np
 import numpy.typing as npt
+import pkg_resources
 import requests
 import torch
 
@@ -71,6 +71,7 @@ def _is_mps_availabe(torch):
                 available = True
 
     return available
+
 
 def _is_integer(y: Union[npt.NDArray, torch.Tensor]) -> bool:
     """Check if the values in ``y`` are :py:class:`int`.
