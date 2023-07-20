@@ -873,7 +873,7 @@ def test_save_and_load(action, backend_save, backend_load, model_architecture,
                 original_model.save(savefile.name, backend=backend_save)
 
                 if (backend_load != "auto") and (backend_save != backend_load):
-                    with pytest.raises(ValueError):
+                    with pytest.raises(RuntimeError):
                         cebra_sklearn_cebra.CEBRA.load(savefile.name,
                                                        backend_load)
                 else:

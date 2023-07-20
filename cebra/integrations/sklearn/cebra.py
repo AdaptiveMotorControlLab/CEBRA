@@ -18,6 +18,7 @@ from typing import Callable, Iterable, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
+import pkg_resources
 import sklearn.utils.validation as sklearn_utils_validation
 import torch
 from sklearn.base import BaseEstimator
@@ -262,38 +263,15 @@ def _init_loader(
             f"information to your bug report: \n" + error_message)
 
 
-def _load_cebra_with_torch_backend(cebra_info: dict) -> "CEBRA":
-    """Loads a CEBRA model with a Torch backend.
-
-    Args:
-        cebra_info: A dictionary containing information about the CEBRA model.
-
-    Returns:
-        The loaded CEBRA object.
-
-    Raises:
-        RuntimeError: If the loaded CEBRA object is not an instance of
-            :py:mod:`cebra.CEBRA` class, indicating incompatibility with
-            the current CEBRA version.
-        ValueError: If the loaded CEBRA model is not fitted, indicating that
-            loading it is not supported.
-    """
-    required_keys = ['cebra_object']
-    missing_keys = [key for key in required_keys if key not in cebra_info]
-    if missing_keys:
-        raise ValueError(
-            f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
-            f"You can try loading the CEBRA object with a different backend.")
-
-    cebra_ = cebra_info['cebra_object']
-    if not isinstance(cebra_, cebra.CEBRA):
+def _check_type_checkpoint(checkpoint):
+    if not isinstance(checkpoint, cebra.CEBRA):
         raise RuntimeError("Model loaded from file is not compatible with "
                            "the current CEBRA version.")
-    if not sklearn_utils.check_fitted(cebra_):
+    if not sklearn_utils.check_fitted(checkpoint):
         raise ValueError(
             "CEBRA model is not fitted. Loading it it's not supported.")
 
-    return cebra_
+    return checkpoint
 
 
 def _load_cebra_with_sklearn_backend(cebra_info: dict) -> "CEBRA":
@@ -308,21 +286,21 @@ def _load_cebra_with_sklearn_backend(cebra_info: dict) -> "CEBRA":
     Raises:
         ValueError: If the loaded CEBRA model is not fitted, indicating that loading it is not supported.
     """
-    required_keys = ['args', 'state_without_args', 'state_dict']
+    required_keys = ['args', 'state', 'state_dict']
     missing_keys = [key for key in required_keys if key not in cebra_info]
     if missing_keys:
         raise ValueError(
             f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
             f"You can try loading the CEBRA model with a different backend.")
 
-    args, state_without_args, state_dict = cebra_info['args'], cebra_info[
-        'state_without_args'], cebra_info['state_dict']
+    args, state, state_dict = cebra_info['args'], cebra_info[
+        'state'], cebra_info['state_dict']
     cebra_ = cebra.CEBRA(**args)
 
-    for key, value in state_without_args.items():
+    for key, value in state.items():
         setattr(cebra_, key, value)
 
-    state = {**args, **state_without_args}
+    state_and_args = {**args, **state}
 
     if not sklearn_utils.check_fitted(cebra_):
         raise ValueError(
@@ -330,19 +308,19 @@ def _load_cebra_with_sklearn_backend(cebra_info: dict) -> "CEBRA":
 
     if cebra_.num_sessions_ is None:
         model = cebra.models.init(
-            state["model_architecture"],
+            args["model_architecture"],
             num_neurons=state["n_features_in_"],
-            num_units=state["num_hidden_units"],
-            num_output=state["output_dimension"],
+            num_units=args["num_hidden_units"],
+            num_output=args["output_dimension"],
         ).to(state['device_'])
 
     elif isinstance(cebra_.num_sessions_, int):
         model = nn.ModuleList([
             cebra.models.init(
-                state["model_architecture"],
+                args["model_architecture"],
                 num_neurons=n_features,
-                num_units=state["num_hidden_units"],
-                num_output=state["output_dimension"],
+                num_units=args["num_hidden_units"],
+                num_output=args["output_dimension"],
             ) for n_features in state["n_features_in_"]
         ]).to(state['device_'])
 
@@ -351,12 +329,12 @@ def _load_cebra_with_sklearn_backend(cebra_info: dict) -> "CEBRA":
 
     optimizer = torch.optim.Adam(
         itertools.chain(model.parameters(), criterion.parameters()),
-        lr=state['learning_rate'],
-        **dict(state['optimizer_kwargs']),
+        lr=args['learning_rate'],
+        **dict(args['optimizer_kwargs']),
     )
 
     solver = cebra.solver.init(
-        state['solver_name'],
+        state['solver_name_'],
         model=model,
         criterion=criterion,
         optimizer=optimizer,
@@ -918,6 +896,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             tqdm_on=self.verbose,
         )
         solver.to(self.device_)
+        self.solver_name_ = solver_name
 
         self._label_types = ([[(y_session.dtype, y_session.shape)
                                for y_session in y_index]
@@ -1302,21 +1281,18 @@ class CEBRA(BaseEstimator, TransformerMixin):
         # current version of CEBRA.
         return {"non_deterministic": True}
 
-    def _get_state_without_args(self, args):
+    def _get_state(self):
+        cebra_dict = self.__dict__
         state = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key not in ['self', 'solver_', 'model_']
+            '_label_types': cebra_dict['_label_types'],
+            'device_': cebra_dict['device_'],
+            'n_features_': cebra_dict['n_features_'],
+            'n_features_in_': cebra_dict['n_features_in_'],
+            'num_sessions_': cebra_dict['num_sessions_'],
+            'offset_': cebra_dict['offset_'],
+            'solver_name_': cebra_dict['solver_name_'],
         }
-
-        state_without_args = {
-            key: value
-            for key, value in state.items()
-            if key not in args.keys()
-        }
-        state_without_args.update(
-            {'solver_name': self.__dict__['solver_']._variant_name})
-        return state_without_args
+        return state
 
     def save(self, filename: str, backend: str = "sklearn"):
         """Save the model to disk.
@@ -1332,6 +1308,23 @@ class CEBRA(BaseEstimator, TransformerMixin):
             Experimental functionality. Do not expect the save/load functionalities to be
             backward compatible yet between CEBRA versions!
 
+            File Format:
+                The saved model checkpoint file format depends on the specified backend.
+
+                "sklearn" backend (default):
+                    The model is saved in a PyTorch-compatible format using `torch.save`. The saved checkpoint
+                    is a dictionary containing the following elements:
+                        - 'args': A dictionary of parameters used to initialize the CEBRA model.
+                        - 'state': The state of the CEBRA model, which includes various internal attributes.
+                        - 'state_dict': The state dictionary of the underlying solver used by CEBRA.
+                        - 'metadata': Additional metadata about the saved model, including the backend used
+                                    and the version of CEBRA PyTorch, NumPy and scikit-learnxw.
+
+                "torch" backend:
+                    The model is directly saved using `torch.save` with no additional information. The saved
+                    file contains the entire CEBRA model state.
+
+
         Example:
 
             >>> import cebra
@@ -1345,29 +1338,34 @@ class CEBRA(BaseEstimator, TransformerMixin):
         """
         if sklearn_utils.check_fitted(self):
             if backend == "torch":
-                torch.save({
-                    'cebra_object': self,
-                    'backend': backend,
-                }, filename)
+                checkpoint = torch.save(self, filename)
 
             elif backend == "sklearn":
-                args = self.get_params()
-                torch.save(
+                checkpoint = torch.save(
                     {
-                        'args':
-                            args,
-                        'state_without_args':
-                            self._get_state_without_args(args),
-                        'state_dict':
-                            self.solver_.state_dict(),
-                        'backend':
-                            backend,
+                        'args': self.get_params(),
+                        'state': self._get_state(),
+                        'state_dict': self.solver_.state_dict(),
+                        'metadata': {
+                            'backend':
+                                backend,
+                            'cebra_version':
+                                cebra.__version__,
+                            'torch_version':
+                                torch.__version__,
+                            'numpy_version':
+                                np.__version__,
+                            'sklearn':
+                                pkg_resources.get_distribution("scikit-learn"
+                                                              ).version
+                        }
                     }, filename)
             else:
                 raise NotImplementedError(f"Unsupported backend: {backend}")
         else:
             raise ValueError("CEBRA object is not fitted. "
                              "Saving a non-fitted model is not supported.")
+        return checkpoint
 
     @classmethod
     def load(cls,
@@ -1388,6 +1386,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
             Experimental functionality. Do not expect the save/load functionalities to be
             backward compatible yet between CEBRA versions!
 
+            For information about the file format we refer to :py:meth:`CEBRA.save`.
+
         Example:
 
             >>> import cebra
@@ -1397,26 +1397,28 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> embedding = loaded_model.transform(dataset)
 
         """
-        cebra_info = torch.load(filename, **kwargs)
-        backend_save = cebra_info['backend']
+        supported_backends = ["auto", "sklearn", "torch"]
+        if backend not in supported_backends:
+            raise NotImplementedError(
+                f"Unsupported backend: '{backend}'. Supported backends are: {', '.join(supported_backends)}"
+            )
+
+        checkpoint = torch.load(filename, **kwargs)
 
         if backend == "auto":
-            if backend_save == "torch":
-                cebra_ = _load_cebra_with_torch_backend(cebra_info)
+            backend = "sklearn" if isinstance(checkpoint, dict) else "torch"
 
-            elif backend_save == "sklearn":
-                cebra_ = _load_cebra_with_sklearn_backend(cebra_info)
+        if isinstance(checkpoint, dict) and backend == "torch":
+            raise RuntimeError(
+                f"Cannot use 'torch' backend with a dictionary-based checkpoint. "
+                f"Please try a different backend.")
+        if not isinstance(checkpoint, dict) and backend == "sklearn":
+            raise RuntimeError(f"Cannot use 'sklearn' backend. "
+                               f"Please try a different backend.")
 
+        if backend == "sklearn":
+            cebra_ = _load_cebra_with_sklearn_backend(checkpoint)
         else:
-            if backend != backend_save:
-                raise ValueError(
-                    "Differents backends were used during saving and loading.")
-            if backend == "torch":
-                cebra_ = _load_cebra_with_torch_backend(cebra_info)
-            elif backend == "sklearn":
-                cebra_ = _load_cebra_with_sklearn_backend(cebra_info)
-            else:
-                raise NotImplementedError(
-                    f"Unsupported backend for saving: {backend}")
+            cebra_ = _check_type_checkpoint(checkpoint)
 
         return cebra_
