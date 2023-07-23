@@ -824,16 +824,16 @@ class CEBRA(BaseEstimator, TransformerMixin):
         """
         n_idx = len(y)
         # Check that same number of index
-        if len(self._label_types) != n_idx:
+        if len(self.label_types_) != n_idx:
             raise ValueError(
                 f"Number of index invalid: labels must have the same number of index as for fitting,"
-                f"expects {len(self._label_types)}, got {n_idx} idx.")
+                f"expects {len(self.label_types_)}, got {n_idx} idx.")
 
-        for i in range(len(self._label_types)):  # for each index
+        for i in range(len(self.label_types_)):  # for each index
             if self.num_sessions is None:
-                label_types_idx = self._label_types[i]
+                label_types_idx = self.label_types_[i]
             else:
-                label_types_idx = self._label_types[i][session_id]
+                label_types_idx = self.label_types_[i][session_id]
 
             if (len(label_types_idx[1]) > 1 and len(y[i].shape)
                     > 1):  # is there more than one feature in the index
@@ -898,7 +898,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
         solver.to(self.device_)
         self.solver_name_ = solver_name
 
-        self._label_types = ([[(y_session.dtype, y_session.shape)
+        self.label_types_ = ([[(y_session.dtype, y_session.shape)
                                for y_session in y_index]
                               for y_index in y] if is_multisession else
                              [(y_.dtype, y_.shape) for y_ in y])
@@ -1284,7 +1284,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
     def _get_state(self):
         cebra_dict = self.__dict__
         state = {
-            '_label_types': cebra_dict['_label_types'],
+            'label_types_': cebra_dict['label_types_'],
             'device_': cebra_dict['device_'],
             'n_features_': cebra_dict['n_features_'],
             'n_features_in_': cebra_dict['n_features_in_'],
