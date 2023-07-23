@@ -1355,7 +1355,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
                                 torch.__version__,
                             'numpy_version':
                                 np.__version__,
-                            'sklearn':
+                            'sklearn_version':
                                 pkg_resources.get_distribution("scikit-learn"
                                                               ).version
                         }
