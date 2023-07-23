@@ -1317,8 +1317,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
                         - 'args': A dictionary of parameters used to initialize the CEBRA model.
                         - 'state': The state of the CEBRA model, which includes various internal attributes.
                         - 'state_dict': The state dictionary of the underlying solver used by CEBRA.
-                        - 'metadata': Additional metadata about the saved model, including the backend used
-                                    and the version of CEBRA PyTorch, NumPy and scikit-learn.
+                        - 'metadata': Additional metadata about the saved model, including the backend used and the version of CEBRA PyTorch, NumPy and scikit-learn.
 
                 "torch" backend:
                     The model is directly saved using `torch.save` with no additional information. The saved
