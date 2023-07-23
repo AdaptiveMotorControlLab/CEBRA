@@ -269,7 +269,7 @@ def _check_type_checkpoint(checkpoint):
                            "the current CEBRA version.")
     if not sklearn_utils.check_fitted(checkpoint):
         raise ValueError(
-            "CEBRA model is not fitted. Loading it it's not supported.")
+            "CEBRA model is not fitted. Loading it is not supported.")
 
     return checkpoint
 
