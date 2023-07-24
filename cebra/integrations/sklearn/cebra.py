@@ -1396,6 +1396,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> embedding = loaded_model.transform(dataset)
 
         """
+        
         supported_backends = ["auto", "sklearn", "torch"]
         if backend not in supported_backends:
             raise NotImplementedError(
@@ -1421,3 +1422,52 @@ class CEBRA(BaseEstimator, TransformerMixin):
             cebra_ = _check_type_checkpoint(checkpoint)
 
         return cebra_
+
+    def to(self, device: Union[str, torch.device]):
+        """Moves the cebra model to the specified device.
+
+        Args:
+            device: The device to move the cebra model to. This can be a string representing
+                    the device ('cpu','cuda', cuda:device_id, or 'mps') or a torch.device object.
+
+        Returns:
+            The cebra model instance.
+
+        Example:
+
+            >>> import cebra
+            >>> import numpy as np
+            >>> dataset =  np.random.uniform(0, 1, (1000, 30))
+            >>> cebra_model = cebra.CEBRA(max_iterations=10, device = "cuda_if_available")
+            >>> cebra_model.fit(dataset)
+            CEBRA(max_iterations=10)
+            >>> cebra_model = cebra_model.to("cpu")
+        """
+
+        if not isinstance(device, (str, torch.device)):
+            raise TypeError(
+                "The 'device' parameter must be a string or torch.device object."
+            )
+
+        if (not device == 'cpu') and (not device.startswith('cuda')) and (
+                not device == 'mps'):
+            raise ValueError(
+                "The 'device' parameter must be a valid device string or device object."
+            )
+
+        if isinstance(device, str):
+            device = torch.device(device)
+
+        if (not device.type == 'cpu') and (
+                not device.type.startswith('cuda')) and (not device == 'mps'):
+            raise ValueError(
+                "The 'device' parameter must be a valid device string or device object."
+            )
+
+        if hasattr(self, "device_"):
+            self.device_ = device
+
+        self.device = device
+        self.solver_.model.to(device)
+
+        return self

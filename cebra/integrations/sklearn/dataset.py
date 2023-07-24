@@ -18,6 +18,7 @@ import numpy.typing as npt
 import torch
 
 import cebra.data
+import cebra.helper
 import cebra.integrations.sklearn.utils as cebra_sklearn_utils
 import cebra.models
 import cebra.solver
@@ -134,12 +135,12 @@ class SklearnDataset(cebra.data.SingleSessionDataset):
 
             # Define the index as either continuous or discrete indices, depending
             # on the dtype in the index array.
-            if y.dtype in (np.float32, np.float64):
+            if cebra.helper._is_floating(y):
                 y = torch.from_numpy(y).float()
                 if y.dim() == 1:
                     y = y.unsqueeze(1)
                 continuous_index.append(y)
-            elif y.dtype in (np.int32, np.int64):
+            elif cebra.helper._is_integer(y):
                 y = torch.from_numpy(y).long().squeeze()
                 if y.dim() > 1:
                     raise ValueError(

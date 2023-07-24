@@ -15,14 +15,17 @@ import warnings
 
 import _util
 import numpy as np
+import pkg_resources
 import pytest
 import sklearn.utils.estimator_checks
 import torch
 import torch.nn as nn
 
 import cebra.data as cebra_data
+import cebra.helper
 import cebra.integrations.sklearn.cebra as cebra_sklearn_cebra
 import cebra.integrations.sklearn.dataset as cebra_sklearn_dataset
+import cebra.integrations.sklearn.utils as cebra_sklearn_utils
 import cebra.models
 import cebra.models.model
 from cebra.models import parametrize
@@ -118,6 +121,26 @@ def test_sklearn_dataset():
         sessions.append(cebra_sklearn_dataset.SklearnDataset(X, (yd,)))
     with pytest.raises(NotImplementedError):
         cebra_data.datasets.DatasetCollection(*sessions)
+
+
+@pytest.mark.parametrize("int_type", [np.uint8, np.int8, np.int32])
+@pytest.mark.parametrize("float_type", [np.float16, np.float32, np.float64])
+def test_sklearn_dataset_type_index(int_type, float_type):
+    N = 100
+    X = np.random.uniform(0, 1, (N * 2, 2))
+    y = np.concatenate([np.zeros(N), np.ones(N)])
+
+    # integer type
+    y = y.astype(int_type)
+    _, _, loader, _ = cebra.CEBRA(batch_size=512)._prepare_fit(X, y)
+    assert loader.dataset.discrete_index is not None
+    assert loader.dataset.continuous_index is None
+
+    # floating type
+    y = y.astype(float_type)
+    _, _, loader, _ = cebra.CEBRA(batch_size=512)._prepare_fit(X, y)
+    assert loader.dataset.continuous_index is not None
+    assert loader.dataset.discrete_index is None
 
 
 @_util.parametrize_slow(
@@ -844,7 +867,6 @@ class ParametrizedModelExample(cebra.models.model._OffsetModel):
         """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(0, 1)
 
-
 @pytest.mark.parametrize("action", _iterate_actions())
 @pytest.mark.parametrize("backend_save", ["torch", "sklearn"])
 @pytest.mark.parametrize("backend_load", ["auto", "torch", "sklearn"])
@@ -881,3 +903,247 @@ def test_save_and_load(action, backend_save, backend_load, model_architecture,
                         savefile.name, backend_load)
                     _assert_equal(original_model, loaded_model)
                     action(loaded_model)
+
+def get_ordered_cuda_devices():
+    available_devices = ['cuda']
+    for i in range(torch.cuda.device_count()):
+        available_devices.append(f'cuda:{i}')
+    return available_devices
+
+
+ordered_cuda_devices = get_ordered_cuda_devices() if torch.cuda.is_available(
+) else []
+
+
+@pytest.mark.parametrize("device", ['cpu'] + ordered_cuda_devices)
+def test_move_cpu_to_cuda_device(device):
+
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA not available")
+
+    if device.startswith('cuda') and device not in ordered_cuda_devices:
+        pytest.skip(f"Device ID {device} not available")
+
+    X = np.random.uniform(0, 1, (10, 5))
+    cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",
+                                            max_iterations=5,
+                                            device=device).fit(X)
+
+    # Move the model to a different device
+    new_device = 'cpu' if device.startswith('cuda') else 'cuda:0'
+    cebra_model.to(new_device)
+
+    assert cebra_model.device == torch.device(new_device)
+    assert next(cebra_model.solver_.model.parameters()).device == torch.device(
+        new_device)
+
+    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
+        cebra_model.save(savefile.name)
+        loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
+
+    assert cebra_model.device == loaded_model.device
+    assert next(cebra_model.solver_.model.parameters()).device == next(
+        loaded_model.solver_.model.parameters()).device
+
+
+@pytest.mark.parametrize("device", ['cpu', "mps"])
+def test_move_cpu_to_mps_device(device):
+
+    if not cebra.helper._is_mps_availabe(torch):
+        pytest.skip(f"MPS device is not available")
+
+    X = np.random.uniform(0, 1, (10, 5))
+    cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",
+                                            max_iterations=5,
+                                            device=device).fit(X)
+
+    # Move the model to a different device
+    new_device = 'cpu' if device == 'mps' else 'mps'
+    cebra_model.to(new_device)
+
+    assert cebra_model.device == torch.device(new_device)
+    assert next(cebra_model.solver_.model.parameters()).device == torch.device(
+        new_device)
+
+    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
+        cebra_model.save(savefile.name)
+        loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
+
+    assert cebra_model.device == loaded_model.device
+    assert next(cebra_model.solver_.model.parameters()).device == next(
+        loaded_model.solver_.model.parameters()).device
+
+
+ordered_cuda_devices = get_ordered_cuda_devices() if torch.cuda.is_available(
+) else []
+
+
+@pytest.mark.parametrize("device", ['mps'] + ordered_cuda_devices)
+def test_move_mps_to_cuda_device(device):
+
+    if (not torch.cuda.is_available()) or (
+            not cebra.helper._is_mps_availabe(torch)):
+        pytest.skip("CUDA or MPS not available")
+
+    if device.startswith('cuda') and device not in ordered_cuda_devices:
+        pytest.skip(f"Device ID {device} not available")
+
+    X = np.random.uniform(0, 1, (10, 5))
+    cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",
+                                            max_iterations=5,
+                                            device=device).fit(X)
+
+    # Move the model to a different device
+    new_device = 'mps' if device.startswith('cuda') else 'cuda:0'
+    cebra_model.to(new_device)
+
+    assert cebra_model.device == torch.device(new_device)
+    assert next(cebra_model.solver_.model.parameters()).device == torch.device(
+        new_device)
+
+    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
+        cebra_model.save(savefile.name)
+        loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
+
+    assert cebra_model.device == loaded_model.device
+    assert next(cebra_model.solver_.model.parameters()).device == next(
+        loaded_model.solver_.model.parameters()).device
+
+
+def test_mps():
+    if not cebra.helper._is_mps_availabe(torch):
+        pytest.skip("MPS not available")
+
+    X = np.random.uniform(0, 1, (10, 5))
+    cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",
+                                            max_iterations=5,
+                                            device="mps")
+
+    if torch.backends.mps.is_available() and torch.backends.mps.is_built():
+        torch.backends.mps.is_available = lambda: False
+        with pytest.raises(ValueError):
+            cebra_model.fit(X)
+
+        torch.backends.mps.is_available = lambda: True
+        torch.backends.mps.is_built = lambda: False
+        with pytest.raises(ValueError):
+            cebra_model.fit(X)
+
+        torch.backends.mps.is_available = lambda: True
+        torch.backends.mps.is_built = lambda: True
+        cebra_model.fit(X)
+        assert hasattr(cebra_model, "n_features_")
+
+
+@pytest.mark.parametrize("device", ["cuda_if_available", "cuda", "cuda:1"])
+def test_cuda(device):
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA not available")
+
+    X = np.random.uniform(0, 1, (10, 5))
+    cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",
+                                            max_iterations=5,
+                                            device=device).fit(X)
+
+    if device == "cuda_if_available":
+        cebra_model.device == "cuda"
+        assert next(
+            cebra_model.solver_.model.parameters()).device == torch.device(
+                type='cuda', index=0)
+        assert hasattr(cebra_model, "n_features_")
+
+    elif device == "cuda":
+        cebra_model.device == "cuda:0"
+        assert next(
+            cebra_model.solver_.model.parameters()).device == torch.device(
+                type='cuda', index=0)
+        assert hasattr(cebra_model, "n_features_")
+    elif device == "cuda:1":
+        cebra_model.device == "cuda:1"
+        assert next(
+            cebra_model.solver_.model.parameters()).device == torch.device(
+                type='cuda', index=1)
+        assert hasattr(cebra_model, "n_features_")
+
+
+def test_check_device():
+
+    device = "cuda_if_available"
+    torch.cuda.is_available = lambda: True
+    expected_result = "cuda"
+    assert cebra_sklearn_utils.check_device(device) == expected_result
+
+    torch.cuda.is_available = lambda: False
+    cebra.helper._is_mps_availabe = lambda x: True
+    expected_result = "mps"
+    assert cebra_sklearn_utils.check_device(device) == expected_result
+
+    torch.cuda.is_available = lambda: False
+    cebra.helper._is_mps_availabe = lambda x: False
+    expected_result = "cpu"
+    assert cebra_sklearn_utils.check_device(device) == expected_result
+
+    device = "cuda_if_available"
+    torch.cuda.is_available = lambda: False
+    cebra.helper._is_mps_availabe = lambda x: True
+    expected_result = "mps"
+    assert cebra_sklearn_utils.check_device(device) == expected_result
+
+    device = "cuda_if_available"
+    torch.cuda.is_available = lambda: False
+    cebra.helper._is_mps_availabe = lambda x: False
+    expected_result = "cpu"
+    assert cebra_sklearn_utils.check_device(device) == expected_result
+
+    device = "cuda:1"
+    torch.cuda.device_count = lambda: 2
+    expected_result = "cuda:1"
+    assert cebra_sklearn_utils.check_device(device) == expected_result
+
+    device = "cuda:2"
+    torch.cuda.device_count = lambda: 2
+    with pytest.raises(ValueError):
+        cebra_sklearn_utils.check_device(device)
+
+    device = "cuda:abc"
+    with pytest.raises(ValueError):
+        cebra_sklearn_utils.check_device(device)
+
+    device = "cuda"
+    torch.cuda.is_available = lambda: True
+    expected_result = "cuda:0"
+    assert cebra_sklearn_utils.check_device(device) == expected_result
+
+    device = "cuda"
+    torch.cuda.is_available = lambda: False
+    with pytest.raises(ValueError):
+        cebra_sklearn_utils.check_device(device)
+
+    device = "cpu"
+    expected_result = "cpu"
+    assert cebra_sklearn_utils.check_device(device) == expected_result
+
+    device = "invalid_device"
+    with pytest.raises(ValueError):
+        cebra_sklearn_utils.check_device(device)
+
+    if pkg_resources.parse_version(
+            torch.__version__) >= pkg_resources.parse_version("1.12"):
+
+        device = "mps"
+        torch.backends.mps.is_available = lambda: True
+        torch.backends.mps.is_built = lambda: True
+        expected_result = "mps"
+        assert cebra_sklearn_utils.check_device(device) == expected_result
+
+        device = "mps"
+        torch.backends.mps.is_available = lambda: False
+        torch.backends.mps.is_built = lambda: True
+        with pytest.raises(ValueError):
+            cebra_sklearn_utils.check_device(device)
+
+        device = "mps"
+        torch.backends.mps.is_available = lambda: False
+        torch.backends.mps.is_built = lambda: False
+        with pytest.raises(ValueError):
+            cebra_sklearn_utils.check_device(device)

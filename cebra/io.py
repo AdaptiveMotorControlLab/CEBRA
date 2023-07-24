@@ -75,7 +75,7 @@ class HasDevice:
             return
         if not isinstance(device, str):
             device = device.type
-        if device not in ("cpu", "cuda"):
+        if device not in ("cpu", "cuda", "mps"):
             if device.startswith("cuda"):
                 _, id_ = device.split(":")
                 if int(id_) >= torch.cuda.device_count():
