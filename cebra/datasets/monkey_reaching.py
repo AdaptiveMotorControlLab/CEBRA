@@ -145,6 +145,12 @@ monkey_reaching_dataset_urls = {
         "checksum":
             "c626acea5062122f5a68ef18d3e45e51"
     },
+    "pasive_all.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668758?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "bbb1bc9d8eec583a46f6673470fc98ad"
+    }
 }
 
 
