@@ -132,6 +132,22 @@ def _load_data(
     return data_dic
 
 
+monkey_reaching_dataset_urls = {
+    "all_all.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668764?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "dea556301fa4fafa86e28cf8621cab5a"
+    },
+    "active_all.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668776?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "c626acea5062122f5a68ef18d3e45e51"
+    },
+}
+
+
 @register("area2-bump")
 class Area2BumpDataset(cebra.data.SingleSessionDataset):
     """Base dataclass to generate monkey reaching datasets.
@@ -151,11 +167,10 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
 
     """
 
-    def __init__(
-        self,
-        path: str = get_datapath("monkey_reaching_preload_smth_40/"),
-        session: str = "active",
-    ):
+    def __init__(self,
+                 path: str = get_datapath("monkey_reaching_preload_smth_40/"),
+                 session: str = "active",
+                 download=True):
         super().__init__()
         self.path = path
         self.session = session
@@ -163,6 +178,17 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
             self.load_session = "all"
         else:
             self.load_session = session
+
+        super().__init__(
+            download=download,
+            data_url=monkey_reaching_dataset_urls[f"{self.load_session}_all.jl"]
+            ["url"],
+            data_checksum=monkey_reaching_dataset_urls[
+                f"{self.load_session}_all.jl"]["checksum"],
+            location=path,
+            file_name=f"{self.load_session}_all.jl",
+        )
+
         self.data = jl.load(os.path.join(path, f"{self.load_session}_all.jl"))
         self._post_load()
 
