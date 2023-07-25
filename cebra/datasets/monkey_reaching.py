@@ -181,25 +181,25 @@ monkey_reaching_urls = {
         "checksum":
             "dd58eb1e589361b4132f34b22af56b79"
     },
-    "pasive_all.jl": {
+    "passive_all.jl": {
         "url":
             "https://figshare.com/ndownloader/files/41668758?private_link=6fa4ee74a8f465ec7914",
         "checksum":
             "bbb1bc9d8eec583a46f6673470fc98ad"
     },
-    "pasive_train.jl": {
+    "passive_train.jl": {
         "url":
             "https://figshare.com/ndownloader/files/41668743?private_link=6fa4ee74a8f465ec7914",
         "checksum":
             "f22e05a69f70e18ba823a0a89162a45c"
     },
-    "pasive_test.jl": {
+    "passive_test.jl": {
         "url":
             "https://figshare.com/ndownloader/files/41668746?private_link=6fa4ee74a8f465ec7914",
         "checksum":
             "42453ae3e4fd27d82d297f78c13cd6b7"
     },
-    "pasive_valid.jl": {
+    "passive_valid.jl": {
         "url":
             "https://figshare.com/ndownloader/files/41668749?private_link=6fa4ee74a8f465ec7914",
         "checksum":
