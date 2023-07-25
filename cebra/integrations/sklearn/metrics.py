@@ -108,6 +108,83 @@ def infonce_loss(
     return avg_loss
 
 
+def goodness_of_fit_score(
+    cebra_model: cebra_sklearn_cebra.CEBRA,
+    X: Union[npt.NDArray, torch.Tensor],
+    *y,
+    session_id: Optional[int] = None,
+    num_batches: int = 500,
+    correct_by_batchsize: bool = False,
+) -> float:
+    """Compute the InfoNCE loss on a *single session* dataset on the model.
+
+    Args:
+        cebra_model: The model to use to compute the InfoNCE loss on the samples.
+        X: A 2D data matrix, corresponding to a *single session* recording.
+        y: An arbitrary amount of continuous indices passed as 2D matrices, and up to one
+            discrete index passed as a 1D array. Each index has to match the length of ``X``.
+        session_id: The session ID, an :py:class:`int` between 0 and :py:attr:`cebra.CEBRA.num_sessions`
+            for multisession, set to ``None`` for single session.
+        num_batches: The number of iterations to consider to evaluate the model on the new data.
+            Higher values will give a more accurate estimate. Set it to at least 500 iterations.
+    """
+    loss = infonce_loss(cebra_model=cebra_model,
+                        X=X,
+                        *y,
+                        session_id=session_id,
+                        num_batches=500,
+                        correct_by_batchsize=False)
+    return infonce_to_goodness_of_fit(loss, cebra_model)
+
+
+def goodness_of_fit_score(model):
+    infonce = np.array(model.state_dict_["log"]["total"])
+    return infonce_to_goodness_of_fit(infonce, model)
+
+
+def infonce_to_goodness_of_fit(infonce: Union[float, Iterable[float]],
+                               model: cebra.CEBRA) -> np.ndarray:
+    """Given a trained CEBRA model, return goodness of fit metric
+
+    The goodness of fit ranges from 0 (lowest meaningful value)
+    to a positive number with the unit "bits", the higher the
+    better.
+
+    Values lower than 0 bits are possible, but these only occur
+    due to numerical effects. A perfectly collapsed embedding
+    (e.g., because the data cannot be fit with the provided
+    auxiliary variables) will have a goodness of fit of 0.
+
+    The conversion between the generalized InfoNCE metric that
+    CEBRA is trained with and the goodness of fit computed with this
+    function is
+
+    .. math::
+
+        S = \log N - \text{InfoNCE}
+
+    Args:
+        model: The trained CEBRA model
+
+    Returns:
+        Numpy array containing the goodness of fit
+        values, measured in bits
+
+    Raises:
+        ``RuntimeError``, if provided model is not
+        fit to data.
+    """
+    if not hasattr(model, "state_dict_"):
+        raise RuntimeError("Fit the CEBRA model first.")
+
+    nats_to_bits = np.log2(np.e)
+    num_sessions = model.num_sessions_
+    if num_sessions is None:
+        num_sessions = 1
+    chance_level = np.log(model.batch_size * (model.num_sessions_ or 1))
+    return (chance_level - infonce) * nats_to_bits
+
+
 def _consistency_scores(
     embeddings: List[Union[npt.NDArray, torch.Tensor]],
     datasets: List[Union[int, str]],
