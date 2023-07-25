@@ -132,12 +132,30 @@ def _load_data(
     return data_dic
 
 
-monkey_reaching_dataset_urls = {
+monkey_reaching_urls = {
     "all_all.jl": {
         "url":
             "https://figshare.com/ndownloader/files/41668764?private_link=6fa4ee74a8f465ec7914",
         "checksum":
             "dea556301fa4fafa86e28cf8621cab5a"
+    },
+    "all_train.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668752?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "e280e4cd86969e6fd8bfd3a8f402b2fe"
+    },
+    "all_test.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668761?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "25d3ff2c15014db8b8bf2543482ae881"
+    },
+    "all_valid.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668755?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "8cd25169d31f83ae01b03f7b1b939723"
     },
     "active_all.jl": {
         "url":
@@ -145,11 +163,47 @@ monkey_reaching_dataset_urls = {
         "checksum":
             "c626acea5062122f5a68ef18d3e45e51"
     },
+    "active_train.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668770?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "72a48056691078eee22c36c1992b1d37"
+    },
+    "active_test.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668773?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "35b7e060008a8722c536584c4748f2ea"
+    },
+    "active_valid.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668767?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "dd58eb1e589361b4132f34b22af56b79"
+    },
     "pasive_all.jl": {
         "url":
             "https://figshare.com/ndownloader/files/41668758?private_link=6fa4ee74a8f465ec7914",
         "checksum":
             "bbb1bc9d8eec583a46f6673470fc98ad"
+    },
+    "pasive_train.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668743?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "f22e05a69f70e18ba823a0a89162a45c"
+    },
+    "pasive_test.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668746?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "42453ae3e4fd27d82d297f78c13cd6b7"
+    },
+    "pasive_valid.jl": {
+        "url":
+            "https://figshare.com/ndownloader/files/41668749?private_link=6fa4ee74a8f465ec7914",
+        "checksum":
+            "2dcc10c27631b95a075eaa2d2297bb4a"
     }
 }
 
@@ -179,6 +233,7 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
                  download=True):
         super().__init__()
         self.path = path
+        self.download = download
         self.session = session
         if session == "active-passive":
             self.load_session = "all"
@@ -186,16 +241,16 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
             self.load_session = session
 
         super().__init__(
-            download=download,
-            data_url=monkey_reaching_dataset_urls[f"{self.load_session}_all.jl"]
-            ["url"],
-            data_checksum=monkey_reaching_dataset_urls[
-                f"{self.load_session}_all.jl"]["checksum"],
-            location=path,
+            download=self.download,
+            data_url=monkey_reaching_urls[f"{self.load_session}_all.jl"]["url"],
+            data_checksum=monkey_reaching_urls[f"{self.load_session}_all.jl"]
+            ["checksum"],
+            location=self.path,
             file_name=f"{self.load_session}_all.jl",
         )
 
-        self.data = jl.load(os.path.join(path, f"{self.load_session}_all.jl"))
+        self.data = jl.load(
+            os.path.join(self.path, f"{self.load_session}_all.jl"))
         self._post_load()
 
     def split(self, split):
@@ -211,6 +266,15 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
 
         """
 
+        super().__init__(
+            download=self.download,
+            data_url=monkey_reaching_urls[f"{self.load_session}_{split}.jl"]
+            ["url"],
+            data_checksum=monkey_reaching_urls[
+                f"{self.load_session}_{split}.jl"]["checksum"],
+            location=self.path,
+            file_name=f"{self.load_session}_{split}.jl",
+        )
         self.data = jl.load(
             os.path.join(self.path, f"{self.load_session}_{split}.jl"))
         self._post_load()
