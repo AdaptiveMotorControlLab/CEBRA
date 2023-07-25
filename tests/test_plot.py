@@ -14,10 +14,10 @@ import copy
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pkg_resources
 import pytest
 import torch
 from sklearn.exceptions import NotFittedError
-import pkg_resources
 
 import cebra.integrations.matplotlib as cebra_plot
 import cebra.integrations.sklearn.cebra as cebra_sklearn_cebra
@@ -143,7 +143,9 @@ def test_plot_loss():
     assert isinstance(ax, matplotlib.axes.Axes)
     plt.close()
 
-@pytest.mark.parametrize("matplotlib_version", ["3.3", "3.4.2", "3.5", "3.6", "3.7"] )
+
+@pytest.mark.parametrize("matplotlib_version",
+                         ["3.3", "3.4.2", "3.5", "3.6", "3.7"])
 def test_compare_models_with_different_versions(matplotlib_version):
     # example dataset
     X = np.random.uniform(0, 1, (1000, 2))
@@ -152,15 +154,17 @@ def test_compare_models_with_different_versions(matplotlib_version):
     fitted_models = []
     for _ in range(n_models):
         fitted_models.append(
-            cebra_sklearn_cebra.CEBRA(max_iterations=10, batch_size=128).fit(X)
-            )
-    
-    # minimum version of matplotlib 
+            cebra_sklearn_cebra.CEBRA(max_iterations=10, batch_size=128).fit(X))
+
+    # minimum version of matplotlib
     minimum_version = "3.6"
-    
-    if pkg_resources.parse_version(matplotlib_version) < pkg_resources.parse_version(minimum_version):
+
+    if pkg_resources.parse_version(
+            matplotlib_version) < pkg_resources.parse_version(minimum_version):
         with pytest.raises(ImportError):
-            cebra_plot.compare_models(models=fitted_models, patched_version = matplotlib_version)
+            cebra_plot.compare_models(models=fitted_models,
+                                      patched_version=matplotlib_version)
+
 
 def test_compare_models():
     # example dataset

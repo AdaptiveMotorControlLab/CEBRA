@@ -1131,7 +1131,10 @@ def plot_consistency(
         dpi=dpi,
     ).plot(**kwargs)
 
+
 from cebra.helper import requires_package_version
+
+
 @requires_package_version(matplotlib, "3.6")
 def compare_models(
     models: List[CEBRA],
@@ -1189,7 +1192,7 @@ def compare_models(
 
     if not isinstance(models, list):
         raise ValueError(f"Invalid list of models, got {type(models)}.")
-    
+
     for model in models:
         if not isinstance(model, CEBRA):
             raise ValueError(
