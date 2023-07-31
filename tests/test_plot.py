@@ -349,7 +349,8 @@ def test_plot_consistency():
     labels4 = np.random.uniform(0, 1, (500,))
     labels_datasets = [labels1, labels2, labels3, labels4]
 
-    dataset_ids = ["achilles", "buddy", "buddy", "achilles"]
+    dataset_ids = ["achilles", "buddy", "cicero", "gatsby"]
+    dataset_ids_runs = ["achilles", "buddy", "buddy", "achilles"]
 
     figure = plt.figure(figsize=(5, 5))
     ax = figure.add_subplot()
@@ -361,7 +362,7 @@ def test_plot_consistency():
         between="datasets",
     )
     scores_runs, pairs_runs, datasets_runs = cebra_sklearn_metrics.consistency_score(
-        embeddings_runs, dataset_ids=dataset_ids, between="runs")
+        embeddings_runs, dataset_ids=dataset_ids_runs, between="runs")
 
     # between datasets
     fig = cebra_plot.plot_consistency(scores_subs,
