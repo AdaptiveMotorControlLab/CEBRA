@@ -17,6 +17,7 @@ import tempfile
 import urllib
 import warnings
 import zipfile
+from functools import wraps
 from typing import List, Union
 
 import numpy as np
@@ -121,3 +122,40 @@ def get_loader_options(dataset: "cebra.data.Dataset") -> List[str]:
         "The 'get_loader_options' function has been moved to 'cebra.data.helpers' module. "
         "Please update your imports.", DeprecationWarning)
     return cebra.data.helper.get_loader_options
+
+
+def requires_package_version(module, version: str):
+    """Decorator to require a minimum version of a package.
+
+    Args:
+        module: Module to be checked.
+        version: The minimum required version for the module.
+
+    Raises:
+        ImportError: If the specified ``module`` version is less than
+            the required ``version``.
+    """
+
+    required_version = pkg_resources.parse_version(version)
+
+    def _requires_package_version(function):
+
+        @wraps(function)
+        def wrapper(*args, patched_version=None, **kwargs):
+            if patched_version != None:
+                installed_version = pkg_resources.parse_version(
+                    patched_version)  # Use the patched version if provided
+            else:
+                installed_version = pkg_resources.parse_version(
+                    module.__version__)
+
+            if installed_version < required_version:
+                raise ImportError(
+                    f"The function '{function.__name__}' requires {module.__name__} "
+                    f"version {required_version} or higher, but you have {installed_version}. "
+                    f"Please upgrade {module.__name__}.")
+            return function(*args, **kwargs)
+
+        return wrapper
+
+    return _requires_package_version
