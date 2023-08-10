@@ -135,5 +135,4 @@ class SyntheticData(cebra.data.SingleSessionDataset):
         return len(self.neural)
 
     def __repr__(self):
-        return None
-        #return f"RatDataset(name: {self.name}, shape: {self.neural.shape})"
+        return f"SyntheticData(name: {self.name}, shape: {self.neural.shape})"
