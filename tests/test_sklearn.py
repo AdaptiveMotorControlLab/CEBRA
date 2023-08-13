@@ -856,6 +856,39 @@ def get_ordered_cuda_devices():
 ordered_cuda_devices = get_ordered_cuda_devices() if torch.cuda.is_available(
 ) else []
 
+def test_fit_after_moving_to_device():
+    expected_device = 'cpu'
+    expected_type = type(expected_device)
+
+    X = np.random.uniform(0, 1, (10, 5))
+    cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",
+                                            max_iterations=5,
+                                            device=expected_device)
+    
+    assert type(cebra_model.device) == expected_type
+    assert cebra_model.device == expected_device
+
+    cebra_model.partial_fit(X)
+    assert type(cebra_model.device) == expected_type
+    assert cebra_model.device == expected_device
+    if hasattr(cebra_model, 'device_'):
+        assert type(cebra_model.device_) == expected_type
+        assert cebra_model.device_ == expected_device
+
+    # Move the model to device using the to() method
+    cebra_model.to('cpu')
+    assert type(cebra_model.device) == expected_type
+    assert cebra_model.device == expected_device
+    if hasattr(cebra_model, 'device_'):
+        assert type(cebra_model.device_) == expected_type
+        assert cebra_model.device_ == expected_device
+
+    cebra_model.partial_fit(X)
+    assert type(cebra_model.device) == expected_type
+    assert cebra_model.device == expected_device
+    if hasattr(cebra_model, 'device_'):
+        assert type(cebra_model.device_) == expected_type
+        assert cebra_model.device_ == expected_device
 
 @pytest.mark.parametrize("device", ['cpu'] + ordered_cuda_devices)
 def test_move_cpu_to_cuda_device(device):
