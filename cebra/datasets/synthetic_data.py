@@ -9,29 +9,14 @@
 # Please see LICENSE.md for the full license document:
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
-"""Rat hippocampus dataset
 
-References:
-    * Grosmark, A.D., and Buzsáki, G. (2016). Diversity in neural firing dynamics supports both rigid and learned
-       hippocampal sequences. Science 351, 1440–1443.
-    * Chen, Z., Grosmark, A.D., Penagos, H., and Wilson, M.A. (2016). Uncovering representations of sleep-associated
-       hippocampal ensemble spike activity. Sci. Rep. 6, 32193.
-    * Grosmark, A.D., Long J. and Buzsáki, G. (2016); Recordings from hippocampal area CA1, PRE, during and POST
-      novel spatial learning. CRCNS.org. http://dx.doi.org/10.6080/K0862DC5
-
-"""
-
-import hashlib
 import os
 
 import joblib
-import torch
 
 import cebra.data
 from cebra.datasets import get_datapath
-from cebra.datasets import init
 from cebra.datasets import parametrize
-from cebra.datasets import register
 
 _DEFAULT_DATADIR = get_datapath()
 
@@ -93,7 +78,8 @@ synthetic_data_urls = {
 )
 class SyntheticData(cebra.data.SingleSessionDataset):
     """
-    Add documentation....
+    Synthetic datasets with poisson, gaussian, laplace, uniform,
+    and t noise during generative process.
     """
 
     def __init__(self, name, root=_DEFAULT_DATADIR, download=True):
