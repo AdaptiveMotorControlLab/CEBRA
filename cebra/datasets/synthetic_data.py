@@ -84,7 +84,7 @@ class SyntheticData(cebra.data.SingleSessionDataset):
 
     def __init__(self, name, root=_DEFAULT_DATADIR, download=True):
 
-        name = f"continuous_label_{name}"  #TODO: fix this.
+        name = f"continuous_label_{name}"
         location = os.path.join(root, "synthetic")
         file_path = os.path.join(location, f"{name}.jl")
 
@@ -95,9 +95,7 @@ class SyntheticData(cebra.data.SingleSessionDataset):
                          file_name=f"{name}.jl")
 
         data = joblib.load(file_path)
-        self.data = data
-
-        # data.keys() --> dict_keys(['z', 'u', 'lam', 'x'])
+        self.data = data  #NOTE: making it backwards compatible with synth notebook.
         self.name = name
         self.neural = self.data['z']
         self.latents = self.data['x']
