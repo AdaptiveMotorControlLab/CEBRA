@@ -48,7 +48,7 @@ def download_file_from_url(url: str) -> str:
     return filename
 
 
-def download_file_from_zip_url(url, file="montblanc_tracks.h5"):
+def download_file_from_zip_url(url, *, file):
     """Directly extract files without writing the archive to disk."""
     with tempfile.TemporaryDirectory() as tf:
         foldername = tf
