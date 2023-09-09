@@ -20,9 +20,19 @@ import cebra.integrations.deeplabcut as cebra_dlc
 from cebra import CEBRA
 from cebra import load_data
 
-ANNOTATED_DLC_URL = "https://github.com/DeepLabCut/DeepLabCut/blob/main/examples/Reaching-Mackenzie-2018-08-30/labeled-data/reachingvideo1/CollectedData_Mackenzie.h5?raw=true"
+# NOTE(stes): The original data URL is
+# https://github.com/DeepLabCut/DeepLabCut/blob/main/examples
+# /Reaching-Mackenzie-2018-08-30/labeled-data/reachingvideo1
+# /CollectedData_Mackenzie.h5?raw=true
+# which is replaced here due to rate limitations we observed in the past.
+ANNOTATED_DLC_URL = "https://figshare.com/ndownloader/files/42303564?private_link=b917317bfab725e0b207"
+
+# NOTE(stes): The original data URL is
+# https://github.com/DeepLabCut/UnitTestData/raw/main/data.zip")
+# which is replaced here due to rate limitations we observed in the past.
 MULTISESSION_PRED_DLC_URL = (
-    "https://github.com/DeepLabCut/UnitTestData/raw/main/data.zip")
+    "https://figshare.com/ndownloader/files/42303561?private_link=b917317bfab725e0b207"
+)
 
 MULTISESSION_PRED_KEYPOINTS = ["head", "tail"]
 ANNOTATED_KEYPOINTS = ["Hand", "Tongue"]
@@ -166,7 +176,7 @@ def test_multianimal_dlc_file():
 
 def test_multianimal_data_dlc_file():
     filename = cebra.helper.download_file_from_zip_url(
-        url=MULTISESSION_PRED_DLC_URL)
+        url=MULTISESSION_PRED_DLC_URL, file="montblanc_tracks.h5")
     with pytest.raises(NotImplementedError, match="Multi-animals.*"):
         _ = load_data(filename)
 
