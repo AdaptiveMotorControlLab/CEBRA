@@ -169,7 +169,7 @@ def test_load_data_dlc_invalid_keypoints(filename, keypoints):
 ### multi-animals
 def test_multianimal_dlc_file():
     filename = cebra.helper.download_file_from_zip_url(
-        url=MULTISESSION_PRED_DLC_URL)
+        url=MULTISESSION_PRED_DLC_URL, file="montblanc_tracks.h5")
     with pytest.raises(NotImplementedError, match="Multi-animals.*"):
         _ = cebra_dlc.load_deeplabcut(filename)
 
