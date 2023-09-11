@@ -908,9 +908,12 @@ def test_move_cpu_to_cuda_device(device):
     new_device = 'cpu' if device.startswith('cuda') else 'cuda:0'
     cebra_model.to(new_device)
 
-    assert cebra_model.device == torch.device(new_device)
-    assert next(cebra_model.solver_.model.parameters()).device == torch.device(
-        new_device)
+    assert cebra_model.device == new_device
+    device_model = next(cebra_model.solver_.model.parameters()).device
+    device_str = str(device_model)
+    if device_model.type == 'cuda':
+        device_str = f'cuda:{device_model.index}'
+    assert device_str == new_device
 
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
         cebra_model.save(savefile.name)
@@ -936,9 +939,12 @@ def test_move_cpu_to_mps_device(device):
     new_device = 'cpu' if device == 'mps' else 'mps'
     cebra_model.to(new_device)
 
-    assert cebra_model.device == torch.device(new_device)
-    assert next(cebra_model.solver_.model.parameters()).device == torch.device(
-        new_device)
+    assert cebra_model.device == new_device
+    device_model = next(cebra_model.solver_.model.parameters()).device
+    device_str = str(device_model)
+    if device_model.type == 'cuda':
+        device_str = f'cuda:{device_model.index}'
+    assert device_str == new_device
 
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
         cebra_model.save(savefile.name)
@@ -972,9 +978,12 @@ def test_move_mps_to_cuda_device(device):
     new_device = 'mps' if device.startswith('cuda') else 'cuda:0'
     cebra_model.to(new_device)
 
-    assert cebra_model.device == torch.device(new_device)
-    assert next(cebra_model.solver_.model.parameters()).device == torch.device(
-        new_device)
+    assert cebra_model.device == new_device
+    device_model = next(cebra_model.solver_.model.parameters()).device
+    device_str = str(device_model)
+    if device_model.type == 'cuda':
+        device_str = f'cuda:{device_model.index}'
+    assert device_str == new_device
 
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
         cebra_model.save(savefile.name)
