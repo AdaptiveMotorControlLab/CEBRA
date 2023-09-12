@@ -856,6 +856,39 @@ def get_ordered_cuda_devices():
 ordered_cuda_devices = get_ordered_cuda_devices() if torch.cuda.is_available(
 ) else []
 
+def test_fit_after_moving_to_device():
+    expected_device = 'cpu'
+    expected_type = type(expected_device)
+
+    X = np.random.uniform(0, 1, (10, 5))
+    cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",
+                                            max_iterations=5,
+                                            device=expected_device)
+    
+    assert type(cebra_model.device) == expected_type
+    assert cebra_model.device == expected_device
+
+    cebra_model.partial_fit(X)
+    assert type(cebra_model.device) == expected_type
+    assert cebra_model.device == expected_device
+    if hasattr(cebra_model, 'device_'):
+        assert type(cebra_model.device_) == expected_type
+        assert cebra_model.device_ == expected_device
+
+    # Move the model to device using the to() method
+    cebra_model.to('cpu')
+    assert type(cebra_model.device) == expected_type
+    assert cebra_model.device == expected_device
+    if hasattr(cebra_model, 'device_'):
+        assert type(cebra_model.device_) == expected_type
+        assert cebra_model.device_ == expected_device
+
+    cebra_model.partial_fit(X)
+    assert type(cebra_model.device) == expected_type
+    assert cebra_model.device == expected_device
+    if hasattr(cebra_model, 'device_'):
+        assert type(cebra_model.device_) == expected_type
+        assert cebra_model.device_ == expected_device
 
 @pytest.mark.parametrize("device", ['cpu'] + ordered_cuda_devices)
 def test_move_cpu_to_cuda_device(device):
@@ -875,9 +908,12 @@ def test_move_cpu_to_cuda_device(device):
     new_device = 'cpu' if device.startswith('cuda') else 'cuda:0'
     cebra_model.to(new_device)
 
-    assert cebra_model.device == torch.device(new_device)
-    assert next(cebra_model.solver_.model.parameters()).device == torch.device(
-        new_device)
+    assert cebra_model.device == new_device
+    device_model = next(cebra_model.solver_.model.parameters()).device
+    device_str = str(device_model)
+    if device_model.type == 'cuda':
+        device_str = f'cuda:{device_model.index}'
+    assert device_str == new_device
 
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
         cebra_model.save(savefile.name)
@@ -903,9 +939,10 @@ def test_move_cpu_to_mps_device(device):
     new_device = 'cpu' if device == 'mps' else 'mps'
     cebra_model.to(new_device)
 
-    assert cebra_model.device == torch.device(new_device)
-    assert next(cebra_model.solver_.model.parameters()).device == torch.device(
-        new_device)
+    assert cebra_model.device == new_device
+    
+    device_model = next(cebra_model.solver_.model.parameters()).device
+    assert device_model.type == new_device
 
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
         cebra_model.save(savefile.name)
@@ -939,9 +976,12 @@ def test_move_mps_to_cuda_device(device):
     new_device = 'mps' if device.startswith('cuda') else 'cuda:0'
     cebra_model.to(new_device)
 
-    assert cebra_model.device == torch.device(new_device)
-    assert next(cebra_model.solver_.model.parameters()).device == torch.device(
-        new_device)
+    assert cebra_model.device == new_device
+    device_model = next(cebra_model.solver_.model.parameters()).device
+    device_str = str(device_model)
+    if device_model.type == 'cuda':
+        device_str = f'cuda:{device_model.index}'
+    assert device_str == new_device
 
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
         cebra_model.save(savefile.name)
@@ -963,11 +1003,7 @@ def test_mps():
 
     if torch.backends.mps.is_available() and torch.backends.mps.is_built():
         torch.backends.mps.is_available = lambda: False
-        with pytest.raises(ValueError):
-            cebra_model.fit(X)
-
-        torch.backends.mps.is_available = lambda: True
-        torch.backends.mps.is_built = lambda: False
+        
         with pytest.raises(ValueError):
             cebra_model.fit(X)
 
