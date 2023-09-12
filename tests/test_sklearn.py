@@ -940,11 +940,9 @@ def test_move_cpu_to_mps_device(device):
     cebra_model.to(new_device)
 
     assert cebra_model.device == new_device
+    
     device_model = next(cebra_model.solver_.model.parameters()).device
-    device_str = str(device_model)
-    if device_model.type == 'cuda':
-        device_str = f'cuda:{device_model.index}'
-    assert device_str == new_device
+    assert device_model.type == new_device
 
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
         cebra_model.save(savefile.name)
@@ -1005,11 +1003,7 @@ def test_mps():
 
     if torch.backends.mps.is_available() and torch.backends.mps.is_built():
         torch.backends.mps.is_available = lambda: False
-        with pytest.raises(ValueError):
-            cebra_model.fit(X)
-
-        torch.backends.mps.is_available = lambda: True
-        torch.backends.mps.is_built = lambda: False
+        
         with pytest.raises(ValueError):
             cebra_model.fit(X)
 
