@@ -14,6 +14,7 @@ import copy
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pkg_resources
 import pytest
 import torch
 from sklearn.exceptions import NotFittedError
@@ -143,10 +144,32 @@ def test_plot_loss():
     plt.close()
 
 
+@pytest.mark.parametrize("matplotlib_version",
+                         ["3.3", "3.4.2", "3.5", "3.6", "3.7"])
+def test_compare_models_with_different_versions(matplotlib_version):
+    # example dataset
+    X = np.random.uniform(0, 1, (1000, 2))
+    n_models = 2
+
+    fitted_models = []
+    for _ in range(n_models):
+        fitted_models.append(
+            cebra_sklearn_cebra.CEBRA(max_iterations=10, batch_size=128).fit(X))
+
+    # minimum version of matplotlib
+    minimum_version = "3.6"
+
+    if pkg_resources.parse_version(
+            matplotlib_version) < pkg_resources.parse_version(minimum_version):
+        with pytest.raises(ImportError):
+            cebra_plot.compare_models(models=fitted_models,
+                                      patched_version=matplotlib_version)
+
+
 def test_compare_models():
     # example dataset
-    X = np.random.uniform(0, 1, (1000, 50))
-    n_models = 10
+    X = np.random.uniform(0, 1, (100, 5))
+    n_models = 4
 
     fig = plt.figure(figsize=(5, 5))
     ax = fig.add_subplot()

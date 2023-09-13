@@ -19,8 +19,8 @@ import requests
 import torch
 
 import cebra.data
-import cebra.datasets
 import cebra.data.assets as cebra_data_assets
+import cebra.datasets
 import cebra.registry
 from cebra.datasets import poisson
 
@@ -299,10 +299,20 @@ def parametrize_data(function):
          "a83b02dbdc884fdd7e53df362499d42f"),
         ("gatsby.jl",
          "https://figshare.com/ndownloader/files/40849454?private_link=9f91576cbbcc8b0d8828",
-         "2b889da48178b3155011c12555342813")
+         "2b889da48178b3155011c12555342813"),
+        ("all_all.jl",
+         "https://figshare.com/ndownloader/files/41668764?private_link=6fa4ee74a8f465ec7914",
+         "dea556301fa4fafa86e28cf8621cab5a"),
+        ("active_all.jl",
+         "https://figshare.com/ndownloader/files/41668776?private_link=6fa4ee74a8f465ec7914",
+         "c626acea5062122f5a68ef18d3e45e51"),
+        ("passive_all.jl",
+         "https://figshare.com/ndownloader/files/41668758?private_link=6fa4ee74a8f465ec7914",
+         "bbb1bc9d8eec583a46f6673470fc98ad"),
     ])(function)
 
 
+@pytest.mark.requires_dataset
 @parametrize_data
 def test_download_file_successful_download(filename, url, expected_checksum):
     with tempfile.TemporaryDirectory() as temp_dir:

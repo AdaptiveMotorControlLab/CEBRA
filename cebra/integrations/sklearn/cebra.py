@@ -1448,21 +1448,21 @@ class CEBRA(BaseEstimator, TransformerMixin):
             raise TypeError(
                 "The 'device' parameter must be a string or torch.device object."
             )
-
-        if (not device == 'cpu') and (not device.startswith('cuda')) and (
-                not device == 'mps'):
-            raise ValueError(
-                "The 'device' parameter must be a valid device string or device object."
-            )
-
+        
         if isinstance(device, str):
-            device = torch.device(device)
+            if (not device == 'cpu') and (not device.startswith('cuda')) and (
+                    not device == 'mps'):
+                raise ValueError(
+                    "The 'device' parameter must be a valid device string or device object."
+                )
 
-        if (not device.type == 'cpu') and (
-                not device.type.startswith('cuda')) and (not device == 'mps'):
-            raise ValueError(
-                "The 'device' parameter must be a valid device string or device object."
-            )
+        elif isinstance(device, torch.device):
+            if (not device.type == 'cpu') and (
+                    not device.type.startswith('cuda')) and (not device == 'mps'):
+                raise ValueError(
+                    "The 'device' parameter must be a valid device string or device object."
+                )
+            device = device.type
 
         if hasattr(self, "device_"):
             self.device_ = device

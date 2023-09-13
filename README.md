@@ -8,6 +8,7 @@
 
 
 [📚Documentation](https://cebra.ai/docs/) |
+[💡DEMOS](https://cebra.ai/docs/demos.html) |
 [🛠️ Installation](https://cebra.ai/docs/installation.html) |
 [🌎 Home Page](https://www.cebra.ai) |
 [🚨 News](https://cebra.ai/docs/index.html) |
