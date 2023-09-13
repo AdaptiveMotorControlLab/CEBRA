@@ -14,7 +14,7 @@
 import copy
 import itertools
 import warnings
-from typing import Callable, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Callable, Iterable, List, Literal, Optional, Tuple, Union, Dict
 
 import numpy as np
 import numpy.typing as npt
