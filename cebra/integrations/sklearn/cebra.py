@@ -274,7 +274,7 @@ def _check_type_checkpoint(checkpoint):
     return checkpoint
 
 
-def _load_cebra_with_sklearn_backend(cebra_info: dict) -> "CEBRA":
+def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
     """Loads a CEBRA model with a Sklearn backend.
 
     Args:
