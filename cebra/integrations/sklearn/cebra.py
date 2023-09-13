@@ -1294,7 +1294,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
         }
         return state
 
-    def save(self, filename: str, backend: str = "sklearn"):
+    def save(self, filename: str, backend: Literal["torch", "sklearn"] = "sklearn"):
         """Save the model to disk.
 
         Args:
