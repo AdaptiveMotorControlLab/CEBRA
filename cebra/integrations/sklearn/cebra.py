@@ -1369,7 +1369,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
     @classmethod
     def load(cls,
              filename: str,
-             backend: Literal = "auto",
+             backend: Literal["auto", "sklearn", "torch"] = "auto",
              **kwargs) -> "CEBRA":
         """Load a model from disk.
 
