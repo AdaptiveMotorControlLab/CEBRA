@@ -14,7 +14,8 @@
 import copy
 import itertools
 import warnings
-from typing import Callable, Iterable, List, Literal, Optional, Tuple, Union, Dict
+from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
+                    Union)
 
 import numpy as np
 import numpy.typing as npt
@@ -1294,7 +1295,9 @@ class CEBRA(BaseEstimator, TransformerMixin):
         }
         return state
 
-    def save(self, filename: str, backend: Literal["torch", "sklearn"] = "sklearn"):
+    def save(self,
+             filename: str,
+             backend: Literal["torch", "sklearn"] = "sklearn"):
         """Save the model to disk.
 
         Args:
@@ -1385,7 +1388,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             Experimental functionality. Do not expect the save/load functionalities to be
             backward compatible yet between CEBRA versions!
 
-            For information about the file format we refer to :py:meth:`CEBRA.save`.
+            For information about the file format we refer to :py:meth:`cebra.CEBRA.save`.
 
         Example:
 
@@ -1396,7 +1399,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> embedding = loaded_model.transform(dataset)
 
         """
-        
+
         supported_backends = ["auto", "sklearn", "torch"]
         if backend not in supported_backends:
             raise NotImplementedError(
@@ -1448,7 +1451,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             raise TypeError(
                 "The 'device' parameter must be a string or torch.device object."
             )
-        
+
         if isinstance(device, str):
             if (not device == 'cpu') and (not device.startswith('cuda')) and (
                     not device == 'mps'):
@@ -1458,7 +1461,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
         elif isinstance(device, torch.device):
             if (not device.type == 'cpu') and (
-                    not device.type.startswith('cuda')) and (not device == 'mps'):
+                    not device.type.startswith('cuda')) and (not device
+                                                             == 'mps'):
                 raise ValueError(
                     "The 'device' parameter must be a valid device string or device object."
                 )
