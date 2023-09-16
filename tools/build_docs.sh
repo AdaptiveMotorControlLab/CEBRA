@@ -25,7 +25,6 @@ checkout_cebra_figures() {
 
 checkout_assets() {
     git_checkout_or_pull git@github.com:AdaptiveMotorControlLab/cebra-assets.git assets
-    cp -r assets/* .
 }
 
 checkout_cebra_demos() {
@@ -40,7 +39,7 @@ setup_python() {
 }
 
 build_docs() {
-    ls docs/source/cebra-figures
+    cp -r assets/* .
     export SPHINXOPTS="-W --keep-going -n"
     (cd docs && PYTHONPATH=.. make page)
 }
