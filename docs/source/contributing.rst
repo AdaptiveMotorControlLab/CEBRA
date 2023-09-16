@@ -132,6 +132,13 @@ To build the docs and verify the demo notebooks, you can run
 
 to build the full documentation, and render it on `http://127.0.0.1:8080` in your webbrowser to verify.
 
+For local edits,
+- CEBRA-assets is checked out under the ``/assets/`` path
+- CEBRA-figures is checkout out under the ``/docs/source/cebra-figures/`` path
+- CEBRA-demos is checkout out under the ``/docs/source/demo_notebooks/`` path
+
+You can edit files there, create branches, and re-run ``./tools/build_docs.sh`` for re-building the docs. 
+
 
 Building the Python package (information for maintainers only)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
