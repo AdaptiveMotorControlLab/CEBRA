@@ -10,12 +10,10 @@
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
 """Matplotlib interface to CEBRA."""
-
 import abc
 from collections.abc import Iterable
 from typing import List, Literal, Optional, Tuple, Union
 
-import matplotlib
 import matplotlib.axes
 import matplotlib.cm
 import matplotlib.colors
@@ -483,8 +481,8 @@ class _EmbeddingPlot(_BasePlot):
             self.ax = self._plot_3d(**kwargs)
         else:
             self.ax = self._plot_2d(**kwargs)
-
-        self.ax.set_title(self.title)
+        if isinstance(self.ax, matplotlib.axes._axes.Axes):
+            self.ax.set_title(self.title)
 
         return self.ax
 
@@ -736,10 +734,8 @@ def plot_overview(
     figsize: tuple = (15, 4),
     dpi: int = 100,
     **kwargs,
-) -> Tuple[
-        matplotlib.figure.Figure,
-        Tuple[matplotlib.axes.Axes, matplotlib.axes.Axes, matplotlib.axes.Axes],
-]:
+) -> Tuple[matplotlib.figure.Figure, Tuple[
+        matplotlib.axes.Axes, matplotlib.axes.Axes, matplotlib.axes.Axes]]:
     """Plot an overview of a trained CEBRA model.
 
     Args:
