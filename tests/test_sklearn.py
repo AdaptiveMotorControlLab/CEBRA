@@ -808,23 +808,23 @@ def _assert_same_state_dict(first, second):
             assert first[key] == second[key]
 
 
-def check_fitted(model):
-    """Check if a model is fitted.
+def check_if_fit(model):
+    """Check if a model was already fit.
 
     Args:
-        model: The model to assess.
+        model: The model to check.
 
     Returns:
-        True if fitted.
+        True if the model was already fit.
     """
     return hasattr(model, "n_features_")
 
 
 def _assert_equal(original_model, loaded_model):
     assert original_model.get_params() == loaded_model.get_params()
-    assert check_fitted(loaded_model) == check_fitted(original_model)
+    assert check_if_fit(loaded_model) == check_if_fit(original_model)
 
-    if check_fitted(loaded_model):
+    if check_if_fit(loaded_model):
         _assert_same_state_dict(original_model.state_dict_,
                                 loaded_model.state_dict_)
         X = np.random.normal(0, 1, (100, 1))
@@ -884,7 +884,7 @@ def test_save_and_load(action, backend_save, backend_load, model_architecture,
 
     original_model = action(original_model)
     with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
-        if not check_fitted(original_model):
+        if not check_if_fit(original_model):
             with pytest.raises(ValueError):
                 original_model.save(savefile.name, backend=backend_save)
         else:

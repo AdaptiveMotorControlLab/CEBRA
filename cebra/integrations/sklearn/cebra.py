@@ -279,20 +279,22 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
     """Loads a CEBRA model with a Sklearn backend.
 
     Args:
-        cebra_info: A dictionary containing information about the CEBRA model.
+        cebra_info: A dictionary containing information about the CEBRA object,
+            including the arguments, the state of the object and the state
+            dictionary of the model.
 
     Returns:
        The loaded CEBRA object.
 
     Raises:
-        ValueError: If the loaded CEBRA model is not fitted, indicating that loading it is not supported.
+        ValueError: If the loaded CEBRA model was not already fit, indicating that loading it is not supported.
     """
     required_keys = ['args', 'state', 'state_dict']
     missing_keys = [key for key in required_keys if key not in cebra_info]
     if missing_keys:
         raise ValueError(
             f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
-            f"You can try loading the CEBRA model with a different backend.")
+            f"You can try loading the CEBRA model with the torch backend.")
 
     args, state, state_dict = cebra_info['args'], cebra_info[
         'state'], cebra_info['state_dict']
@@ -305,7 +307,7 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
 
     if not sklearn_utils.check_fitted(cebra_):
         raise ValueError(
-            "CEBRA model is not fitted. Loading it is not supported.")
+            "CEBRA model was not already fit. Loading it is not supported.")
 
     if cebra_.num_sessions_ is None:
         model = cebra.models.init(
@@ -1388,7 +1390,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             Experimental functionality. Do not expect the save/load functionalities to be
             backward compatible yet between CEBRA versions!
 
-            For information about the file format we refer to :py:meth:`cebra.CEBRA.save`.
+            For information about the file format please refer to :py:meth:`cebra.CEBRA.save`.
 
         Example:
 
@@ -1416,7 +1418,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 f"Cannot use 'torch' backend with a dictionary-based checkpoint. "
                 f"Please try a different backend.")
         if not isinstance(checkpoint, dict) and backend == "sklearn":
-            raise RuntimeError(f"Cannot use 'sklearn' backend. "
+            raise RuntimeError(f"Cannot use 'sklearn' backend a non dictionary-based checkpoint. "
                                f"Please try a different backend.")
 
         if backend == "sklearn":
