@@ -164,10 +164,9 @@ class ContinuousDataLoader(cebra_data.Loader):
     * auxiliary variables, using the empirical distribution of how behavior various across
       ``time_offset`` timesteps (``time_delta``). Sampling for this setting is implemented
       in :py:class:`cebra.distributions.continuous.TimedeltaDistribution`.
-    * alternatively, the distribution can be selected to be a Gaussian or Von Misher Fisher distribution
+    * alternatively, the distribution can be selected to be a Gaussian
       parametrized by a fixed ``delta`` around the reference sample, using the implementation in
-      :py:class:`cebra.distributions.continuous.DeltaNormalDistribution` and
-      :py:class:`cebra.distributions.continuous.DeltaVMFDistribution`.
+      :py:class:`cebra.distributions.continuous.DeltaNormalDistribution`.
 
     Args:
         See dataclass fields.
