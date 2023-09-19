@@ -736,8 +736,10 @@ def plot_overview(
     figsize: tuple = (15, 4),
     dpi: int = 100,
     **kwargs,
-) -> Tuple[matplotlib.figure.Figure, Tuple[
-        matplotlib.axes.Axes, matplotlib.axes.Axes, matplotlib.axes.Axes],]:
+) -> Tuple[
+        matplotlib.figure.Figure,
+        Tuple[matplotlib.axes.Axes, matplotlib.axes.Axes, matplotlib.axes.Axes],
+]:
     """Plot an overview of a trained CEBRA model.
 
     Args:
@@ -1130,6 +1132,10 @@ def plot_consistency(
     ).plot(**kwargs)
 
 
+from cebra.helper import requires_package_version
+
+
+@requires_package_version(matplotlib, "3.6")
 def compare_models(
     models: List[CEBRA],
     labels: Optional[List[str]] = None,
@@ -1183,8 +1189,10 @@ def compare_models(
         The axis of the generated plot. If no ``ax`` argument was specified, it will be created
         by the function and returned here.
     """
+
     if not isinstance(models, list):
         raise ValueError(f"Invalid list of models, got {type(models)}.")
+
     for model in models:
         if not isinstance(model, CEBRA):
             raise ValueError(

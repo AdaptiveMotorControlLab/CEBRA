@@ -87,15 +87,15 @@ class SingleSessionSolver(abc_.Solver):
 class SingleSessionAuxVariableSolver(abc_.Solver):
     """Single session training for reference and positive/negative samples.
 
-    This solver processes reference samples with a model different from 
+    This solver processes reference samples with a model different from
     processing the positive and
     negative samples. Requires that the ``reference_model`` is initialized
-    to be different from the ``model`` used to process the positive and 
+    to be different from the ``model`` used to process the positive and
     negative samples.
 
-    Besides using an asymmetric encoder for the same modality, this solver 
-    also allows for e.g. time-contrastive learning across modalities, by 
-    using a reference model on modality A, and a different model processing 
+    Besides using an asymmetric encoder for the same modality, this solver
+    also allows for e.g. time-contrastive learning across modalities, by
+    using a reference model on modality A, and a different model processing
     the signal from modality B.
     """
 

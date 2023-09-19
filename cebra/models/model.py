@@ -697,7 +697,7 @@ class Offset36(_OffsetModel, ConvolutionalModelMixin):
 @_register_conditionally("offset36-model-dropout")
 class Offset36Dropout(_OffsetModel, ConvolutionalModelMixin):
     """CEBRA model with a 10 sample receptive field.
-    
+
     Note:
         Requires ``torch>=1.12``.
     """
@@ -741,7 +741,7 @@ class Offset36Dropout(_OffsetModel, ConvolutionalModelMixin):
 @_register_conditionally("offset36-model-more-dropout")
 class Offset36Dropoutv2(_OffsetModel, ConvolutionalModelMixin):
     """CEBRA model with a 10 sample receptive field.
-    
+
     Note:
         Requires ``torch>=1.12``.
     """

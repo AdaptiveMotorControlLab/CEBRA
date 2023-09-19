@@ -123,12 +123,12 @@ def test_orthogonal_alignment_shapes(ref_data, data, ref_labels, labels):
     assert _does_shape_match(data, aligned_embedding)
 
     # Test with non-default parameters
-    alignment_model = cebra_data_helper.OrthogonalProcrustesAlignment(
-        top_k=10, subsample=1000)
+    alignment_model = cebra_data_helper.OrthogonalProcrustesAlignment(top_k=10)
 
     aligned_embedding = alignment_model.fit_transform(ref_data, data,
                                                       ref_labels, labels)
-    assert _does_shape_match(data, aligned_embedding)
+    assert _does_shape_match(data, aligned_embedding), (data.shape,
+                                                        aligned_embedding.shape)
 
 
 @pytest.mark.parametrize("ref_data,data,ref_labels,labels,match",
@@ -144,8 +144,8 @@ def test_invalid_orthogonal_alignment(ref_data, data, ref_labels, labels,
 def test_orthogonal_alignment_without_labels():
     random_seed = 2160
     np.random.seed(random_seed)
-    embedding_100_4d = np.random.uniform(0, 1, (100, 4))
-    embedding_100_4d_2 = np.random.uniform(0, 1, (100, 4))
+    embedding_100_4d = np.random.uniform(0, 1, (1000, 4))
+    embedding_100_4d_2 = np.random.uniform(0, 1, (1000, 4))
 
     alignment_model = cebra_data_helper.OrthogonalProcrustesAlignment()
 
@@ -156,18 +156,15 @@ def test_orthogonal_alignment_without_labels():
     aligned_embedding_without_labels = alignment_model.transform(
         embedding_100_4d_2)
 
-    assert np.allclose(aligned_embedding,
-                       aligned_embedding_without_labels,
-                       atol=0.1)
+    assert np.allclose(aligned_embedding, aligned_embedding_without_labels)
 
 
-def test_orthogonal_alignment():
-    random_seed = 483
-    np.random.seed(random_seed)
-    embedding_100_4d = np.random.uniform(0, 1, (100, 4))
-    orthogonal_matrix = scipy.stats.ortho_group.rvs(dim=4,
-                                                    random_state=random_seed)
-    labels_100_1d = np.random.uniform(0, 1, (100, 1))
+@pytest.mark.parametrize("seed", [483, 425, 166, 672, 123])
+def test_orthogonal_alignment(seed):
+    np.random.seed(seed)
+    embedding_100_4d = np.random.uniform(0, 1, (1000, 4))
+    orthogonal_matrix = scipy.stats.ortho_group.rvs(dim=4, random_state=seed)
+    labels_100_1d = np.random.uniform(0, 1, (1000, 1))
 
     alignment_model = cebra_data_helper.OrthogonalProcrustesAlignment()
     aligned_embedding = alignment_model.fit_transform(ref_data=embedding_100_4d,
@@ -176,14 +173,14 @@ def test_orthogonal_alignment():
                                                           orthogonal_matrix),
                                                       ref_label=labels_100_1d,
                                                       label=labels_100_1d)
-    assert np.allclose(aligned_embedding, embedding_100_4d, atol=0.05)
+    assert np.allclose(aligned_embedding, embedding_100_4d, atol=0.03)
 
     # and without labels
     aligned_embedding = alignment_model.fit_transform(ref_data=embedding_100_4d,
                                                       data=np.dot(
                                                           embedding_100_4d,
                                                           orthogonal_matrix))
-    assert np.allclose(aligned_embedding, embedding_100_4d, atol=0.05)
+    assert np.allclose(aligned_embedding, embedding_100_4d, atol=0.03)
 
 
 def _initialize_embedding_ensembling_data():
@@ -277,9 +274,7 @@ def test_embeddings_ensembling_without_labels():
         embeddings=[embedding_100_4d, embedding_100_4d_2], labels=[None, None])
     joint_embedding_without_labels = cebra_data_helper.ensemble_embeddings(
         embeddings=[embedding_100_4d, embedding_100_4d_2])
-    assert np.allclose(joint_embedding,
-                       joint_embedding_without_labels,
-                       atol=0.05)
+    assert np.allclose(joint_embedding, joint_embedding_without_labels)
 
 
 @pytest.mark.parametrize("embeddings,labels,n_jobs,match",
@@ -293,16 +288,14 @@ def test_invalid_embedding_ensembling(embeddings, labels, n_jobs, match):
         )
 
 
-def test_embedding_ensembling():
-    random_seed = 27
-    np.random.seed(random_seed)
+@pytest.mark.parametrize("seed", [483, 426, 166, 674, 123])
+def test_embedding_ensembling(seed):
+    np.random.seed(seed)
     embedding_100_4d = np.random.uniform(0, 1, (100, 4))
     labels_100_1d = np.random.uniform(0, 1, (100, 1))
-    orthogonal_matrix = scipy.stats.ortho_group.rvs(dim=4,
-                                                    random_state=random_seed)
+    orthogonal_matrix = scipy.stats.ortho_group.rvs(dim=4, random_state=seed)
     orthogonal_matrix_2 = scipy.stats.ortho_group.rvs(dim=4,
-                                                      random_state=random_seed +
-                                                      1)
+                                                      random_state=seed + 1)
 
     embedding_100_4d_2 = np.dot(embedding_100_4d, orthogonal_matrix)
     embedding_100_4d_3 = np.dot(embedding_100_4d, orthogonal_matrix_2)

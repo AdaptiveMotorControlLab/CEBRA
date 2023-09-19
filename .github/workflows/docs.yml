@@ -3,10 +3,10 @@ name: Build docs
 on:
   push:
     branches:
-      - main 
+      - main
   pull_request:
     branches:
-      - main 
+      - main
       - public
       - dev
 
@@ -25,13 +25,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Checkout cebra figures 
+      - name: Checkout cebra figures
         uses: actions/checkout@v3
         with:
           repository: AdaptiveMotorControlLab/cebra-figures
           path: docs/source/cebra-figures
           ref: main
-          token: ${{ secrets.GH_PAT_FIGURES }}
 
       - name: Checkout assets
         uses: actions/checkout@v3
@@ -39,20 +38,18 @@ jobs:
           repository: AdaptiveMotorControlLab/cebra-assets
           path: assets
           ref: main
-          token: ${{ secrets.GH_PAT_FIGURES }}
 
       - name: Add assets to repo
         run: |
           cp -r assets/* .
           rm -r assets
 
-      - name: Checkout cebra demos 
+      - name: Checkout cebra demos
         uses: actions/checkout@v3
         with:
           repository: AdaptiveMotorControlLab/cebra-demos
           path: docs/source/demo_notebooks
           ref: main
-          token: ${{ secrets.GH_PAT_FIGURES }}
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
@@ -73,18 +70,32 @@ jobs:
           export SPHINXOPTS="-W --keep-going -n"
           make docs
 
-      - name: Deploy docs (staging)
-        uses: cpina/github-action-push-to-another-repository@main
-        if: github.ref != 'refs/heads/main'
-        env:
-          API_TOKEN_GITHUB: ${{ secrets.GH_PAT_WEBSITE }}
-        with:
-          source-directory: 'docs/page'
-          destination-github-username: 'stes'
-          destination-repository-name: 'cebra-ai'
-          user-name: stes
-          user-email: steffen@bethgelab.org
-          target-branch: staging
+      # NOTE(stes): To avoid issues as observed in
+      # https://github.com/AdaptiveMotorControlLab/CEBRA/pull/20, we modified
+      # this workflow to not rely on PATs. All repos except for the website
+      # repo are public and only read access is required, so we simply removed
+      # the tokens from the checkout actions.
+      #
+      # For pushing the docs, I temporarily disabled the staging repo, which
+      # does not add anything informative to the contributor anyways, as it just
+      # tests whether or not docs can be pushed (the staging branch is not deployed).
+      #
+      # The production branch will be built after the PR is merged to main.
+      #
+      # Commented code for staging branch:
+
+      #- name: Deploy docs (staging)
+      #  uses: cpina/github-action-push-to-another-repository@main
+      #  if: github.ref != 'refs/heads/main'
+      #  env:
+      #    API_TOKEN_GITHUB: ${{ secrets.GH_PAT_WEBSITE }}
+      #  with:
+      #    source-directory: 'docs/page'
+      #    destination-github-username: 'stes'
+      #    destination-repository-name: 'cebra-ai'
+      #    user-name: stes
+      #    user-email: steffen@bethgelab.org
+      #    target-branch: staging
 
       - name: Deploy docs (production)
         uses: cpina/github-action-push-to-another-repository@main
@@ -97,5 +108,4 @@ jobs:
           destination-repository-name: 'cebra-ai'
           user-name: stes
           user-email: steffen@bethgelab.org
-          target-branch: main 
-
+          target-branch: main

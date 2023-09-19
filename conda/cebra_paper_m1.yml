@@ -10,7 +10,7 @@
 ## https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 ##
 
-#NOTE: if you need to install piVAE, then you need to install tensorflow for apple. This is NOT required for cebra-only use. 
+#NOTE: if you need to install piVAE, then you need to install tensorflow for apple. This is NOT required for cebra-only use.
 #for M1/m2 chip, use miniconda3 (https://developer.apple.com/metal/tensorflow-plugin/)
 # Get the miniconda M1/M2 bash installer, as explained in
 # https://docs.conda.io/projects/conda/en/latest/user-guide/install/macos.html

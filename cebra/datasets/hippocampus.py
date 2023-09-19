@@ -12,11 +12,11 @@
 """Rat hippocampus dataset
 
 References:
-    * Grosmark, A.D., and Buzsáki, G. (2016). Diversity in neural firing dynamics supports both rigid and learned 
+    * Grosmark, A.D., and Buzsáki, G. (2016). Diversity in neural firing dynamics supports both rigid and learned
        hippocampal sequences. Science 351, 1440–1443.
-    * Chen, Z., Grosmark, A.D., Penagos, H., and Wilson, M.A. (2016). Uncovering representations of sleep-associated 
+    * Chen, Z., Grosmark, A.D., Penagos, H., and Wilson, M.A. (2016). Uncovering representations of sleep-associated
        hippocampal ensemble spike activity. Sci. Rep. 6, 32193.
-    * Grosmark, A.D., Long J. and Buzsáki, G. (2016); Recordings from hippocampal area CA1, PRE, during and POST 
+    * Grosmark, A.D., Long J. and Buzsáki, G. (2016); Recordings from hippocampal area CA1, PRE, during and POST
       novel spatial learning. CRCNS.org. http://dx.doi.org/10.6080/K0862DC5
 
 """
@@ -39,6 +39,33 @@ from cebra.datasets import register
 
 _DEFAULT_DATADIR = get_datapath()
 
+rat_dataset_urls = {
+    "achilles": {
+        "url":
+            "https://figshare.com/ndownloader/files/40849463?private_link=9f91576cbbcc8b0d8828",
+        "checksum":
+            "c52f9b55cbc23c66d57f3842214058b8"
+    },
+    "buddy": {
+        "url":
+            "https://figshare.com/ndownloader/files/40849460?private_link=9f91576cbbcc8b0d8828",
+        "checksum":
+            "36341322907708c466871bf04bc133c2"
+    },
+    "cicero": {
+        "url":
+            "https://figshare.com/ndownloader/files/40849457?private_link=9f91576cbbcc8b0d8828",
+        "checksum":
+            "a83b02dbdc884fdd7e53df362499d42f"
+    },
+    "gatsby": {
+        "url":
+            "https://figshare.com/ndownloader/files/40849454?private_link=9f91576cbbcc8b0d8828",
+        "checksum":
+            "2b889da48178b3155011c12555342813"
+    }
+}
+
 
 @register("rat-hippocampus-single")
 @parametrize(
@@ -56,10 +83,17 @@ class SingleRatDataset(cebra.data.SingleSessionDataset):
 
     """
 
-    def __init__(self, name="achilles", root=_DEFAULT_DATADIR):
-        super().__init__()
-        path = os.path.join(root, f"rat_hippocampus/{name}.jl")
-        data = joblib.load(path)
+    def __init__(self, name="achilles", root=_DEFAULT_DATADIR, download=True):
+        location = os.path.join(root, "rat_hippocampus")
+        file_path = os.path.join(location, f"{name}.jl")
+
+        super().__init__(download=download,
+                         data_url=rat_dataset_urls[name]["url"],
+                         data_checksum=rat_dataset_urls[name]["checksum"],
+                         location=location,
+                         file_name=f"{name}.jl")
+
+        data = joblib.load(file_path)
         self.neural = torch.from_numpy(data["spikes"]).float()
         self.index = torch.from_numpy(data["position"]).float()
         self.name = name
@@ -150,8 +184,8 @@ class SingleRatTrialSplitDataset(SingleRatDataset):
 
         """
 
-        direction_change_idx = np.where(
-            self.index[1:, 1] != self.index[:-1, 1])[0]
+        direction_change_idx = np.where(self.index[1:, 1] != self.index[:-1,
+                                                                        1])[0]
         trial_change_idx = np.append(
             np.insert(direction_change_idx[1::2], 0, 0), len(self.index))
         total_trials_num = len(trial_change_idx) - 1

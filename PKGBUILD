@@ -1,7 +1,7 @@
 # Maintainer: Steffen Schneider <stes@hey.com>
 pkgname=python-cebra
 _pkgname=cebra
-pkgver=0.2.0
+pkgver=0.3.0rc1
 pkgrel=1
 pkgdesc="Consistent Embeddings of high-dimensional Recordings using Auxiliary variables"
 url="https://cebra.ai"
@@ -39,7 +39,7 @@ build() {
 
 package() {
     cd $srcdir/${_pkgname}-${pkgver}
-    pip install --ignore-installed --no-deps --root="${pkgdir}" dist/${_pkgname}-${pkgver}-py2.py3-none-any.whl 
+    pip install --ignore-installed --no-deps --root="${pkgdir}" dist/${_pkgname}-${pkgver}-py2.py3-none-any.whl
     find ${pkgdir} -iname __pycache__ -exec rm -r {} \; 2>/dev/null || echo
     install -Dm 644 LICENSE.md $pkgdir/usr/share/licenses/${pkgname}/LICENSE
 }

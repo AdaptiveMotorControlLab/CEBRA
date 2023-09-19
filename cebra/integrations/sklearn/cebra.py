@@ -746,8 +746,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
             else:
                 label_types_idx = self._label_types[i][session_id]
 
-            if (len(label_types_idx[1]) > 1 and len(y[i].shape) >
-                    1):  # is there more than one feature in the index
+            if (len(label_types_idx[1]) > 1 and len(y[i].shape)
+                    > 1):  # is there more than one feature in the index
                 if label_types_idx[1][1] != y[i].shape[1]:
                     raise ValueError(
                         f"Labels invalid: must have the same number of features as the ones used for fitting,"
@@ -1256,3 +1256,52 @@ class CEBRA(BaseEstimator, TransformerMixin):
             raise RuntimeError("Model loaded from file is not compatible with "
                                "the current CEBRA version.")
         return model
+
+    def to(self, device: Union[str, torch.device]):
+        """Moves the cebra model to the specified device.
+
+        Args:
+            device: The device to move the cebra model to. This can be a string representing
+                    the device ('cpu','cuda', cuda:device_id, or 'mps') or a torch.device object.
+
+        Returns:
+            The cebra model instance.
+
+        Example:
+
+            >>> import cebra
+            >>> import numpy as np
+            >>> dataset =  np.random.uniform(0, 1, (1000, 30))
+            >>> cebra_model = cebra.CEBRA(max_iterations=10, device = "cuda_if_available")
+            >>> cebra_model.fit(dataset)
+            CEBRA(max_iterations=10)
+            >>> cebra_model = cebra_model.to("cpu")
+        """
+
+        if not isinstance(device, (str, torch.device)):
+            raise TypeError(
+                "The 'device' parameter must be a string or torch.device object."
+            )
+        
+        if isinstance(device, str):
+            if (not device == 'cpu') and (not device.startswith('cuda')) and (
+                    not device == 'mps'):
+                raise ValueError(
+                    "The 'device' parameter must be a valid device string or device object."
+                )
+
+        elif isinstance(device, torch.device):
+            if (not device.type == 'cpu') and (
+                    not device.type.startswith('cuda')) and (not device == 'mps'):
+                raise ValueError(
+                    "The 'device' parameter must be a valid device string or device object."
+                )
+            device = device.type
+
+        if hasattr(self, "device_"):
+            self.device_ = device
+
+        self.device = device
+        self.solver_.model.to(device)
+
+        return self

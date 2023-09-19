@@ -9,7 +9,7 @@
 # Please see LICENSE.md for the full license document:
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
-"""Allen pseudomouse Ca decoding dataset with train/test split. 
+"""Allen pseudomouse Ca decoding dataset with train/test split.
 
 References:
     *Deitch, Daniel, Alon Rubin, and Yaniv Ziv. "Representational drift in the mouse visual cortex." Current biology 31.19 (2021): 4327-4339.
@@ -149,9 +149,11 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
             )
             self.index = frame_feature.repeat(9, 1)
         elif self.split_flag == "test":
-            neural = pseudo_mice[self.neurons_indices, (self.test_repeat - 1) *
-                                 self.movie_len:self.test_repeat *
-                                 self.movie_len,]
+            neural = pseudo_mice[
+                self.neurons_indices,
+                (self.test_repeat - 1) * self.movie_len:self.test_repeat *
+                self.movie_len,
+            ]
             self.index = frame_feature.repeat(1, 1)
         else:
             raise ValueError("split_flag should be either train or test")
