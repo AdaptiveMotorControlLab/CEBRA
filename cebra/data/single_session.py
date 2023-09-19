@@ -17,6 +17,7 @@ arguments and configuration values and subclass :py:class:`.base.Loader`.
 
 import abc
 import collections
+import warnings
 from typing import List
 
 import literate_dataclasses as dataclasses
@@ -208,7 +209,13 @@ class ContinuousDataLoader(cebra_data.Loader):
                     self.dataset.continuous_index,
                     self.time_offset,
                     device=self.device)
-            elif self.conditional == "delta_normal":
+
+            elif self.conditional in ("delta", "delta_normal"):
+                if self.conditional == "delta":
+                    warnings.warn(
+                        '"delta" distribution will be deprecated in an upcoming release. Please use "delta_normal" instead.',
+                        DeprecationWarning)
+
                 self.distribution = cebra.distributions.DeltaNormalDistribution(
                     self.dataset.continuous_index,
                     self.delta,
