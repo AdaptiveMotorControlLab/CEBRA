@@ -20,7 +20,7 @@ import cebra.data
 import cebra.distributions
 import cebra.distributions.base as abc_
 from cebra.data.datatypes import Offset
-import cebra.distributions.vmf 
+
 
 class Prior(abc_.PriorDistribution, abc_.HasGenerator):
     """An empirical prior distribution for continuous datasets.
@@ -279,61 +279,11 @@ class DeltaNormalDistribution(abc_.JointDistribution, abc_.HasGenerator):
         # TODO(stes): Set seed
         mean = self.data[reference_idx]
         query = torch.distributions.Normal(
-                    loc = mean,
-                    scale = torch.ones_like(mean, device=self.device) * self.std,
+            loc=mean,
+            scale=torch.ones_like(mean, device=self.device) * self.std,
         ).sample()
 
         query = query.unsqueeze(-1) if query.dim() == 1 else query
-        return self.index.search(query)
-    
-
-class DeltaVMFDistribution(abc_.JointDistribution, abc_.HasGenerator):
-    """Define a conditional distribution based on behavioral changes over time.
-
-    Takes a continuous index, and uses sample from Von Mises Fisher distribution to sample positive
-
-    Args:
-        continuous: The multidimensional, continuous index
-        delta: Standard deviation of Gaussian distribution to sample positive pair
-
-    """
-
-    def __init__(self,
-                 continuous: torch.Tensor,
-                 delta: float = 1,
-                 device: Literal["cpu", "cuda"] = "cpu",
-                 seed: Optional[int] = None):
-        abc_.HasGenerator.__init__(self, device=device, seed=seed)
-        self.data = continuous
-        self.std = delta
-        self.index = cebra.distributions.ContinuousIndex(self.data)
-        self.prior = Prior(self.data, device=device, seed=seed)
-
-    def sample_prior(self, num_samples: int) -> torch.Tensor:
-        """See :py:meth:`.Prior.sample_prior`."""
-        return self.prior.sample_prior(num_samples)
-
-    def sample_conditional(self, reference_idx: torch.Tensor) -> torch.Tensor:
-        """Return indices from the conditional distribution."""
-
-        if reference_idx.dim() != 1:
-            raise ValueError(
-                f"Reference indices have wrong shape: {reference_idx.shape}. "
-                "Pass a 1D array of indices of reference samples.")
-        
-        if self.data.size(1) == 1:
-            raise ValueError(
-                "The index has only 1 dimension. To sample from a Von Mises Fisher (vmf)"
-                "distribution at least 2 dimensions are required.")
-
-        # TODO(rodrigo): for now the vmf sampler is written in numpy. We can rewrite in
-        # torch if necessary.
-
-        data_np = self.data.cpu().numpy()
-        ref_idx_np = reference_idx.cpu().numpy()
-        mean = data_np[ref_idx_np]
-        query = cebra.distributions.vmf.sample_vMF(mu = mean, kappa = self.std, num_samples = ref_idx_np.shape[0])
-        query = torch.from_numpy(query).float()
         return self.index.search(query)
 
 

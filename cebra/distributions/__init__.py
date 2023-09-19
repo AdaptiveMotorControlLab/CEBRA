@@ -53,7 +53,6 @@ __all__ = [
     "DiscreteUniform",
     "DiscreteEmpirical",
     "DeltaNormalDistribution",
-    "DeltaVMFDistribution",
     "MultivariateDiscrete",
     "MultisessionSampler",
 ]

@@ -214,11 +214,6 @@ class ContinuousDataLoader(cebra_data.Loader):
                     self.dataset.continuous_index,
                     self.delta,
                     device=self.device)
-            elif self.conditional == "delta_vmf":
-                self.distribution = cebra.distributions.DeltaVMFDistribution(
-                    self.dataset.continuous_index,
-                    self.delta,
-                    device=self.device)
             else:
                 raise ValueError(self.conditional)
 
