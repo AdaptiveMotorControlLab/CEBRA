@@ -10,6 +10,7 @@
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
 import functools
+from typing import Literal, Optional
 
 import numpy as np
 import pytest
@@ -17,6 +18,7 @@ import torch
 
 import cebra.datasets as cebra_datasets
 import cebra.distributions as cebra_distr
+import cebra.distributions.base as cebra_distr_base
 
 
 def assert_is_tensor(T, device=None):
@@ -284,3 +286,75 @@ def test_multi_session_time_contrastive(time_offset):
     # NOTE(celia): test the private function ``_inverse_idx()``, with idx arrays flat
     assert (idx.flatten()[rev_idx.flatten()].all() == np.arange(
         len(rev_idx.flatten())).all())
+
+
+class OldDeltaDistribution(cebra_distr_base.JointDistribution,
+                           cebra_distr_base.HasGenerator):
+    """
+    Old version of the Delta Distribution where it only works for 1d
+    behavior variable.
+
+    """
+
+    def __init__(self,
+                 continuous: torch.Tensor,
+                 delta: float = 0.1,
+                 device: Literal["cpu", "cuda"] = "cpu",
+                 seed: Optional[int] = 1812):
+        cebra_distr_base.HasGenerator.__init__(self, device=device, seed=seed)
+        torch.manual_seed(seed)
+        self.data = continuous
+        self.std = delta
+        self.index = cebra_distr.ContinuousIndex(self.data)
+        self.prior = cebra_distr.Prior(self.data, device=device, seed=seed)
+
+    def sample_prior(self, num_samples: int) -> torch.Tensor:
+        """See :py:meth:`.Prior.sample_prior`."""
+        return self.prior.sample_prior(num_samples)
+
+    def sample_conditional(self, reference_idx: torch.Tensor) -> torch.Tensor:
+        """Return indices from the conditional distribution."""
+
+        if reference_idx.dim() != 1:
+            raise ValueError(
+                f"Reference indices have wrong shape: {reference_idx.shape}. "
+                "Pass a 1D array of indices of reference samples.")
+
+        # TODO(stes): Set seed
+        query = torch.distributions.Normal(
+            self.data[reference_idx].squeeze(),
+            torch.ones_like(reference_idx, device=self.device) * self.std,
+        ).sample()
+
+        return self.index.search(query.unsqueeze(-1))
+
+
+def test_new_delta_normal_distribution():
+    _, continuous = prepare()
+    assert continuous.dim() == 2
+    num_samples = len(continuous)
+    reference_idx = torch.randint(0, num_samples, (num_samples,))
+
+    new_distribution = cebra_distr.DeltaNormalDistribution(
+        continuous=continuous[:, 0].unsqueeze(-1), delta=0.1)
+
+    old_distribution = OldDeltaDistribution(
+        continuous=continuous[:, 0].unsqueeze(-1), delta=0.1)
+
+    torch.manual_seed(1812)
+    old_positives = old_distribution.sample_conditional(reference_idx)
+    torch.manual_seed(1812)
+    new_positives = new_distribution.sample_conditional(reference_idx)
+
+    assert not torch.equal(old_positives, reference_idx)
+    assert not torch.equal(new_positives, reference_idx)
+    assert torch.equal(old_positives, new_positives)
+
+    # test delta normal with multidimensional index
+    delta_normal_multidim = cebra_distr.DeltaNormalDistribution(
+        continuous=continuous)
+    reference_idx = delta_normal_multidim.sample_prior(num_samples)
+    positive_idx = delta_normal_multidim.sample_conditional(reference_idx)
+
+    assert positive_idx.dim() == 1
+    assert len(positive_idx) == num_samples
