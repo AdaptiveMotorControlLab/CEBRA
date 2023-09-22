@@ -358,3 +358,4 @@ def test_new_delta_normal_distribution():
 
     assert positive_idx.dim() == 1
     assert len(positive_idx) == num_samples
+    assert not torch.equal(positive_idx, reference_idx)
