@@ -329,7 +329,7 @@ class OldDeltaDistribution(cebra_distr_base.JointDistribution,
         return self.index.search(query.unsqueeze(-1))
 
 
-def test_new_delta_normal_distribution():
+def test_old_vs_new_delta_normal_with_1Dindex():
     _, continuous = prepare()
     assert continuous.dim() == 2
     num_samples = len(continuous)
@@ -350,12 +350,21 @@ def test_new_delta_normal_distribution():
     assert not torch.equal(new_positives, reference_idx)
     assert torch.equal(old_positives, new_positives)
 
-    # test delta normal with multidimensional index
+
+@pytest.mark.parametrize("delta", [0.1, 1., 5.])
+def test_new_delta_normal_with_multidimensional_index(delta):
+    _, continuous = prepare()
+    num_samples = len(continuous)
     delta_normal_multidim = cebra_distr.DeltaNormalDistribution(
-        continuous=continuous)
+        delta=delta, continuous=continuous)
     reference_idx = delta_normal_multidim.sample_prior(num_samples)
     positive_idx = delta_normal_multidim.sample_conditional(reference_idx)
 
     assert positive_idx.dim() == 1
     assert len(positive_idx) == num_samples
     assert not torch.equal(positive_idx, reference_idx)
+
+    reference_samples = continuous[reference_idx]
+    positive_samples = continuous[positive_idx]
+    diff = positive_samples - reference_samples
+    assert torch.isclose(diff.std(), torch.tensor(delta), atol=0.1)
