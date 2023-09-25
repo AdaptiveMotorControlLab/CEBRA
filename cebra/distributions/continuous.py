@@ -247,7 +247,7 @@ class DeltaNormalDistribution(abc_.JointDistribution, abc_.HasGenerator):
 
     Takes a continuous index, and uses sample from Gaussian distribution to sample positive pairs.
     Note that if the continuous index is multidimensional, the Gaussian distribution will have
-    identity covariance matrix i.e. diagonal convariance matrix with ones in the diagonal.
+    spherical covariance matrix i.e. Σ = sigma^2 * I.
 
     Args:
         continuous: The multidimensional, continuous index.
