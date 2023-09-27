@@ -35,6 +35,7 @@ import os
 from typing import Callable, Dict, List, Literal, Optional, Union
 
 import literate_dataclasses as dataclasses
+import numpy as np
 import torch
 import tqdm
 
@@ -44,7 +45,6 @@ import cebra.io
 import cebra.models
 from cebra.solver.util import Meter
 from cebra.solver.util import ProgressBar
-import numpy as np
 
 
 @dataclasses.dataclass
@@ -286,7 +286,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         return decode_metric
 
     def _select_model(self, inputs: torch.Tensor, session_id: int):
-        is_multisession = False #TODO: take care of this                    
+        is_multisession = False  #TODO: take care of this
         self.num_sessions = self.loader.dataset.num_sessions if is_multisession else None
         if self.num_sessions is not None:  # multisession implementation
             if session_id is None:
@@ -305,7 +305,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
             model = self.model[session_id]
             #model.to(self.device_) #TODO: do I need to do this?
-        
+
         else:  # single session
             if session_id is not None and session_id > 0:
                 raise RuntimeError(
@@ -315,16 +315,12 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         offset = model.get_offset()
         return model, offset
-    
 
-    def _get_batched_data_with_padding(self, 
-                                        inputs: torch.Tensor, 
-                                        offset: cebra.data.Offset,
-                                        start_batch_idx: int,
-                                        end_batch_idx: int,
-                                        batch_id: int,
-                                        num_batches: int) -> torch.Tensor:
-
+    def _get_batched_data_with_padding(self, inputs: torch.Tensor,
+                                       offset: cebra.data.Offset,
+                                       start_batch_idx: int, end_batch_idx: int,
+                                       batch_id: int,
+                                       num_batches: int) -> torch.Tensor:
         """
         Given the start_batch_idx, end_batch_idx, adds padding.
         For the first batch it adds 0 to left, data to right
@@ -332,35 +328,37 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         For the middle batches if adds data both to left and right
 
         Args:
-            inputs  
-            offset: 
-            start_batch_idx: 
-            end_batch_idx: 
+            inputs
+            offset:
+            start_batch_idx:
+            end_batch_idx:
             offset: cebra.datatypes.Offset
 
         """
-        print(start_batch_idx, end_batch_idx)
-        if batch_id == 0: # First batch
-            batched_data = inputs[start_batch_idx:(end_batch_idx+offset.right-1)]
+        if batch_id == 0:  # First batch
+            batched_data = inputs[start_batch_idx:(end_batch_idx +
+                                                   offset.right - 1)]
             batched_data = np.pad(batched_data.cpu().numpy(),
-                            ((offset.left, 0), (0, 0)),
-                            mode="edge")
+                                  ((offset.left, 0), (0, 0)),
+                                  mode="edge")
 
-        elif batch_id == num_batches - 1: #Last batch 
-            batched_data = inputs[(start_batch_idx-offset.left):end_batch_idx]
+        elif batch_id == num_batches - 1:  #Last batch
+            batched_data = inputs[(start_batch_idx - offset.left):end_batch_idx]
             batched_data = np.pad(batched_data.cpu().numpy(),
-                            ((0, offset.right-1), (0, 0)),
-                            mode="edge")
+                                  ((0, offset.right - 1), (0, 0)),
+                                  mode="edge")
 
-        else: # Middle batches  
-            batched_data = inputs[(start_batch_idx-offset.left):(end_batch_idx+offset.right-1)]
-        
-        print(inputs.shape, batched_data.shape)
-        return torch.from_numpy(batched_data) if isinstance(batched_data, np.ndarray) else batched_data    
-    
+        else:  # Middle batches
+            batched_data = inputs[(start_batch_idx -
+                                   offset.left):(end_batch_idx + offset.right -
+                                                 1)]
+
+        return torch.from_numpy(batched_data) if isinstance(
+            batched_data, np.ndarray) else batched_data
 
     @torch.no_grad()
-    def _batched_transform(self, model, inputs, offset, batch_size, pad_before_transform) -> torch.Tensor:
+    def _batched_transform(self, model, inputs, offset, batch_size,
+                           pad_before_transform) -> torch.Tensor:
         num_samples = inputs.shape[0]
         num_batches = (num_samples + batch_size - 1) // batch_size
         output = []
@@ -368,35 +366,37 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         for i in range(num_batches):
             start_batch_idx = i * batch_size
             end_batch_idx = min((i + 1) * batch_size, num_samples)
-            
+
             if pad_before_transform:
                 batched_data = self._get_batched_data_with_padding(
-                                            inputs=inputs,
-                                            offset=offset,
-                                            start_batch_idx=start_batch_idx,
-                                            end_batch_idx=end_batch_idx,
-                                            batch_id=i,
-                                            num_batches=num_batches)
+                    inputs=inputs,
+                    offset=offset,
+                    start_batch_idx=start_batch_idx,
+                    end_batch_idx=end_batch_idx,
+                    batch_id=i,
+                    num_batches=num_batches)
             else:
                 batched_data = inputs[start_batch_idx:end_batch_idx]
-                
+
             if isinstance(model, cebra.models.ConvolutionalModelMixin):
                 # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
                 batched_data = batched_data.transpose(1, 0).unsqueeze(0)
                 output_batch = model(batched_data).squeeze(0).transpose(1, 0)
             else:
                 output_batch = model(batched_data)
-            
+
             output.append(output_batch)
         output = torch.cat(output)
-        
+
         return output
 
     @torch.no_grad()
-    def _transform(self, model, inputs, offset, pad_before_transform) -> torch.Tensor:
-        
+    def _transform(self, model, inputs, offset,
+                   pad_before_transform) -> torch.Tensor:
+
         if pad_before_transform:
-            inputs = np.pad(inputs, ((offset.left, offset.right - 1), (0, 0)), mode="edge")
+            inputs = np.pad(inputs, ((offset.left, offset.right - 1), (0, 0)),
+                            mode="edge")
             inputs = torch.from_numpy(inputs)
 
         if isinstance(model, cebra.models.ConvolutionalModelMixin):
@@ -405,17 +405,16 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             output = model(inputs).squeeze(0).transpose(1, 0)
         else:
             output = model(inputs)
-        
+
         return output
 
     @torch.no_grad()
-    def transform(self,
-                  inputs: torch.Tensor,
-                  pad_before_transform: bool = True, #TODO: what should be the default?
-                  session_id: Optional[int] = None,
-                  batch_size: Optional[int] = None) -> torch.Tensor:
-
-        
+    def transform(
+            self,
+            inputs: torch.Tensor,
+            pad_before_transform: bool = True,  #TODO: what should be the default?
+            session_id: Optional[int] = None,
+            batch_size: Optional[int] = None) -> torch.Tensor:
         """Compute the embedding.
 
         This function by default only applies the ``forward`` function
@@ -424,14 +423,14 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Args:
             inputs: The input signal
             pad_before_transform: If ``False``, no padding is applied to the input sequence.
-            and the output sequence will be smaller than the input sequence due to the 
-            receptive field of the model. If the input sequence is ``n`` steps long, 
-            and a model with receptive field ``m`` is used, the output sequence would 
+            and the output sequence will be smaller than the input sequence due to the
+            receptive field of the model. If the input sequence is ``n`` steps long,
+            and a model with receptive field ``m`` is used, the output sequence would
             only be ``n-m+1`` steps long.
-            session_id: The session ID, an :py:class:`int` between 0 and 
-                the number of sessions -1 for multisession, and set to 
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
-        
+
         Returns:
             The output embedding.
         """
@@ -439,14 +438,18 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         model.eval()
 
         if len(offset) < 2 and pad_before_transform:
-            raise ValueError("Padding does not make sense when the offset of the model is < 2")
-        
+            raise ValueError(
+                "Padding does not make sense when the offset of the model is < 2"
+            )
+
         if batch_size is not None:
-            output = self._batched_transform(model=model, 
-                                             inputs=inputs, 
-                                             offset=offset,
-                                             batch_size=batch_size,
-                                             pad_before_transform=pad_before_transform,)
+            output = self._batched_transform(
+                model=model,
+                inputs=inputs,
+                offset=offset,
+                batch_size=batch_size,
+                pad_before_transform=pad_before_transform,
+            )
 
         else:
             output = self._transform(model=model,
@@ -455,7 +458,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                                      pad_before_transform=pad_before_transform)
 
         return output
-    
+
     @abc.abstractmethod
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
         """Given a batch of input examples, return the model outputs.
