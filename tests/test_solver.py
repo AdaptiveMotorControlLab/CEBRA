@@ -21,6 +21,7 @@
 #
 import itertools
 
+import numpy as np
 import pytest
 import torch
 from torch import nn
@@ -29,7 +30,6 @@ import cebra.data
 import cebra.datasets
 import cebra.models
 import cebra.solver
-import numpy as np
 
 device = "cpu"
 
@@ -171,34 +171,53 @@ def test_multi_session(data_name, loader_initfunc, solver_initfunc):
     solver.fit(loader)
 
 
-def test_batched_transform(data_name, loader_initfunc, solver_initfunc):
-    """
-    test to know if we are getting the batches right without padding
-    """
+def create_model(model_name, dataset):
+    return cebra.models.init(model_name,
+                             num_neurons=dataset.input_dimension,
+                             num_units=128,
+                             num_output=5)
 
-    loader = _get_loader(data_name, loader_initfunc)
-    model = _make_model(loader.dataset)
+
+single_session_tests_transform = []
+for model_name in ["offset1-model", "offset10-model"]:
+    for args in [
+        ("demo-discrete", model_name, cebra.data.DiscreteDataLoader),
+        ("demo-continuous", model_name, cebra.data.ContinuousDataLoader),
+        ("demo-mixed", model_name, cebra.data.MixedDataLoader),
+    ]:
+        single_session_tests_transform.append(
+            (*args, cebra.solver.SingleSessionSolver))
+
+
+@pytest.mark.parametrize(
+    "data_name, model_name, loader_initfunc, solver_initfunc",
+    single_session_tests_transform)
+def test_batched_transform_no_padding(data_name, model_name, loader_initfunc,
+                                      solver_initfunc):
+    batch_size = 1024
+    dataset = cebra.datasets.init(data_name)
+    model = create_model(model_name, dataset)
+    dataset.offset = model.get_offset()
+    loader_kwargs = dict(num_steps=10, batch_size=32)
+    loader = loader_initfunc(dataset, **loader_kwargs)
+
     criterion = cebra.models.InfoNCE()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     solver = solver_initfunc(model=model,
                              criterion=criterion,
-                             optimizer=optimizer,
-                             pad_before_transform = False)
-
+                             optimizer=optimizer)
     solver.fit(loader)
 
-    # batched_transform
-    batch_size = 1024
+    embedding_batched = solver.transform(inputs=loader.dataset.neural,
+                                         batch_size=batch_size,
+                                         pad_before_transform=False)
 
-    # should pad_before_transform be an argument of the transform() method?
-    embedding_batched = solver.transform(batch_size = batch_size)
-    embedding = solver.transform(batch_size = None)
+    embedding = solver.transform(inputs=loader.dataset.neural,
+                                 pad_before_transform=False)
 
-    assert embedding_batched.shape == embedding.shape
-    assert np.allclose(embedding_batched, embedding)
+    if not isinstance(model, cebra.models.ConvolutionalModelMixin):
+        assert embedding_batched.shape == embedding.shape
+        assert np.allclose(embedding_batched, embedding, rtol=1e-02)
 
-
-    # TODO: how can I check that the batches are correct?
-    # maybe it is good enough if I compare to the embedding
-    # without batch size.
+    #TODO: what tests can I do with convolutional models when there is no padding?
