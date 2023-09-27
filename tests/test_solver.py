@@ -31,7 +31,6 @@ import cebra.data
 import cebra.datasets
 import cebra.models
 import cebra.solver
-import numpy as np
 
 device = "cpu"
 
