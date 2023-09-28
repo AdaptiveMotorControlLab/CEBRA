@@ -286,8 +286,10 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         return decode_metric
 
     def _select_model(self, inputs: torch.Tensor, session_id: int):
-        is_multisession = False  #TODO: take care of this
-        self.num_sessions = self.loader.dataset.num_sessions if is_multisession else None
+        """ Select the right model based on the type of solver we have."""
+
+        self.num_sessions = self.loader.dataset.num_sessions if isinstance(
+            inputs, list) else None
         if self.num_sessions is not None:  # multisession implementation
             if session_id is None:
                 raise RuntimeError(
@@ -304,14 +306,23 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 )
 
             model = self.model[session_id]
-            #model.to(self.device_) #TODO: do I need to do this?
+            model.to(self.device_)  #TODO: why do I need to do this?
 
         else:  # single session
             if session_id is not None and session_id > 0:
                 raise RuntimeError(
                     f"Invalid session_id {session_id}: single session models only takes an optional null session_id."
                 )
-            model = self.model
+
+            if isinstance(
+                    self,
+                    cebra.solver.single_session.SingleSessionHybridSolver):
+                # NOTE: This is different from the sklearn API implementation. The issue is that here the
+                # model is a cebra.models.MultiObjective instance, and therefore to do inference I need
+                # to get the module inside this model.
+                model = self.model.module
+            else:
+                model = self.model
 
         offset = model.get_offset()
         return model, offset
