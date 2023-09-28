@@ -1200,11 +1200,17 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
     def transform(self,
                   X: Union[npt.NDArray, torch.Tensor],
+                  pad_before_transform: bool = True,
                   session_id: Optional[int] = None) -> npt.NDArray:
         """Transform an input sequence and return the embedding.
 
         Args:
             X: A numpy array or torch tensor of size ``time x dimension``.
+            pad_before_transform: If ``False``, no padding is applied to the input sequence.
+            and the output sequence will be smaller than the input sequence due to the
+            receptive field of the model. If the input sequence is ``n`` steps long,
+            and a model with receptive field ``m`` is used, the output sequence would
+            only be ``n-m+1`` steps long.
             session_id: The session ID, an :py:class:`int` between 0 and :py:attr:`num_sessions` for
                 multisession, set to ``None`` for single session.
 
@@ -1224,27 +1230,13 @@ class CEBRA(BaseEstimator, TransformerMixin):
         """
 
         sklearn_utils_validation.check_is_fitted(self, "n_features_")
-        model, offset = self._select_model(X, session_id)
-
         # Input validation
         X = sklearn_utils.check_input_array(X, min_samples=len(self.offset_))
         input_dtype = X.dtype
 
         with torch.no_grad():
-            model.eval()
-
-            if self.pad_before_transform:
-                X = np.pad(X, ((offset.left, offset.right - 1), (0, 0)),
-                           mode="edge")
-            X = torch.from_numpy(X).float().to(self.device_)
-
-            if isinstance(model, cebra.models.ConvolutionalModelMixin):
-                # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
-                X = X.transpose(1, 0).unsqueeze(0)
-                output = model(X).cpu().numpy().squeeze(0).transpose(1, 0)
-            else:
-                # Standard evaluation, (T, C, dt)
-                output = model(X).cpu().numpy()
+            output = self.solver_.transform(
+                X, pad_before_transform=pad_before_transform)
 
         if input_dtype == "float64":
             return output.astype(input_dtype)
