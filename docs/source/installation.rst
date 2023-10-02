@@ -28,7 +28,7 @@ we outline different options below.
     .. tab:: Google Colab
 
         CEBRA can also be installed and run on Google Colaboratory.
-        Please see the ``open in colab`` button at the top of each demo notebook for examples.
+        Please see the ``open in colab`` button at the top of each `demo notebook <https://cebra.ai/docs/demos.html>`_ for examples.
 
         If you are starting with a new notebook, simply run
 
