@@ -117,13 +117,12 @@ class AllenCaMovieDataset(cebra.data.SingleSessionDataset):
 
         """
         self.area = area
-        list_mice = glob.glob(
-            get_datapath(
-                f"allen/visual_drift/data/calcium_excitatory/{area}/*"))
-        exp_containers = [
-            int(mice.split(os.path.join(area, ""))[1].replace(".mat", ""))
-            for mice in list_mice
-        ]
+        path = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "allen" / "visual_drift" / "data" / "calcium_excitatory" / str(area)
+        list_mice = path.glob("*.mat")
+        exp_containers = [int(file.stem) for file in list_mice]
+
         ## Load summary file
         summary = pd.read_csv(get_datapath("allen/data_summary.csv"))
         ## Filter excitatory neurons in V1
