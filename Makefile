@@ -57,7 +57,7 @@ interrogate:
 
 # Build documentation using sphinx
 docs:
-	./tools/build_docs.sh
+	(cd docs && PYTHONPATH=.. make page)
 
 docs-touch:
 	find docs/source -iname '*.rst' -exec touch {} \;
