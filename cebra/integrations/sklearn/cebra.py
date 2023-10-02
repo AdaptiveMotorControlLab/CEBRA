@@ -1310,8 +1310,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             The saved model checkpoint.
 
         Note:
-            Experimental functionality. Do not expect the save/load functionalities to be
-            backward compatible yet between CEBRA versions!
+            The save/load functionalities may change in a future version.
 
             File Format:
                 The saved model checkpoint file format depends on the specified backend.
