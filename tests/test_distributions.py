@@ -353,7 +353,7 @@ def test_old_vs_new_delta_normal_with_1Dindex():
 
 @pytest.mark.parametrize("delta,numerical_check", [(0.01, True), (0.025, True), (1., False), (5., False)])
 def test_new_delta_normal_with_multidimensional_index(delta, numerical_check):
-    continuous = torch.rand(100_000, 3).to(device)
+    continuous = torch.rand(100_000, 3).to("cpu")
     num_samples = 1000
     delta_normal_multidim = cebra_distr.DeltaNormalDistribution(
         delta=delta, continuous=continuous)
