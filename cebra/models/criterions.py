@@ -84,8 +84,7 @@ def infonce(
 
     Note:
         - The behavior of this function changed beginning in CEBRA 0.3.0.
-        The InfoNCE implementation is numerically stabilited. In versions prior
-        to 0.3.0.
+        The InfoNCE implementation is numerically stabilited.
     """
     with torch.no_grad():
         c, _ = neg_dist.max(dim=1, keepdim=True)
