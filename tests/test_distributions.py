@@ -369,7 +369,7 @@ def test_new_delta_normal_with_multidimensional_index(delta, numerical_check):
         positive_samples = continuous[positive_idx]
         diff = positive_samples - reference_samples
         assert torch.isclose(diff.std(), torch.tensor(delta), rtol=0.05)
-     else:
+    else:
         #TODO(stes): Add a warning message to the delta distribution.
         pytest.skip(
           "multivariate delta distribution can not accurately sample with the "
