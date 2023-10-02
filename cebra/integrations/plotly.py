@@ -42,6 +42,7 @@ def _convert_cmap2colorscale(cmap: str, pl_entries: int = 11, rdigits: int = 2):
 class _EmbeddingInteractivePlot(_EmbeddingPlot):
 
     def __init__(self, **kwargs):
+        self.figsize = kwargs.get("figsize", (5, 5))
         super().__init__(**kwargs)
         self.colorscale = self._define_colorscale(self.cmap)
 
@@ -56,7 +57,6 @@ class _EmbeddingInteractivePlot(_EmbeddingPlot):
         """
 
         if axis is None:
-            print(self.figsize[0])
             self.axis = plotly.graph_objects.Figure(
                 layout=plotly.graph_objects.Layout(height=100 * self.figsize[0],
                                                    width=100 * self.figsize[1]))
