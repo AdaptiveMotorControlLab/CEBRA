@@ -178,6 +178,7 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
             int(mice.split(os.path.join(area, ""))[1].replace(".mat", ""))
             for mice in list_mice
         ]
+        print(exp_containers)
         ## Load summary file
         summary = pd.read_csv(get_datapath("allen/data_summary.csv"))
         ## Filter excitatory neurons in V1
