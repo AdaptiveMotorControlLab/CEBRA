@@ -17,6 +17,7 @@ arguments and configuration values and subclass :py:class:`.base.Loader`.
 
 import abc
 import collections
+import warnings
 from typing import List
 
 import literate_dataclasses as dataclasses
@@ -164,9 +165,9 @@ class ContinuousDataLoader(cebra_data.Loader):
     * auxiliary variables, using the empirical distribution of how behavior various across
       ``time_offset`` timesteps (``time_delta``). Sampling for this setting is implemented
       in :py:class:`cebra.distributions.continuous.TimedeltaDistribution`.
-    * alternatively, the distribution can be selected to be a Gaussian distribution parametrized
-      by a fixed ``delta`` around the reference sample, using the implementation in
-      :py:class:`cebra.distributions.continuous.DeltaDistribution`.
+    * alternatively, the distribution can be selected to be a Gaussian distribution
+      parametrized by a fixed ``delta`` around the reference sample, using the implementation in
+      :py:class:`cebra.distributions.continuous.DeltaNormalDistribution`.
 
     Args:
         See dataclass fields.
@@ -208,8 +209,14 @@ class ContinuousDataLoader(cebra_data.Loader):
                     self.dataset.continuous_index,
                     self.time_offset,
                     device=self.device)
-            elif self.conditional == "delta":
-                self.distribution = cebra.distributions.DeltaDistribution(
+
+            elif self.conditional in ("delta", "delta_normal"):
+                if self.conditional == "delta":
+                    warnings.warn(
+                        '"delta" distribution will be deprecated in an upcoming release. Please use "delta_normal" instead.',
+                        DeprecationWarning)
+
+                self.distribution = cebra.distributions.DeltaNormalDistribution(
                     self.dataset.continuous_index,
                     self.delta,
                     device=self.device)

@@ -242,14 +242,16 @@ class TimedeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
         return self.index.search(query)
 
 
-class DeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
+class DeltaNormalDistribution(abc_.JointDistribution, abc_.HasGenerator):
     """Define a conditional distribution based on behavioral changes over time.
 
-    Takes a continuous index, and uses sample from Gaussian distribution to sample positive
+    Takes a continuous index, and uses sample from Gaussian distribution to sample positive pairs.
+    Note that if the continuous index is multidimensional, the Gaussian distribution will have
+    isotropic covariance matrix i.e. Σ = sigma^2 * I.
 
     Args:
-        continuous: The multidimensional, continuous index
-        delta: Standard deviation of Gaussian distribution to sample positive pair
+        continuous: The multidimensional, continuous index.
+        delta: Standard deviation of Gaussian distribution to sample positive pair.
 
     """
 
@@ -277,12 +279,14 @@ class DeltaDistribution(abc_.JointDistribution, abc_.HasGenerator):
                 "Pass a 1D array of indices of reference samples.")
 
         # TODO(stes): Set seed
+        mean = self.data[reference_idx]
         query = torch.distributions.Normal(
-            self.data[reference_idx].squeeze(),
-            torch.ones_like(reference_idx, device=self.device) * self.std,
+            loc=mean,
+            scale=torch.ones_like(mean, device=self.device) * self.std,
         ).sample()
 
-        return self.index.search(query.unsqueeze(-1))
+        query = query.unsqueeze(-1) if query.dim() == 1 else query
+        return self.index.search(query)
 
 
 class CEBRADistribution(abc_.JointDistribution):

@@ -99,19 +99,45 @@ It will link the package to the local location, basically meaning any changes to
 Adding a Demo Jupyter Notebook
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-New demo notebooks should be placed in ``demo_notebooks/`` folder.
-Then the new notebook needs to be added to the Demo Notebooks ``toctree`` in ``demo_notebooks/README.rst``.
+The demo notebooks are organized in this repository: https://github.com/AdaptiveMotorControlLab/CEBRA-demos
+
+To add a demo, open a PR in that repo which adds the notebooks plus a line to the ``nbgallery`` in the README
+file: https://github.com/AdaptiveMotorControlLab/CEBRA-demos/blob/main/README.rst
+
 For that, extend the ``toctree`` (at the end of the file) using the following template:
 
+.. code:: rst 
+
+    .. nbgallery::
+    :maxdepth: 2
+
+    Encoding of space, hippocampus (CA1) <demo_notebooks/Demo_hippocampus.ipynb>
+    Decoding movie features from (V1) visual cortex <demo_notebooks/Demo_Allen.ipynb>
+    Forelimb dynamics, somatosensory (S1) <demo_notebooks/Demo_primate_reaching.ipynb>
+    ...
+
+    Your Notebook title <demo_notebooks/<your notebook name>.ipynb>
+
+Thumbnails for the notebooks can be placed in this repository
+https://github.com/AdaptiveMotorControlLab/CEBRA-assets/tree/main/docs/source/_static/thumbnails
+
+and then referenced in the documentation config:
+https://github.com/AdaptiveMotorControlLab/CEBRA/blob/bb9d55e5a533372cb011c3db322fbd9a1a5ea278/docs/source/conf.py#L203-L228
+
+To build the docs and verify the demo notebooks, you can run 
+
 .. code:: bash
 
-    <notebook_title> <demo_notebooks/<notebook_name>.ipynb>
+    ./tools/build_docs.sh
 
-**Example:**
+to build the full documentation, and render it on `http://127.0.0.1:8080` in your webbrowser to verify.
 
-.. code:: bash
+For local edits,
+- CEBRA-assets is checked out under the ``/assets/`` path
+- CEBRA-figures is checkout out under the ``/docs/source/cebra-figures/`` path
+- CEBRA-demos is checkout out under the ``/docs/source/demo_notebooks/`` path
 
-    Rat hippocampus <demo_notebooks/Demo_hippocampus.ipynb>
+You can edit files there, create branches, and re-run ``./tools/build_docs.sh`` for re-building the docs. 
 
 
 Building the Python package (information for maintainers only)

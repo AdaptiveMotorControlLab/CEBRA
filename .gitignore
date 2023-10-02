@@ -6,6 +6,7 @@ data/
 experiments/sweeps
 exports/
 demo_notebooks/
+assets/
 
 # Binary files
 *.png
