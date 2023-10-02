@@ -173,7 +173,7 @@ If yopu have issues installing CEBRA, we recommend carefully checking the `trace
 Advanced Installation for Schneider, Lee, Mathis 2023 paper experiments
 -----------------------------------------------------------------------
 
-If you want to install the additional depedencies required to run comparisions with other algorithms, please see the following:
+If you want to install the additional dependencies required to run comparisons with other algorithms, please see the following:
 
 .. tabs::
    .. tab:: Supplied conda (paper reproduction)
