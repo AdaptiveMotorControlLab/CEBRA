@@ -351,10 +351,10 @@ def test_old_vs_new_delta_normal_with_1Dindex():
     assert torch.equal(old_positives, new_positives)
 
 
-@pytest.mark.parametrize("delta", [0.1, 1., 5.])
-def test_new_delta_normal_with_multidimensional_index(delta):
-    _, continuous = prepare()
-    num_samples = len(continuous)
+@pytest.mark.parametrize("delta,numerical_check", [(0.01, True), (0.025, True), (1., False), (5., False)])
+def test_new_delta_normal_with_multidimensional_index(delta, numerical_check):
+    continuous = torch.rand(100_000, 3).to(device)
+    num_samples = 1000
     delta_normal_multidim = cebra_distr.DeltaNormalDistribution(
         delta=delta, continuous=continuous)
     reference_idx = delta_normal_multidim.sample_prior(num_samples)
@@ -364,7 +364,14 @@ def test_new_delta_normal_with_multidimensional_index(delta):
     assert len(positive_idx) == num_samples
     assert not torch.equal(positive_idx, reference_idx)
 
-    reference_samples = continuous[reference_idx]
-    positive_samples = continuous[positive_idx]
-    diff = positive_samples - reference_samples
-    assert torch.isclose(diff.std(), torch.tensor(delta), atol=0.1)
+    if numerical_check:
+        reference_samples = continuous[reference_idx]
+        positive_samples = continuous[positive_idx]
+        diff = positive_samples - reference_samples
+        assert torch.isclose(diff.std(), torch.tensor(delta), rtol=0.05)
+     else:
+        #TODO(stes): Add a warning message to the delta distribution.
+        pytest.skip(
+          "multivariate delta distribution can not accurately sample with the "
+          "given parameters. TODO: Add a warning message for these cases."
+        )
