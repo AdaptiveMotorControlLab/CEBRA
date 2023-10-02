@@ -225,6 +225,8 @@ nbsphinx_thumbnails = {
         "_static/thumbnails/hypothesis.png",
     "demo_notebooks/Demo_cohomology":
         "_static/thumbnails/cohomology.png",
+    "demo_notebooks/Demo_openscope_databook":
+        "_static/thumbnails/openScope_demo.png",
 }
 
 rst_prolog = r"""
