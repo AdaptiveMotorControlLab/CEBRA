@@ -34,15 +34,15 @@ def _convert_cmap2colorscale(cmap: str, pl_entries: int = 11, rdigits: int = 2):
     """
     scale = np.linspace(0, 1, pl_entries)
     colors = (cmap(scale)[:, :3] * 255).astype(np.uint8)
-    pl_colorscale = [[round(s, rdigits), f"rgb{tuple(color)}"]
-                     for s, color in zip(scale, colors)]
+    pl_colorscale = [
+        [round(s, rdigits), f"rgb{tuple(color)}"] for s, color in zip(scale, colors)
+    ]
     return pl_colorscale
 
 
 class _EmbeddingInteractivePlot(_EmbeddingPlot):
-
     def __init__(self, **kwargs):
-        self.figsize = kwargs.get("figsize", (5, 5))
+        self.figsize = kwargs.get("figsize")
         super().__init__(**kwargs)
         self.colorscale = self._define_colorscale(self.cmap)
 
@@ -58,8 +58,10 @@ class _EmbeddingInteractivePlot(_EmbeddingPlot):
 
         if axis is None:
             self.axis = plotly.graph_objects.Figure(
-                layout=plotly.graph_objects.Layout(height=100 * self.figsize[0],
-                                                   width=100 * self.figsize[1]))
+                layout=plotly.graph_objects.Layout(
+                    height=100 * self.figsize[0], width=100 * self.figsize[1]
+                )
+            )
 
         else:
             self.axis = axis
@@ -121,7 +123,7 @@ def plot_embedding_interactive(
     embedding: Union[npt.NDArray, torch.Tensor],
     embedding_labels: Optional[Union[npt.NDArray, torch.Tensor, str]] = "grey",
     axis: Optional[plotly.graph_objects.Figure] = None,
-    markersize: float = 0.05,
+    markersize: float = 1,
     idx_order: Optional[Tuple[int]] = None,
     alpha: float = 0.4,
     cmap: str = "cool",
@@ -171,7 +173,6 @@ def plot_embedding_interactive(
         >>> y = np.random.uniform(0, 10, (100, 5))
         >>> cebra_model = cebra.CEBRA(max_iterations=10)
         >>> cebra_model.fit(X, y)
-        CEBRA(max_iterations=10)
         >>> embedding = cebra_model.transform(X)
         >>> cebra_time = np.arange(X.shape[0])
         >>> fig = cebra.integrations.plotly.plot_embedding_interactive(embedding, embedding_labels=cebra_time)
