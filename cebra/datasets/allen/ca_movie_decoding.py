@@ -175,7 +175,7 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
             get_datapath(
                 f"allen/visual_drift/data/calcium_excitatory/{area}/*"))
         exp_containers = [
-            int(mice.split(f"{area}/")[1].replace(".mat", ""))
+            int(mice.split(os.path.join(area, ""))[1].replace(".mat", ""))
             for mice in list_mice
         ]
         ## Load summary file
