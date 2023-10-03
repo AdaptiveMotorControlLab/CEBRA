@@ -22,6 +22,7 @@ References:
 import glob
 import hashlib
 import os
+import pathlib
 
 import h5py
 import joblib
@@ -66,9 +67,9 @@ class AllenCaMovieDataset(cebra.data.SingleSessionDataset):
         num_neurons=10,
         seed=111,
         area="VISp",
-        frame_feature_path=get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
+        frame_feature_path=pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
         pca=False,
         load=None,
     ):
@@ -116,16 +117,16 @@ class AllenCaMovieDataset(cebra.data.SingleSessionDataset):
             area: The visual cortical area to sample the neurons. Possible options: VISp, VISpm, VISam, VISal, VISl, VISrl.
 
         """
+
         self.area = area
-        list_mice = glob.glob(
-            get_datapath(
-                f"allen/visual_drift/data/calcium_excitatory/{area}/*"))
-        exp_containers = [
-            int(mice.split(os.path.join(area, ""))[1].replace(".mat", ""))
-            for mice in list_mice
-        ]
+        path = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "allen" / "visual_drift" / "data" / "calcium_excitatory" / str(area)
+        list_mice = path.glob("*.mat")
+        exp_containers = [int(file.stem) for file in list_mice]
         ## Load summary file
-        summary = pd.read_csv(get_datapath("allen/data_summary.csv"))
+        summary = pd.read_csv(
+            pathlib.Path(_DEFAULT_DATADIR) / "allen" / "data_summary.csv")
         ## Filter excitatory neurons in V1
         area_filtered = summary[(summary["exp"].isin(exp_containers)) &
                                 (summary["target"] == area) &
@@ -169,9 +170,10 @@ class AllenCaMovieDataset(cebra.data.SingleSessionDataset):
             indices2.sort()
             indices3.sort()
             indices = [indices1, indices2, indices3]
-            matfile = get_datapath(
-                f"allen/visual_drift/data/calcium_excitatory/{area}/{exp_container}.mat"
-            )
+            matfile = pathlib.Path(
+                _DEFAULT_DATADIR
+            ) / "allen" / "visual_drift" / "data" / "calcium_excitatory" / str(
+                area) / f"{exp_container}.mat"
             traces = scipy.io.loadmat(matfile)
             for n, i in enumerate(seq_sessions):
                 session = traces["filtered_traces_days_events"][n, 0][
@@ -214,8 +216,9 @@ class AllenCaMoviePreLoadDataset(AllenCaMovieDataset):
     """
 
     def __init__(self, num_neurons, seed):
-        preload = get_datapath(
-            f"allen_preload/allen-movie1-ca-{num_neurons}-{seed}.jl")
+        preload = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "allen_preload" / f"allen-movie1-ca-{num_neurons}-{seed}.jl"
         if not os.path.isfile(preload):
             print("The dataset is not yet preloaded.")
             preload = None

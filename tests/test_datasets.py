@@ -10,6 +10,7 @@
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
 import os
+import pathlib
 import tempfile
 from unittest.mock import patch
 
@@ -23,6 +24,8 @@ import cebra.data.assets as cebra_data_assets
 import cebra.datasets
 import cebra.registry
 from cebra.datasets import poisson
+
+_DEFAULT_DATADIR = cebra.datasets.get_datapath()
 
 
 def test_registry():
@@ -90,7 +93,7 @@ def test_monkey():
 
     dataset = cebra.datasets.init(
         "area2-bump-pos-active-passive",
-        path=cebra.datasets.get_datapath("monkey_reaching_preload_smth_40/"),
+        path=pathlib.Path(_DEFAULT_DATADIR) / "monkey_reaching_preload_smth_40",
     )
     indices = torch.randint(0, len(dataset), (10,))
     assert len(indices) == len(dataset[indices])
@@ -100,7 +103,7 @@ def test_monkey():
 def test_allen():
     from cebra.datasets import allen
 
-    pytest.skip("Test takes too long")
+    #pytest.skip("Test takes too long")
 
     ca_dataset = cebra.datasets.init("allen-movie-one-ca-VISp-100-train-10-111")
     ca_loader = cebra.data.ContinuousDataLoader(

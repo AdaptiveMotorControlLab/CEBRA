@@ -21,6 +21,7 @@ References:
 import glob
 import hashlib
 import os
+import pathlib
 
 import h5py
 import joblib
@@ -38,15 +39,17 @@ from cebra.datasets import init
 from cebra.datasets import parametrize
 from cebra.datasets import register
 
+_DEFAULT_DATADIR = get_datapath()
+
 _SINGLE_SESSION_CA = (
-    get_datapath(
-        "allen/visual_drift/data/calcium_excitatory/VISp/680156909.mat"),
-    get_datapath(
-        "allen/visual_drift/data/calcium_excitatory/VISp/511510779.mat"),
-    get_datapath(
-        "allen/visual_drift/data/calcium_excitatory/VISp/679702882.mat"),
-    get_datapath(
-        "allen/visual_drift/data/calcium_excitatory/VISp/688678764.mat"),
+    pathlib.Path(_DEFAULT_DATADIR) / "allen" / "visual_drift" / "data" /
+    "calcium_excitatory" / "VISp" / "680156909.mat",
+    pathlib.Path(_DEFAULT_DATADIR) / "allen" / "visual_drift" / "data" /
+    "calcium_excitatory" / "VISp" / "511510779.mat",
+    pathlib.Path(_DEFAULT_DATADIR) / "allen" / "visual_drift" / "data" /
+    "calcium_excitatory" / "VISp" / "679702882.mat",
+    pathlib.Path(_DEFAULT_DATADIR) / "allen" / "visual_drift" / "data" /
+    "calcium_excitatory" / "VISp" / "688678764.mat",
 )
 
 
@@ -70,9 +73,9 @@ class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
     def __init__(
         self,
         session_id: int,
-        frame_feature_path: str = get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
+        frame_feature_path: str = pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
         pca: bool = False,
     ):
         self.path = _SINGLE_SESSION_CA[session_id]
@@ -125,9 +128,9 @@ class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
     def __init__(
         self,
         session_id: int,
-        frame_feature_path: str = get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
+        frame_feature_path: str = pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
         pca: bool = False,
     ):
         self.path = _SINGLE_SESSION_CA[session_id]
@@ -214,9 +217,9 @@ class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
         session_id: int,
         repeat_no: int,
         split_flag: str,
-        frame_feature_path: str = get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
+        frame_feature_path: str = pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
         pca: bool = False,
     ):
         self.path = _SINGLE_SESSION_CA[session_id]
@@ -269,9 +272,9 @@ class SingleSessionAllenCaDecodingLeave2Out(cebra.data.SingleSessionDataset):
         session_id,
         repeat_no,
         split_flag,
-        frame_feature_path=get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
+        frame_feature_path=pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
     ):
         self.path = _SINGLE_SESSION_CA[session_id]
         traces = scipy.io.loadmat(self.path)
@@ -373,9 +376,9 @@ class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
         session_id: int,
         repeat_no: int,
         split_flag: str,
-        frame_feature_path: str = get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
+        frame_feature_path: str = pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
         pca: bool = False,
     ):
         self.path = _SINGLE_SESSION_CA[session_id]
