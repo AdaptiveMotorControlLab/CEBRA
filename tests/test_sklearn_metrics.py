@@ -213,7 +213,7 @@ def test_sklearn_infonce_loss():
         )
 
 
-def test_sklearn_consistency():
+def test_sklearn_datasets_consistency():
     # Example data
     np.random.seed(42)
     embedding1 = np.random.uniform(0, 1, (10000, 4))
@@ -221,7 +221,6 @@ def test_sklearn_consistency():
     embedding3 = np.random.uniform(0, 1, (8000, 6))
     embedding4 = np.random.uniform(0, 1, (5000, 7))
     embeddings_datasets = [embedding1, embedding2, embedding3, embedding4]
-    embeddings_runs = [embedding1, embedding2, embedding1, embedding2]
 
     labels1 = np.random.uniform(0, 1, (10000,))
     labels1_invalid = np.random.uniform(0, 1, (10000, 3))
@@ -229,72 +228,9 @@ def test_sklearn_consistency():
     labels3 = np.random.uniform(0, 1, (8000,))
     labels4 = np.random.uniform(0, 1, (5000,))
     labels_datasets = [labels1, labels2, labels3, labels4]
-    labels_runs = [labels1, labels2, labels1, labels2]
 
-    dataset_ids = ["achilles", "buddy", "buddy", "achilles"]
+    dataset_ids = ["achilles", "buddy", "cicero", "gatsby"]
 
-    # between-runs consistency
-    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
-        embeddings=embeddings_runs, between="runs")
-    assert scores.shape == (12,)
-    assert pairs.shape == (12, 2)
-    assert len(datasets) == 1
-    assert math.isclose(scores[0], 0, abs_tol=0.05)
-
-    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
-        embeddings=[embedding1, embedding1], between="runs")
-    assert scores.shape == (2,)
-    assert pairs.shape == (2, 2)
-    assert len(datasets) == 1
-    assert math.isclose(scores[0], 1, abs_tol=1e-9)
-
-    # scores are put in the right part of the scores matrix
-    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
-        embeddings=[embedding1, embedding2, embedding1, embedding2],
-        between="runs")
-    assert scores.shape == (12,)
-    assert pairs.shape == (12, 2)
-    assert len(datasets) == 1
-    # scores should contain the consistencies in the following way:
-    # [emb1-emb2, emb1-emb1, emb1-emb2, emb2-emb1, emb2-emb1, emb2-emb2,
-    # emb1-emb1, emb1-emb2, emb1-emb2, emb2-emb1, emb2-emb2, emb2-emb1]
-    # we check that emb1-emb1 larger than all other scores with emb1
-    assert scores[1] > scores[0] and scores[1] > scores[2]
-    assert scores[6] > scores[7] and scores[6] > scores[8]
-    assert all(math.isclose(scores[i], 0, abs_tol=0.05) for i in [0, 2, 7, 8])
-
-    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
-        embeddings_runs, dataset_ids=dataset_ids, between="runs")
-    assert scores.shape == (2,)
-    assert pairs.shape == (2, 2, 2)
-    assert len(datasets) == 2
-
-    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
-        [torch.Tensor(embedding) for embedding in embeddings_runs],
-        dataset_ids=dataset_ids,
-        between="runs",
-    )
-    assert scores.shape == (2,)
-    assert pairs.shape == (2, 2, 2)
-    assert len(datasets) == 2
-
-    with pytest.raises(ValueError, match="Missing.*between"):
-        _, _, _ = cebra_sklearn_metrics.consistency_score(embeddings_runs)
-    with pytest.raises(ValueError, match="No.*labels"):
-        _, _, _ = cebra_sklearn_metrics.consistency_score(embeddings_runs,
-                                                          labels=labels_runs,
-                                                          between="runs")
-    with pytest.raises(ValueError, match="Invalid.*embeddings"):
-        _, _, _ = cebra_sklearn_metrics.consistency_score(
-            embeddings=[embedding1], between="runs")
-    with pytest.raises(ValueError, match="Invalid.*embeddings"):
-        _, _, _ = cebra_sklearn_metrics.consistency_score(
-            embeddings=[embedding1, embedding2, embedding1],
-            dataset_ids=["achilles", "buddy", "buddy"],
-            between="runs",
-        )
-
-    # between-datasets consistency
     # random embeddings provide R2 close to 0
     scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
         embeddings_datasets,
@@ -302,10 +238,17 @@ def test_sklearn_consistency():
         labels=labels_datasets,
         between="datasets",
     )
-    assert scores.shape == (2,)
-    assert pairs.shape == (8, 2)
-    assert len(datasets) == 2
+    assert scores.shape == (12,)
+    assert pairs.shape == (12, 2)
+    assert len(datasets) == 4
     assert math.isclose(scores[0], 0, abs_tol=0.05)
+
+    # no labels
+    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
+        embeddings_datasets, labels=labels_datasets, between="datasets")
+    assert scores.shape == (12,)
+    assert pairs.shape == (12, 2)
+    assert len(datasets) == 4
 
     # identical embeddings provide R2 close to 1
     scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
@@ -319,21 +262,16 @@ def test_sklearn_consistency():
     assert len(datasets) == 2
     assert math.isclose(scores[0], 1, abs_tol=1e-9)
 
-    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
-        embeddings_datasets, labels=labels_datasets, between="datasets")
-    assert scores.shape == (12,)
-    assert pairs.shape == (12, 2)
-    assert len(datasets) == 4
-
+    # Tensor
     scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
         [torch.Tensor(embedding) for embedding in embeddings_datasets],
         dataset_ids=dataset_ids,
         labels=[torch.Tensor(label) for label in labels_datasets],
         between="datasets",
     )
-    assert scores.shape == (2,)
-    assert pairs.shape == (8, 2)
-    assert len(datasets) == 2
+    assert scores.shape == (12,)
+    assert pairs.shape == (12, 2)
+    assert len(datasets) == 4
 
     with pytest.raises(ValueError, match="Missing.*between"):
         _, _, _ = cebra_sklearn_metrics.consistency_score(
@@ -376,3 +314,62 @@ def test_sklearn_consistency():
             dataset_ids=["achilles", "buddy"],
             between="datasets",
         )
+
+
+def test_sklearn_runs_consistency():
+    # Example data
+    np.random.seed(42)
+    embedding1 = np.random.uniform(0, 1, (10000, 4))
+    embedding2 = np.random.uniform(0, 1, (10000, 10))
+    embedding3 = np.random.uniform(0, 1, (8000, 10))
+    embeddings_runs = [embedding1, embedding2, embedding1, embedding2]
+    invalid_embeddings_runs = [embedding1, embedding2, embedding3]
+
+    labels1 = np.random.uniform(0, 1, (10000,))
+    labels2 = np.random.uniform(0, 1, (10000,))
+    labels_runs = [labels1, labels2, labels1, labels2]
+
+    # between-runs consistency
+    scores, pairs, ids = cebra_sklearn_metrics.consistency_score(
+        embeddings=embeddings_runs, between="runs")
+    assert scores.shape == (12,)
+    assert pairs.shape == (12, 2)
+    assert len(ids) == 4
+    assert math.isclose(scores[0], 0, abs_tol=0.05)
+
+    scores, pairs, ids = cebra_sklearn_metrics.consistency_score(
+        embeddings=[embedding1, embedding1], between="runs")
+    assert scores.shape == (2,)
+    assert pairs.shape == (2, 2)
+    assert len(ids) == 2
+    assert math.isclose(scores[0], 1, abs_tol=1e-9)
+
+    scores, pairs, ids = cebra_sklearn_metrics.consistency_score(
+        [torch.Tensor(embedding) for embedding in embeddings_runs],
+        between="runs",
+    )
+    assert scores.shape == (12,)
+    assert pairs.shape == (12, 2)
+    assert len(ids) == 4
+
+    with pytest.raises(ValueError, match="No.*dataset.*ID"):
+        _, _, _ = cebra_sklearn_metrics.consistency_score(
+            embeddings_runs,
+            dataset_ids=["run1", "run2", "run3", "run4"],
+            between="runs")
+
+    with pytest.raises(ValueError, match="Missing.*between"):
+        _, _, _ = cebra_sklearn_metrics.consistency_score(embeddings_runs)
+
+    with pytest.raises(ValueError, match="No.*labels"):
+        _, _, _ = cebra_sklearn_metrics.consistency_score(embeddings_runs,
+                                                          labels=labels_runs,
+                                                          between="runs")
+
+    with pytest.raises(ValueError, match="Invalid.*embeddings"):
+        _, _, _ = cebra_sklearn_metrics.consistency_score(
+            embeddings=[embedding1], between="runs")
+
+    with pytest.raises(ValueError, match="Invalid.*embeddings"):
+        _, _, _ = cebra_sklearn_metrics.consistency_score(
+            invalid_embeddings_runs, between="runs")
