@@ -867,6 +867,7 @@ class ParametrizedModelExample(cebra.models.model._OffsetModel):
         """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(0, 1)
 
+
 @pytest.mark.parametrize("action", _iterate_actions())
 @pytest.mark.parametrize("backend_save", ["torch", "sklearn"])
 @pytest.mark.parametrize("backend_load", ["auto", "torch", "sklearn"])
@@ -904,6 +905,7 @@ def test_save_and_load(action, backend_save, backend_load, model_architecture,
                     _assert_equal(original_model, loaded_model)
                     action(loaded_model)
 
+
 def get_ordered_cuda_devices():
     available_devices = ['cuda']
     for i in range(torch.cuda.device_count()):
@@ -914,6 +916,7 @@ def get_ordered_cuda_devices():
 ordered_cuda_devices = get_ordered_cuda_devices() if torch.cuda.is_available(
 ) else []
 
+
 def test_fit_after_moving_to_device():
     expected_device = 'cpu'
     expected_type = type(expected_device)
@@ -922,7 +925,7 @@ def test_fit_after_moving_to_device():
     cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",
                                             max_iterations=5,
                                             device=expected_device)
-    
+
     assert type(cebra_model.device) == expected_type
     assert cebra_model.device == expected_device
 
@@ -947,6 +950,7 @@ def test_fit_after_moving_to_device():
     if hasattr(cebra_model, 'device_'):
         assert type(cebra_model.device_) == expected_type
         assert cebra_model.device_ == expected_device
+
 
 @pytest.mark.parametrize("device", ['cpu'] + ordered_cuda_devices)
 def test_move_cpu_to_cuda_device(device):
@@ -998,7 +1002,7 @@ def test_move_cpu_to_mps_device(device):
     cebra_model.to(new_device)
 
     assert cebra_model.device == new_device
-    
+
     device_model = next(cebra_model.solver_.model.parameters()).device
     assert device_model.type == new_device
 
@@ -1061,7 +1065,7 @@ def test_mps():
 
     if torch.backends.mps.is_available() and torch.backends.mps.is_built():
         torch.backends.mps.is_available = lambda: False
-        
+
         with pytest.raises(ValueError):
             cebra_model.fit(X)
 
