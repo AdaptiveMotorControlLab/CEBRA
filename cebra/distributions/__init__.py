@@ -51,6 +51,7 @@ __all__ = [
     "Discrete",
     "DiscreteUniform",
     "DiscreteEmpirical",
+    "DeltaNormalDistribution",
     "MultivariateDiscrete",
     "MultisessionSampler",
 ]
