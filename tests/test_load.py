@@ -77,7 +77,7 @@ def register_error(*file_endings):
 ##### .NPY #####
 @register("npy")
 def generate_numpy(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     np.save(filename, A)
     loaded_A = cebra_load.load(filename)
     return A, loaded_A
@@ -85,7 +85,7 @@ def generate_numpy(filename):
 
 @register("npy")
 def generate_numpy_path(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     np.save(filename, A)
     loaded_A = cebra_load.load(pathlib.Path(filename))
     return A, loaded_A
@@ -98,7 +98,7 @@ def generate_numpy_path(filename):
 ##### . NPZ #####
 @register("npz")
 def generate_numpy_confounder(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     np.savez(filename, array=A, other_data="test")
     loaded_A = cebra_load.load(filename)
     return A, loaded_A
@@ -106,7 +106,7 @@ def generate_numpy_confounder(filename):
 
 @register("npz")
 def generate_numpy_path(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     np.savez(filename, array=A, other_data="test")
     loaded_A = cebra_load.load(pathlib.Path(filename))
     return A, loaded_A
@@ -114,7 +114,7 @@ def generate_numpy_path(filename):
 
 @register("npz")
 def generate_numpy_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     np.savez(filename, array=A, other_data="test")
     loaded_A = cebra_load.load(filename, key="array")
     return A, loaded_A
@@ -122,7 +122,7 @@ def generate_numpy_key(filename):
 
 @register("npz")
 def generate_numpy_second(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     np.savez(filename, other_data="test", array=A)
     loaded_A = cebra_load.load(filename)
     return A, loaded_A
@@ -130,14 +130,14 @@ def generate_numpy_second(filename):
 
 @register_error("npz")
 def generate_numpy_wrong_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     np.savez(filename, array=A, other_data="test")
     _ = cebra_load.load(filename, key="wrong_array")
 
 
 @register_error("npz")
 def generate_numpy_invalid_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     np.savez(filename, array=A, other_data="test")
     _ = cebra_load.load(filename, key="other_data")
 
@@ -154,7 +154,7 @@ def generate_numpy_no_array(filename):
 
 @register("h5", "hdf", "hdf5", "h")
 def generate_h5(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("dataset_1", data=A)
     loaded_A = cebra_load.load(filename)
@@ -163,7 +163,7 @@ def generate_h5(filename):
 
 @register("h5", "hdf", "hdf5", "h")
 def generate_h5_confounder(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("dataset_1", data=A)
         hf.create_dataset("dataset_2", data="test")
@@ -173,7 +173,7 @@ def generate_h5_confounder(filename):
 
 @register("h5", "hdf", "hdf5", "h")
 def generate_h5_path(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("dataset_1", data=A)
         hf.create_dataset("dataset_2", data="test")
@@ -183,7 +183,7 @@ def generate_h5_path(filename):
 
 @register("h5", "hdf", "hdf5", "h")
 def generate_h5_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("dataset_1", data=A)
         hf.create_dataset("dataset_2", data="test")
@@ -193,7 +193,7 @@ def generate_h5_key(filename):
 
 @register("h5", "hdf", "hdf5", "h")
 def generate_h5_second(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("dataset_1", data="test")
         hf.create_dataset("dataset_2", data=A)
@@ -203,7 +203,7 @@ def generate_h5_second(filename):
 
 @register_error("h5", "hdf", "hdf5", "h")
 def generate_h5_wrong_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("dataset_1", data=A)
         hf.create_dataset("dataset_2", data="test")
@@ -212,7 +212,7 @@ def generate_h5_wrong_key(filename):
 
 @register_error("h5", "hdf", "hdf5", "h")
 def generate_h5_invalid_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with h5py.File(filename, "w") as hf:
         hf.create_dataset("dataset_1", data=A)
         hf.create_dataset("dataset_2", data="test")
@@ -329,7 +329,7 @@ def generate_h5_multicol_dataframe_columns(filename):
 
 @register("pt", "pth")
 def generate_torch(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     A_tensor = torch.tensor(A)
     torch.save(A_tensor, filename)
     loaded_A = cebra_load.load(filename)
@@ -338,9 +338,9 @@ def generate_torch(filename):
 
 @register("pt", "pth")
 def generate_torch_cofounder(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     A_tensor = torch.tensor(A)
-    B = np.arange(500).reshape(10, 50)
+    B = np.arange(500, dtype=np.int32).reshape(10, 50)
     B_tensor = torch.tensor(B)
     torch.save({"A": A_tensor, "B": B_tensor}, filename)
     loaded_A = cebra_load.load(filename)
@@ -349,9 +349,9 @@ def generate_torch_cofounder(filename):
 
 @register("pt", "pth")
 def generate_torch_path(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     A_tensor = torch.tensor(A)
-    B = np.arange(500).reshape(10, 50)
+    B = np.arange(500, dtype=np.int32).reshape(10, 50)
     B_tensor = torch.tensor(B)
     torch.save({"A": A_tensor, "B": B_tensor}, filename)
     loaded_A = cebra_load.load(pathlib.Path(filename))
@@ -371,9 +371,9 @@ def generate_torch_key(filename):
 
 @register_error("pt", "pth")
 def generate_wrong_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     A_tensor = torch.tensor(A)
-    B = np.arange(500).reshape(10, 50)
+    B = np.arange(500, dtype=np.int32).reshape(10, 50)
     B_tensor = torch.tensor(B)
     torch.save({"A": A_tensor, "B": B_tensor}, filename)
     _ = cebra_load.load(filename, key="C")
@@ -476,7 +476,7 @@ def generate_excel_empty_file(filename):
 #### .JL ####
 @register("jl")
 def generate_joblib(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     jl.dump(A, filename)
     loaded_A = cebra_load.load(filename)
     return A, loaded_A
@@ -484,7 +484,8 @@ def generate_joblib(filename):
 
 @register("jl")
 def generate_joblib_cofounder(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
+    print(filename)
     jl.dump({"A": A, "B": "test"}, filename)
     loaded_A = cebra_load.load(filename)
     return A, loaded_A
@@ -492,7 +493,7 @@ def generate_joblib_cofounder(filename):
 
 @register("jl")
 def generate_joblib_path(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     jl.dump({"A": A, "B": "test"}, filename)
     loaded_A = cebra_load.load(pathlib.Path(filename))
     return A, loaded_A
@@ -500,7 +501,7 @@ def generate_joblib_path(filename):
 
 @register("jl")
 def generate_joblib_second(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     jl.dump({"B": "test", "A": A}, filename)
     loaded_A = cebra_load.load(filename)
     return A, loaded_A
@@ -508,7 +509,7 @@ def generate_joblib_second(filename):
 
 @register("jl")
 def generate_joblib_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     jl.dump({"A": A, "B": "test"}, filename)
     loaded_A = cebra_load.load(filename, key="A")
     return A, loaded_A
@@ -516,14 +517,14 @@ def generate_joblib_key(filename):
 
 @register_error("jl")
 def generate_joblib_wrong_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     jl.dump({"A": A, "B": "test"}, filename)
     _ = cebra_load.load(filename, key="C")
 
 
 @register_error("jl")
 def generate_joblib_invalid_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     jl.dump({"A": A, "B": "test"}, filename)
     _ = cebra_load.load(filename, key="B")
 
@@ -537,7 +538,7 @@ def generate_joblib_no_array(filename):
 #### .PKL ####
 @register("pkl", "p")
 def generate_pickle(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with open(filename, "wb") as f:
         pickle.dump(A, f)
     loaded_A = cebra_load.load(filename)
@@ -546,7 +547,7 @@ def generate_pickle(filename):
 
 @register("pkl", "p")
 def generate_pickle_cofounder(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with open(filename, "wb") as f:
         pickle.dump({"A": A, "B": "test"}, f)
     loaded_A = cebra_load.load(filename)
@@ -555,7 +556,7 @@ def generate_pickle_cofounder(filename):
 
 @register("pkl", "p")
 def generate_pickle_path(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with open(filename, "wb") as f:
         pickle.dump({"A": A, "B": "test"}, f)
     loaded_A = cebra_load.load(pathlib.Path(filename))
@@ -564,7 +565,7 @@ def generate_pickle_path(filename):
 
 @register("pkl", "p")
 def generate_pickle_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with open(filename, "wb") as f:
         pickle.dump({"A": A, "B": "test"}, f)
     loaded_A = cebra_load.load(filename, key="A")
@@ -573,7 +574,7 @@ def generate_pickle_key(filename):
 
 @register("pkl", "p")
 def generate_pickle_second(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with open(filename, "wb") as f:
         pickle.dump({"B": "test", "A": A}, f)
     loaded_A = cebra_load.load(filename)
@@ -582,7 +583,7 @@ def generate_pickle_second(filename):
 
 @register_error("pkl", "p")
 def generate_pickle_wrong_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with open(filename, "wb") as f:
         pickle.dump({"A": A, "B": "test"}, f)
     _ = cebra_load.load(filename, key="C")
@@ -590,7 +591,7 @@ def generate_pickle_wrong_key(filename):
 
 @register_error("pkl", "p")
 def generate_pickle_invalid_key(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with open(filename, "wb") as f:
         pickle.dump({"A": A, "B": "test"}, f)
     _ = cebra_load.load(filename, key="B")
@@ -598,7 +599,7 @@ def generate_pickle_invalid_key(filename):
 
 @register_error("pkl", "p")
 def generate_pickle_no_array(filename):
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with open(filename, "wb") as f:
         pickle.dump({"A": "test_1", "B": "test_2"}, f)
     _ = cebra_load.load(filename)
@@ -614,7 +615,7 @@ def generate_pickle_no_array(filename):
 @register("mat")
 def generate_mat_old(filename):
     """Older matplotlib arrays have their own format."""
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     A_dict = {"dataset_1": A, "label": "test"}
     scipy.io.savemat(filename, A_dict)
     loaded_A = cebra_load.load(filename)
@@ -624,7 +625,7 @@ def generate_mat_old(filename):
 @register("mat")
 def generate_mat_old_path(filename):
     """Older matplotlib arrays have their own format."""
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     A_dict = {"dataset_1": A, "label": "test"}
     scipy.io.savemat(filename, A_dict)
     loaded_A = cebra_load.load(pathlib.Path(filename))
@@ -634,7 +635,7 @@ def generate_mat_old_path(filename):
 @register("mat")
 def generate_mat_old_key(filename):
     """Older matplotlib arrays have their own format."""
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     A_dict = {"dataset_1": A, "label": "test"}
     scipy.io.savemat(filename, A_dict)
     loaded_A = cebra_load.load(filename, key="dataset_1")
@@ -644,7 +645,7 @@ def generate_mat_old_key(filename):
 @register("mat")
 def generate_mat_old_second(filename):
     """Older matplotlib arrays have their own format."""
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     A_dict = {"label": "test", "dataset_1": A}
     scipy.io.savemat(filename, A_dict)
     loaded_A = cebra_load.load(filename)
@@ -654,7 +655,7 @@ def generate_mat_old_second(filename):
 @register_error("mat")
 def generate_mat_old_wrong_key(filename):
     """Older matplotlib arrays have their own format."""
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     A_dict = {"dataset_1": A, "label": "test"}
     scipy.io.savemat(filename, A_dict)
     _ = cebra_load.load(filename, key="dataset_2")
@@ -663,7 +664,7 @@ def generate_mat_old_wrong_key(filename):
 @register_error("mat")
 def generate_mat_old_invalid_key(filename):
     """Older matplotlib arrays have their own format."""
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     A_dict = {"dataset_1": A, "label": "test"}
     scipy.io.savemat(filename, A_dict)
     _ = cebra_load.load(filename, key="label")
@@ -681,7 +682,7 @@ def generate_mat_old_no_array(filename):
 def generate_mat_new(filename):
     """Newer matplotlib formats are just h5 files"""
     _skip_hdf5storage()
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     # A transposed as matrices are transposed to be stored in HDF5
     A_dict = {"dataset_1": A.T, "label": "test"}
     hdf5storage.write(A_dict, ".", filename, matlab_compatible=True)
@@ -693,7 +694,7 @@ def generate_mat_new(filename):
 def generate_mat_new_path(filename):
     """Newer matplotlib formats are just h5 files"""
     _skip_hdf5storage()
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     # A transposed as matrices are transposed to be stored in HDF5
     A_dict = {"dataset_1": A.T, "label": "test"}
     hdf5storage.write(A_dict, ".", filename, matlab_compatible=True)
@@ -705,7 +706,7 @@ def generate_mat_new_path(filename):
 def generate_mat_new_key(filename):
     """Newer matplotlib formats are just h5 files"""
     _skip_hdf5storage()
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     # A transposed as matrices are transposed to be stored in HDF5
     A_dict = {"dataset_1": A.T, "label": "test"}
     hdf5storage.write(A_dict, ".", filename, matlab_compatible=True)
@@ -717,7 +718,7 @@ def generate_mat_new_key(filename):
 def generate_mat_new_second(filename):
     """Newer matplotlib formats are just h5 files"""
     _skip_hdf5storage()
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     # A transposed as matrices are transposed to be stored in HDF5
     A_dict = {"label": "test", "dataset_1": A.T}
     hdf5storage.write(A_dict, ".", filename, matlab_compatible=True)
@@ -729,7 +730,7 @@ def generate_mat_new_second(filename):
 def generate_mat_new_wrong_key(filename):
     """Newer matplotlib formats are just h5 files"""
     _skip_hdf5storage()
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     # A transposed as matrices are transposed to be stored in HDF5
     A_dict = {"dataset_1": A.T, "label": "test"}
     hdf5storage.write(A_dict, ".", filename, matlab_compatible=True)
@@ -740,7 +741,7 @@ def generate_mat_new_wrong_key(filename):
 def generate_mat_new_invalid_key(filename):
     """Newer matplotlib formats are just h5 files"""
     _skip_hdf5storage()
-    A = np.arange(1000).reshape(10, 100)
+    A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     # A transposed as matrices are transposed to be stored in HDF5
     A_dict = {"dataset_1": A.T, "label": "test"}
     hdf5storage.write(A_dict, ".", filename, matlab_compatible=True)
