@@ -171,7 +171,7 @@ def _consistency_datasets(
     Returns:
         A list of scores obtained between embeddings from different datasets (first element),
         a list of pairs of IDs corresponding to the scores (second element), and a list of the
-        datasets IDs (third element).
+        dataset IDs (third element).
 
     """
     if labels is None:
