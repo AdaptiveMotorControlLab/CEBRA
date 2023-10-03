@@ -1,0 +1,7 @@
+conda
+docs
+PKGBUILD
+__pycache__
+tests
+third_party
+tools
