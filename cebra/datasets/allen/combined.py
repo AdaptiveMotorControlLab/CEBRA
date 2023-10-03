@@ -23,7 +23,6 @@ References:
 
 import glob
 import hashlib
-import os
 
 import h5py
 import joblib

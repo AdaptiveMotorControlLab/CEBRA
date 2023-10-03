@@ -27,17 +27,6 @@ import numpy as np
 import scipy.io
 import torch
 
-try:
-    from nlb_tools.nwb_interface import NWBDataset
-except ImportError:
-    import warnings
-
-    warnings.warn(
-        ("Could not import the nlb_tools package required for data loading "
-         "of cebra.datasets.monkey_reaching. Dataset will not be available. "
-         "If required, you can install the dataset by running "
-         "pip install git+https://github.com/neurallatents/nlb_tools."))
-
 import cebra.data
 from cebra.datasets import get_datapath
 from cebra.datasets import register
@@ -61,6 +50,16 @@ def _load_data(
         split: The split to load among 'train', 'valid', 'test' and 'all'.
 
     """
+
+    try:
+        from nlb_tools.nwb_interface import NWBDataset
+    except ImportError as e:
+        raise ImportError(
+            "Could not import the nlb_tools package required for data loading "
+            "the raw reaching datasets in NWB format. "
+            "If required, you can install the dataset by running "
+            "pip install nlb_tools or installing cebra with the [datasets] "
+            "dependencies: pip install 'cebra[datasets]'")
 
     def _get_info(trial_info, data):
         passive = []

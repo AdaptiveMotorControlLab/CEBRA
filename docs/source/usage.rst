@@ -904,6 +904,7 @@ We first create the embeddings to compare: we use two different datasets of data
 .. testcode::
 
     n_runs = 3
+    dataset_ids = ["session1", "session2"]
 
     cebra_model = CEBRA(model_architecture='offset10-model',
                     batch_size=512,
@@ -911,40 +912,40 @@ We first create the embeddings to compare: we use two different datasets of data
                     max_iterations=5,
                     time_offsets=10)
 
-    embeddings, dataset_ids, labels = [], [], []
+    embeddings_runs = []
+    embeddings_datasets, ids, labels = [], [], []
     for i in range(n_runs):
-        embeddings.append(cebra_model.fit_transform(neural_session1, continuous_label1))
-        dataset_ids.append("session1")
-        labels.append(continuous_label1[:, 0])
+        embeddings_runs.append(cebra_model.fit_transform(neural_session1, continuous_label1))
 
-        embeddings.append(cebra_model.fit_transform(neural_session2, continuous_label2))
-        dataset_ids.append("session2")
-        labels.append(continuous_label2[:, 0])
+    labels.append(continuous_label1[:, 0])
+    embeddings_datasets.append(embeddings_runs[-1])
 
-    n_datasets = len(set(dataset_ids))
+    embeddings_datasets.append(cebra_model.fit_transform(neural_session2, continuous_label2))
+    labels.append(continuous_label2[:, 0])
+
+    n_datasets = len(dataset_ids)
 
 To get the :py:func:`~.consistency_score` on the set of embeddings that we just generated:
 
 .. testcode::
 
-    # Between-runs, with dataset IDs (optional)
-    scores_runs, pairs_runs, datasets_runs = cebra.sklearn.metrics.consistency_score(embeddings=embeddings,
-                                                                      dataset_ids=dataset_ids,
-                                                                      between="runs")
+    # Between-runs
+    scores_runs, pairs_runs, ids_runs = cebra.sklearn.metrics.consistency_score(embeddings=embeddings_runs,
+                                                                                between="runs")
     assert scores_runs.shape == (n_runs**2 - n_runs, )
-    assert pairs_runs.shape == (n_datasets, n_runs*n_datasets, 2)
-    assert datasets_runs.shape == (n_datasets, )
+    assert pairs_runs.shape == (n_runs**2 - n_runs, 2)
+    assert ids_runs.shape == (n_runs, )
 
     # Between-datasets, by aligning on the labels
     (scores_datasets,
         pairs_datasets,
-        datasets_datasets) = cebra.sklearn.metrics.consistency_score(embeddings=embeddings,
+        ids_datasets) = cebra.sklearn.metrics.consistency_score(embeddings=embeddings_datasets,
                                                                     labels=labels,
                                                                     dataset_ids=dataset_ids,
                                                                     between="datasets")
     assert scores_datasets.shape == (n_datasets**2 - n_datasets, )
-    assert pairs_datasets.shape == (n_runs*(n_runs*n_datasets), 2)
-    assert datasets_datasets.shape == (n_datasets, )
+    assert pairs_datasets.shape == (n_datasets**2 - n_datasets, 2)
+    assert ids_datasets.shape == (n_datasets, )
 
 .. admonition:: See API docs
     :class: dropdown
@@ -961,8 +962,8 @@ You can then display the resulting scores using :py:func:`~.plot_consistency`.
     ax1 = fig.add_subplot(121)
     ax2 = fig.add_subplot(122)
 
-    ax1 = cebra.plot_consistency(scores_runs, pairs_runs, datasets_runs, vmin=0, vmax=100, ax=ax1, title="Between-runs consistencies")
-    ax2 = cebra.plot_consistency(scores_datasets, pairs_datasets, datasets_datasets, vmin=0, vmax=100, ax=ax2, title="Between-subjects consistencies")
+    ax1 = cebra.plot_consistency(scores_runs, pairs_runs, ids_runs, vmin=0, vmax=100, ax=ax1, title="Between-runs consistencies")
+    ax2 = cebra.plot_consistency(scores_datasets, pairs_datasets, ids_runs, vmin=0, vmax=100, ax=ax2, title="Between-subjects consistencies")
 
 
 .. figure:: docs-imgs/consistency-score.png
