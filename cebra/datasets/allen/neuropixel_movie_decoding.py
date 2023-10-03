@@ -19,6 +19,7 @@ References:
 import glob
 import hashlib
 import os
+import pathlib
 
 import h5py
 import joblib
@@ -39,6 +40,8 @@ from cebra.datasets.allen import ca_movie_decoding
 from cebra.datasets.allen import NUM_NEURONS
 from cebra.datasets.allen import SEEDS
 from cebra.datasets.allen import SEEDS_DISJOINT
+
+_DEFAULT_DATADIR = get_datapath()
 
 
 @parametrize(
@@ -87,11 +90,10 @@ class AllenNeuropixelMovieDecoding120HzCorticesDataset(
         Args:
             cortex: The visual cortical area.
         """
-
-        data = joblib.load(
-            get_datapath(
-                f"allen/allen_movie1_neuropixel/{cortex}/neuropixel_pseudomouse_120_filtered.jl"
-            ))
+        path = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "allen" / "allen_movie1_neuropixel" / cortex / "neuropixel_pseudomouse_120_filtered.jl"
+        data = joblib.load(path)
         return data
 
     def _split(self, pseudo_mice, frame_feature):
@@ -148,25 +150,23 @@ class AllenNeuropixelMovie120HzCorticesDisjointDataset(
 
     """
 
-    def __init__(
-        self,
-        group,
-        num_neurons,
-        seed=111,
-        cortex="VISp",
-        split_flag="train",
-        frame_feature_path=get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
-    ):
+    def __init__(self,
+                 group,
+                 num_neurons,
+                 seed=111,
+                 cortex="VISp",
+                 split_flag="train",
+                 frame_feature_path=pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+                 "features" / "allen_movies" / "vit_base" / "8" /
+                 "movie_one_image_stack.npz" / "testfeat.pth"):
         self.split_flag = split_flag
         self.seed = seed
         self.group = group
         self.num_neurons = num_neurons
         data = joblib.load(
-            get_datapath(
-                f"allen/allen_movie1_neuropixel/{cortex}/neuropixel_pseudomouse_120_filtered.jl"
-            ))
+            pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+            "allen_movie1_neuropixel" / cortex /
+            "neuropixel_pseudomouse_120_filtered.jl")
         pseudo_mice = data["neural"].T
         self.neurons_indices = self._sample_neurons(pseudo_mice)
         self.movie_len = pseudo_mice.shape[1]

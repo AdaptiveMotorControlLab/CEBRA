@@ -21,7 +21,6 @@ References:
 """
 import argparse
 import glob
-import os
 
 import h5py
 import joblib as jl
@@ -250,22 +249,17 @@ if __name__ == "__main__":
     pseudo_mice = np.concatenate([v for v in sessions_dic.values()], axis=1)
     pseudo_mice_frames = session_frames[0]
 
-    jl.dump(
-        {
-            "neural": sessions_dic,
-            "frames": session_frames
-        },
-        os.path.join(
-            args.save_path,
-            f"neuropixel_sessions_{int(args.sampling_rate)}_filtered.jl"),
-    )
+    jl.dump({
+        "neural": sessions_dic,
+        "frames": session_frames
+    },
+            Path(args.save_path) /
+            f"neuropixel_sessions_{int(args.sampling_rate)}_filtered.jl")
     jl.dump(
         {
             "neural": pseudo_mice,
             "frames": pseudo_mice_frames
         },
-        os.path.join(
-            args.save_path,
-            f"neuropixel_pseudomouse_{int(args.sampling_rate)}_filtered.jl",
-        ),
+        Path(args.save_path) /
+        f"neuropixel_pseudomouse_{int(args.sampling_rate)}_filtered.jl",
     )
