@@ -124,6 +124,7 @@ class AllenCaMovieDataset(cebra.data.SingleSessionDataset):
         ) / "allen" / "visual_drift" / "data" / "calcium_excitatory" / str(area)
         list_mice = path.glob("*.mat")
         exp_containers = [int(file.stem) for file in list_mice]
+
         ## Load summary file
         summary = pd.read_csv(
             pathlib.Path(_DEFAULT_DATADIR) / "allen" / "data_summary.csv")
