@@ -1166,7 +1166,9 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> cebra_model = cebra.CEBRA(max_iterations=10)
             >>> cebra_model.fit(dataset)
             CEBRA(max_iterations=10)
-            >>> cebra_model.save('/tmp/foo.pt')
+            >>> with tempfile.NamedTemporaryFile(suffix='.pt', delete=False) as tmp_file:
+                    file_path = tmp_file.name
+            >>> cebra_model.save(file_path)
             >>> cebra_model.fit(dataset2, adapt=True)
             CEBRA(max_iterations=10)
         """
@@ -1336,7 +1338,9 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> cebra_model = cebra.CEBRA(max_iterations=10)
             >>> cebra_model.fit(dataset)
             CEBRA(max_iterations=10)
-            >>> cebra_model.save('/tmp/foo.pt')
+            >>> with tempfile.NamedTemporaryFile(suffix='.pt', delete=False) as tmp_file:
+                    file_path = tmp_file.name
+            >>> cebra_model.save(file_path)
 
         """
         if sklearn_utils.check_fitted(self):
@@ -1396,7 +1400,9 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> import cebra
             >>> import numpy as np
             >>> dataset =  np.random.uniform(0, 1, (1000, 20))
-            >>> loaded_model = cebra.CEBRA.load('/tmp/foo.pt')
+            >>> with tempfile.NamedTemporaryFile(suffix='.pt', delete=False) as tmp_file:
+                    file_path = tmp_file.name
+            >>> loaded_model = cebra.CEBRA.load(file_path)
             >>> embedding = loaded_model.transform(dataset)
 
         """

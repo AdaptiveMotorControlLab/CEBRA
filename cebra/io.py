@@ -214,9 +214,10 @@ class FileKeyValueDataset:
 
         >>> import cebra.io
         >>> import joblib
-        >>> joblib.dump({'foo' : 42}, '/tmp/test.jl')
-        ['/tmp/test.jl']
-        >>> data = cebra.io.FileKeyValueDataset('/tmp/test.jl')
+        >>> with tempfile.NamedTemporaryFile(suffix='.jl', delete=False) as tmp_file:
+                file_path = tmp_file.name
+        >>> joblib.dump({'foo' : 42}, file_path)
+        >>> data = cebra.io.FileKeyValueDataset(file_path)
         >>> data.foo
         42
 
