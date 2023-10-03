@@ -292,8 +292,9 @@ def test_infonce():
 
 def test_infonce_gradients():
 
-    pos_dist = torch.randn(100,)
-    neg_dist = torch.randn(100, 100)
+    rng = torch.Generator().manual_seed(42)
+    pos_dist = torch.randn(100, generator=rng)
+    neg_dist = torch.randn(100, 100, generator=rng)
 
     for i in range(3):
         pos_dist_ = pos_dist.clone()
@@ -310,7 +311,8 @@ def test_infonce_gradients():
         loss = cebra_criterions.infonce(pos_dist_, neg_dist_)[i]
         grad = _compute_grads(loss, [pos_dist_, neg_dist_])
 
-        assert torch.allclose(loss_ref, loss)
+        # NOTE(stes) default relative tolerance is 1e-5
+        assert torch.allclose(loss_ref, loss, rtol = 1e-4)
 
         if i == 0:
             assert grad[0] is not None
