@@ -21,7 +21,6 @@ References:
 
 import glob
 import hashlib
-import os
 import pathlib
 
 import h5py
@@ -220,7 +219,7 @@ class AllenCaMoviePreLoadDataset(AllenCaMovieDataset):
         preload = pathlib.Path(
             _DEFAULT_DATADIR
         ) / "allen_preload" / f"allen-movie1-ca-{num_neurons}-{seed}.jl"
-        if not os.path.isfile(preload):
+        if not preload.is_file():
             print("The dataset is not yet preloaded.")
             preload = None
         super().__init__(num_neurons=num_neurons, seed=seed, load=preload)

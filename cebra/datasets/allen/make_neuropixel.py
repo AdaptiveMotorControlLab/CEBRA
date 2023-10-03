@@ -22,7 +22,6 @@ References:
 
 import argparse
 import glob
-import os
 import pathlib
 
 import h5py
@@ -259,17 +258,14 @@ if __name__ == "__main__":
             "neural": sessions_dic,
             "frames": session_frames
         },
-        os.path.join(
-            args.save_path,
-            f"neuropixel_sessions_{int(args.sampling_rate)}_filtered.jl"),
+        Path(args.save_path) /
+        f"neuropixel_sessions_{int(args.sampling_rate)}_filtered.jl",
     )
     jl.dump(
         {
             "neural": pseudo_mice,
             "frames": pseudo_mice_frames
         },
-        os.path.join(
-            args.save_path,
-            f"neuropixel_pseudomouse_{int(args.sampling_rate)}_filtered.jl",
-        ),
+        Path(args.save_path) /
+        f"neuropixel_pseudomouse_{int(args.sampling_rate)}_filtered.jl",
     )
