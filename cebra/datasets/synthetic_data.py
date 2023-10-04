@@ -97,9 +97,9 @@ class SyntheticData(cebra.data.SingleSessionDataset):
         data = joblib.load(file_path)
         self.data = data  #NOTE: making it backwards compatible with synth notebook.
         self.name = name
-        self.neural = self.data['z']
-        self.latents = self.data['x']
-        self.u = self.data['u']
+        self.neural = self.data['x']
+        self.latents = self.data['z']
+        self.index = self.data['u']
         self.lam = self.data['lam']
 
     @property
