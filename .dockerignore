@@ -1,7 +1,7 @@
-conda
-docs
+conda/
+docs/
+__pycache__/
+tests/
+third_party/
+tools/
 PKGBUILD
-__pycache__
-tests
-third_party
-tools

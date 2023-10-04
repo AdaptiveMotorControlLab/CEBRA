@@ -24,11 +24,12 @@ docker build \
 docker tag $DOCKERNAME $LATEST
 
 docker run \
-	--gpus 1 \
+	--gpus 2 \
 	-v ${CEBRA_DATADIR:-./data}:/data \
 	--env CEBRA_DATADIR=/data \
 	--network host \
-	-it $DOCKERNAME python -m pytest -vvv tests
+	-it $DOCKERNAME python -m pytest --doctest-modules tests ./docs/source/usage.rst cebra
+
 
 #docker push $DOCKERNAME
 #docker push $LATEST
