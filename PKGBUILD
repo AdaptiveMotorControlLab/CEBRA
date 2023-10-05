@@ -24,6 +24,7 @@ optdepends=(
     python-matplotlib
     python-h5py
     python-argparse
+    python-plotly
 )
 license=('custom')
 arch=('any')

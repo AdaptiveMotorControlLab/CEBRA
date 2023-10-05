@@ -10,12 +10,10 @@
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
 """Matplotlib interface to CEBRA."""
-
 import abc
 from collections.abc import Iterable
 from typing import List, Literal, Optional, Tuple, Union
 
-import matplotlib
 import matplotlib.axes
 import matplotlib.cm
 import matplotlib.colors
@@ -483,8 +481,8 @@ class _EmbeddingPlot(_BasePlot):
             self.ax = self._plot_3d(**kwargs)
         else:
             self.ax = self._plot_2d(**kwargs)
-
-        self.ax.set_title(self.title)
+        if isinstance(self.ax, matplotlib.axes._axes.Axes):
+            self.ax.set_title(self.title)
 
         return self.ax
 
@@ -524,9 +522,10 @@ class _ConsistencyPlot(_BasePlot):
         self._define_ax(axis)
         scores = self._check_array(scores)
         # Check the values dimensions
-        if scores.ndim > 2:
+        if scores.ndim >= 2:
             raise ValueError(
                 f"Invalid scores dimensions, expect 1D, got {scores.ndim}D.")
+
         self.labels = self._compute_labels(scores,
                                            pairs=pairs,
                                            datasets=datasets)
@@ -609,7 +608,7 @@ class _ConsistencyPlot(_BasePlot):
                 "got either both or one of them  set to None.")
         else:
             datasets = self._check_array(datasets)
-            pairs = self._check_array(pairs)
+            pairs = self.pairs = self._check_array(pairs)
 
             if len(pairs.shape) == 2:
                 compared_items = list(sorted(set(pairs[:, 0])))
@@ -651,12 +650,26 @@ class _ConsistencyPlot(_BasePlot):
 
         values = np.concatenate(values)
 
+        pairs = self.pairs
+
+        if pairs.ndim == 3:
+            pairs = pairs[0]
+
+        assert len(pairs) == len(values), (self.pairs.shape, len(values))
+        score_dict = {tuple(pair): value for pair, value in zip(pairs, values)}
+
         if self.labels is None:
             n_grid = self.score
 
         heatmap_values = np.zeros((len(self.labels), len(self.labels)))
+
         heatmap_values[:] = float("nan")
-        heatmap_values[np.eye(len(self.labels)) == 0] = values
+        for i, label_i in enumerate(self.labels):
+            for j, label_j in enumerate(self.labels):
+                if i == j:
+                    heatmap_values[i, j] = float("nan")
+                else:
+                    heatmap_values[i, j] = score_dict[label_i, label_j]
 
         return np.minimum(heatmap_values * 100, 99)
 
@@ -736,10 +749,8 @@ def plot_overview(
     figsize: tuple = (15, 4),
     dpi: int = 100,
     **kwargs,
-) -> Tuple[
-        matplotlib.figure.Figure,
-        Tuple[matplotlib.axes.Axes, matplotlib.axes.Axes, matplotlib.axes.Axes],
-]:
+) -> Tuple[matplotlib.figure.Figure, Tuple[
+        matplotlib.axes.Axes, matplotlib.axes.Axes, matplotlib.axes.Axes]]:
     """Plot an overview of a trained CEBRA model.
 
     Args:
