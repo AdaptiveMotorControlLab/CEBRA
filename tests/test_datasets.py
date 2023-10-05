@@ -10,6 +10,7 @@
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
 import os
+import pathlib
 import tempfile
 from unittest.mock import patch
 
@@ -19,10 +20,12 @@ import requests
 import torch
 
 import cebra.data
-import cebra.datasets
 import cebra.data.assets as cebra_data_assets
+import cebra.datasets
 import cebra.registry
 from cebra.datasets import poisson
+
+_DEFAULT_DATADIR = cebra.datasets.get_datapath()
 
 
 def test_registry():
@@ -90,7 +93,7 @@ def test_monkey():
 
     dataset = cebra.datasets.init(
         "area2-bump-pos-active-passive",
-        path=cebra.datasets.get_datapath("monkey_reaching_preload_smth_40/"),
+        path=pathlib.Path(_DEFAULT_DATADIR) / "monkey_reaching_preload_smth_40",
     )
     indices = torch.randint(0, len(dataset), (10,))
     assert len(indices) == len(dataset[indices])
@@ -100,7 +103,6 @@ def test_monkey():
 def test_allen():
     from cebra.datasets import allen
 
-    pytest.skip("Test takes too long")
 
     ca_dataset = cebra.datasets.init("allen-movie-one-ca-VISp-100-train-10-111")
     ca_loader = cebra.data.ContinuousDataLoader(
@@ -181,7 +183,7 @@ def test_all_multisubject(dataset):
 def test_compat_fix611(dataset):
     """Check that confirm the fix applied in internal PR #611
 
-    The PR removed the explicit continuous and discrete args from the 
+    The PR removed the explicit continuous and discrete args from the
     datasets used to parametrize this function. We manually check that
     the continuous index is available, and no discrete index is set.
 
@@ -299,10 +301,20 @@ def parametrize_data(function):
          "a83b02dbdc884fdd7e53df362499d42f"),
         ("gatsby.jl",
          "https://figshare.com/ndownloader/files/40849454?private_link=9f91576cbbcc8b0d8828",
-         "2b889da48178b3155011c12555342813")
+         "2b889da48178b3155011c12555342813"),
+        ("all_all.jl",
+         "https://figshare.com/ndownloader/files/41668764?private_link=6fa4ee74a8f465ec7914",
+         "dea556301fa4fafa86e28cf8621cab5a"),
+        ("active_all.jl",
+         "https://figshare.com/ndownloader/files/41668776?private_link=6fa4ee74a8f465ec7914",
+         "c626acea5062122f5a68ef18d3e45e51"),
+        ("passive_all.jl",
+         "https://figshare.com/ndownloader/files/41668758?private_link=6fa4ee74a8f465ec7914",
+         "bbb1bc9d8eec583a46f6673470fc98ad"),
     ])(function)
 
 
+@pytest.mark.requires_dataset
 @parametrize_data
 def test_download_file_successful_download(filename, url, expected_checksum):
     with tempfile.TemporaryDirectory() as temp_dir:

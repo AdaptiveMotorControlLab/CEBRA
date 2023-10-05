@@ -19,6 +19,7 @@ References:
 import glob
 import hashlib
 import os
+import pathlib
 
 import h5py
 import joblib
@@ -37,6 +38,8 @@ from cebra.datasets import register
 from cebra.datasets.allen import ca_movie
 from cebra.datasets.allen import NUM_NEURONS
 from cebra.datasets.allen import SEEDS
+
+_DEFAULT_DATADIR = get_datapath()
 
 
 @parametrize(
@@ -70,10 +73,10 @@ class AllenNeuropixelMovie120HzDataset(ca_movie.AllenCaMovieDataset):
 
         """
         self.area = area
-        list_recording = joblib.load(
-            get_datapath(
-                f"allen/allen_movie1_neuropixel/{area}/neuropixel_pseudomouse_120_filtered.jl"
-            ))
+        path = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "allen" / "allen_movie1_neuropixel" / area / "neuropixel_pseudomouse_120_filtered.jl"
+        list_recording = joblib.load(path)
         pseudo_mice = list_recording["neural"]
 
         return pseudo_mice.transpose(1, 0)
@@ -87,10 +90,9 @@ class AllenNeuropixelMovie120HzDataset(ca_movie.AllenCaMovieDataset):
             frame feature: The video frame feature.
 
         """
-
-        list_recording = joblib.load(
-            get_datapath(
-                f"allen/allen_movie1_neuropixel/{self.area}/neuropixel_pseudomouse_120_filtered.jl"
-            ))
+        path = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "allen" / "allen_movie1_neuropixel" / self.area / "neuropixel_pseudomouse_120_filtered.jl"
+        list_recording = joblib.load(path)
         frames_index = list_recording["frames"]
         return frame_feature[frames_index]

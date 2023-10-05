@@ -38,7 +38,7 @@ Please see the dedicated :doc:`Installation Guide </installation>` for informati
 
 Have fun! 😁
 
-Usage 
+Usage
 -----
 
 Please head over to the :doc:`Usage </usage>` tab to find step-by-step instructions to use CEBRA on your data. For example use cases, see the :doc:`Demos </demos>` tab.
@@ -54,8 +54,8 @@ possibility to compute CEBRA embeddings on DeepLabCut_ outputs directly.
 Licensing
 ---------
 
-© All rights reserved. ECOLE POLYTECHNIQUE FÉDÉRALE DE LAUSANNE, Switzerland, Laboratory of Prof. Mackenzie W. Mathis (UPMWMATHIS) and original authors: Steffen Schneider, Jin H Lee, Mackenzie W Mathis. 2023. 
-It is made available for non-commercial research use only. It comes without any warranty or guarantee. 
+© All rights reserved. ECOLE POLYTECHNIQUE FÉDÉRALE DE LAUSANNE, Switzerland, Laboratory of Prof. Mackenzie W. Mathis (UPMWMATHIS) and original authors: Steffen Schneider, Jin H Lee, Mackenzie W Mathis. 2023.
+It is made available for non-commercial research use only. It comes without any warranty or guarantee.
 Please see the full license file on Github_, and if it is not suitable to your project, please email_ Mackenzie Mathis for a commercial license.
 
 

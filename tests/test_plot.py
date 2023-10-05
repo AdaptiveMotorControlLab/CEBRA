@@ -10,10 +10,12 @@
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
 import copy
+import itertools
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pkg_resources
 import pytest
 import torch
 from sklearn.exceptions import NotFittedError
@@ -21,6 +23,28 @@ from sklearn.exceptions import NotFittedError
 import cebra.integrations.matplotlib as cebra_plot
 import cebra.integrations.sklearn.cebra as cebra_sklearn_cebra
 import cebra.integrations.sklearn.metrics as cebra_sklearn_metrics
+
+
+class _ConsistencyDataset():
+    """A test dataset that can be indexed to obtain different permutations"""
+
+    def __init__(self, seed=42424242):
+        self._generator = np.random.default_rng(seed=seed)
+        self.dataset_ids = "a", "b", "c"
+        self.embeddings = [
+            self._generator.normal(size=(1000, 3)) for _ in self.dataset_ids
+        ]
+        self.labels = [
+            self._generator.uniform(0, 1, size=(1000,))
+            for _ in self.dataset_ids
+        ]
+
+    def __getitem__(self, order):
+        return {
+            "dataset_ids": [self.dataset_ids[i] for i in order],
+            "embeddings": [self.embeddings[i] for i in order],
+            "labels": [self.labels[i] for i in order]
+        }
 
 
 def test_plot_imports():
@@ -143,10 +167,32 @@ def test_plot_loss():
     plt.close()
 
 
+@pytest.mark.parametrize("matplotlib_version",
+                         ["3.3", "3.4.2", "3.5", "3.6", "3.7"])
+def test_compare_models_with_different_versions(matplotlib_version):
+    # example dataset
+    X = np.random.uniform(0, 1, (1000, 2))
+    n_models = 2
+
+    fitted_models = []
+    for _ in range(n_models):
+        fitted_models.append(
+            cebra_sklearn_cebra.CEBRA(max_iterations=10, batch_size=128).fit(X))
+
+    # minimum version of matplotlib
+    minimum_version = "3.6"
+
+    if pkg_resources.parse_version(
+            matplotlib_version) < pkg_resources.parse_version(minimum_version):
+        with pytest.raises(ImportError):
+            cebra_plot.compare_models(models=fitted_models,
+                                      patched_version=matplotlib_version)
+
+
 def test_compare_models():
     # example dataset
-    X = np.random.uniform(0, 1, (1000, 50))
-    n_models = 10
+    X = np.random.uniform(0, 1, (100, 5))
+    n_models = 4
 
     fig = plt.figure(figsize=(5, 5))
     ax = fig.add_subplot()
@@ -303,7 +349,7 @@ def test_plot_consistency():
     labels4 = np.random.uniform(0, 1, (500,))
     labels_datasets = [labels1, labels2, labels3, labels4]
 
-    dataset_ids = ["achilles", "buddy", "buddy", "achilles"]
+    dataset_ids = ["achilles", "buddy", "cicero", "gatsby"]
 
     figure = plt.figure(figsize=(5, 5))
     ax = figure.add_subplot()
@@ -315,7 +361,7 @@ def test_plot_consistency():
         between="datasets",
     )
     scores_runs, pairs_runs, datasets_runs = cebra_sklearn_metrics.consistency_score(
-        embeddings_runs, dataset_ids=dataset_ids, between="runs")
+        embeddings_runs, between="runs")
 
     # between datasets
     fig = cebra_plot.plot_consistency(scores_subs,
@@ -449,3 +495,70 @@ def test_plot_consistency():
             ax=ax,
         )
     plt.close()
+
+
+@pytest.mark.parametrize("seed", [None, 42, 1024, 454545])
+def test_check_consistency_data(seed):
+    """check the helper functions that generates the dataset for tests below."""
+    if seed is None:
+        data1 = _ConsistencyDataset()
+        data2 = _ConsistencyDataset()
+    else:
+        data1 = _ConsistencyDataset(seed=seed)
+        data2 = _ConsistencyDataset(seed=seed)
+
+    assert all(
+        np.allclose(a, b) for a, b in zip(data1.embeddings, data2.embeddings))
+    assert all(np.allclose(a, b) for a, b in zip(data1.labels, data2.labels))
+    assert all(a == b for a, b in zip(data1.dataset_ids, data2.dataset_ids))
+
+
+@pytest.mark.parametrize("permutation", itertools.permutations([0, 1, 2]))
+def test_consistency_permutations(permutation):
+    dataset = _ConsistencyDataset()
+
+    def compute_consistency(kwargs):
+        scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
+            between="datasets", **kwargs)
+        return {tuple(pair): score for pair, score in zip(pairs, scores)}
+
+    assert compute_consistency(dataset[0, 1,
+                                       2]) != compute_consistency(dataset[1, 1,
+                                                                          0])
+    assert compute_consistency(dataset[0, 1, 2]) == compute_consistency(
+        dataset[permutation])
+
+
+@pytest.mark.parametrize("seed,permutation,pass_original_labels",
+                         [(42, (0, 1, 2), False), (43, (0, 2, 1), False),
+                          (44, (0, 2, 1), True), (45, (1, 2, 0), False)])
+def test_plot_consistency_unordered_labels(seed, permutation,
+                                           pass_original_labels):
+
+    dataset = _ConsistencyDataset(seed=seed)
+
+    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
+        between="datasets", **dataset[permutation])
+    scores_dict = {tuple(pair): score for pair, score in zip(pairs, scores)}
+
+    plot = cebra_plot._ConsistencyPlot(
+        scores=scores,
+        pairs=pairs,
+        datasets=dataset[permutation]["dataset_ids"]
+        if pass_original_labels else datasets,
+        cmap="cebra",
+        text_color="black",
+        colorbar_label=None,
+        title="testing",
+        axis=plt.gca(),
+        figsize=(3, 3),
+        dpi=200)
+
+    for i, label_i in enumerate(plot.labels):
+        for j, label_j in enumerate(plot.labels):
+            if i == j:
+                # these values are nan, just check for that
+                assert np.isnan(plot.scores[i, j])
+            else:
+                assert np.isclose(100 * scores_dict[label_i, label_j],
+                                  plot.scores[i, j])

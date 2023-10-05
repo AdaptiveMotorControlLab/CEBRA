@@ -28,6 +28,7 @@ import sys
 sys.path.insert(0, os.path.abspath("."))
 
 import datetime
+
 import cebra
 
 
@@ -103,7 +104,7 @@ intersphinx_mapping = {
 }
 
 # Config is documented here: https://sphinx-copybutton.readthedocs.io/en/latest/
-copybutton_prompt_text = r">>> |\$ "
+copybutton_prompt_text = r">>> |\$ |\.\.\. "
 copybutton_prompt_is_regexp = True
 copybutton_only_copy_prompt_lines = True
 
@@ -224,6 +225,8 @@ nbsphinx_thumbnails = {
         "_static/thumbnails/hypothesis.png",
     "demo_notebooks/Demo_cohomology":
         "_static/thumbnails/cohomology.png",
+    "demo_notebooks/Demo_openscope_databook":
+        "_static/thumbnails/openScope_demo.png",
 }
 
 rst_prolog = r"""

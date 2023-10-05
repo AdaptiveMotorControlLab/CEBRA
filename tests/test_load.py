@@ -12,6 +12,8 @@
 import pathlib
 import pickle
 import tempfile
+import unittest
+from unittest.mock import patch
 
 import h5py
 import hdf5storage
@@ -27,6 +29,7 @@ import cebra.data.load as cebra_load
 
 __test_functions = []
 __test_functions_error = []
+__test_functions_module_not_found = []
 
 
 def _skip_hdf5storage(*args, **kwargs):
@@ -42,7 +45,7 @@ def test_imports():
     assert hasattr(cebra, "load_data")
 
 
-def register(*file_endings):
+def register(*file_endings, requires=()):
     # for each file format
     def _register(f):
         # f is the filename
@@ -53,6 +56,12 @@ def register(*file_endings):
             lambda filename: f(filename + "." + file_ending)
             for file_ending in file_endings
         ])
+        if len(requires) > 0:
+            __test_functions_module_not_found.extend([
+                (requires, lambda filename: filename + "." + file_ending,
+                 lambda filename: f(filename + "." + file_ending))
+                for file_ending in file_endings
+            ])
         return f
 
     return _register
@@ -152,7 +161,7 @@ def generate_numpy_no_array(filename):
 # TODO: test raise ModuleFoundError for h5py
 
 
-@register("h5", "hdf", "hdf5", "h")
+@register("h5", "hdf", "hdf5", "h", requires=("h5py",))
 def generate_h5(filename):
     A = np.arange(1000, dtype=np.int32).reshape(10, 100)
     with h5py.File(filename, "w") as hf:
@@ -380,7 +389,7 @@ def generate_wrong_key(filename):
 
 
 #### .CSV ####
-@register("csv")
+@register("csv", requires=("pandas",))
 def generate_csv(filename):
     A = np.arange(1000).reshape(10, 100)
     pd.DataFrame(A).to_csv(filename, header=False, index=False, sep=",")
@@ -404,7 +413,7 @@ def generate_csv_empty_file(filename):
 
 
 #### EXCEL ####
-@register("xls", "xlsx", "xlsm")
+@register("xls", "xlsx", "xlsm", requires=("pandas", "pd"))
 # TODO(celia): add the following extension:  "xlsb", "odf", "ods", "odt",
 # issue to create the files
 def generate_excel(filename):
@@ -778,3 +787,23 @@ def test_load_error(save_data):
 
     with pytest.raises((AttributeError, TypeError)):
         save_data(filename)
+
+
+@pytest.mark.parametrize("module_names,get_path,save_data",
+                         __test_functions_module_not_found)
+def test_module_not_installed(module_names, get_path, save_data):
+
+    assert len(module_names) > 0
+    assert isinstance(module_names, tuple)
+
+    with tempfile.NamedTemporaryFile() as tf:
+        filename = tf.name
+
+    saved_array, loaded_array = save_data(filename)
+    assert np.allclose(saved_array, loaded_array)
+
+    # TODO(stes): Sketch for a test --- needs additional work.
+    # with patch.dict('sys.modules', {module: None for module in module_names}):
+    #    path = get_path(filename)
+    #    with pytest.raises(ModuleNotFoundError, match="cebra[datasets]"):
+    #        cebra.data.load.load(path)

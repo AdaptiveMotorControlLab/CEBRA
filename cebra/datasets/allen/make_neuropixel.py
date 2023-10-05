@@ -22,7 +22,7 @@ References:
 
 import argparse
 import glob
-import os
+import pathlib
 
 import h5py
 import joblib as jl
@@ -31,6 +31,8 @@ import numpy.typing as npt
 import pandas as pd
 
 from cebra.datasets import get_datapath
+
+_DEFAULT_DATADIR = get_datapath()
 
 
 def _filter_units(
@@ -153,13 +155,13 @@ def _spike_counts(bin_edges: npt.NDArray[np.float64], units: list):
 
 
 def read_neuropixel(
-    path: str = "/shared/neuropixel/*/*.nwb",
+    path: str = pathlib.Path("/shared/neuropixel/"),
     cortex: str = "VISp",
     sampling_rate: float = 120.0,
 ):
     """Load 120Hz Neuropixels data recorded in the specified cortex during the movie1 stimulus.
 
-    The Neuropixels recordin is filtered and transformed to spike counts in a bin size specified by the sampling rat.
+    The Neuropixels recording is filtered and transformed to spike counts in a bin size specified by the sampling rat.
 
     Args:
         path: The wildcard file path where the neuropixels .nwb files are located.
@@ -168,7 +170,7 @@ def read_neuropixel(
 
     """
 
-    files = glob.glob(path)
+    files = path.glob("*/*.nwb")
     sessions = {}
     len_recording = []
     session_frames = []
@@ -238,7 +240,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-path", default="/shared/neuropixel", type=str)
     parser.add_argument("--save-path",
-                        default=get_datapath("allen_movie1_neuropixel/VISp/"),
+                        default=pathlib.Path(_DEFAULT_DATADIR) /
+                        "allen_movie1_neuropixel" / "VISp",
                         type=str)
     parser.add_argument("--sampling-rate", default=120, type=float)
     parser.add_argument("--cortex", default="VISp", type=str)
@@ -255,17 +258,14 @@ if __name__ == "__main__":
             "neural": sessions_dic,
             "frames": session_frames
         },
-        os.path.join(
-            args.save_path,
-            f"neuropixel_sessions_{int(args.sampling_rate)}_filtered.jl"),
+        Path(args.save_path) /
+        f"neuropixel_sessions_{int(args.sampling_rate)}_filtered.jl",
     )
     jl.dump(
         {
             "neural": pseudo_mice,
             "frames": pseudo_mice_frames
         },
-        os.path.join(
-            args.save_path,
-            f"neuropixel_pseudomouse_{int(args.sampling_rate)}_filtered.jl",
-        ),
+        Path(args.save_path) /
+        f"neuropixel_pseudomouse_{int(args.sampling_rate)}_filtered.jl",
     )

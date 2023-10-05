@@ -81,15 +81,25 @@ def infonce(
     """InfoNCE implementation
 
     See :py:class:`BaseInfoNCE` for reference.
+
+    Note:
+        - The behavior of this function changed beginning in CEBRA 0.3.0.
+        The InfoNCE implementation is numerically stabilized.
     """
     with torch.no_grad():
-        c, _ = neg_dist.max(dim=1)
+        c, _ = neg_dist.max(dim=1, keepdim=True)
     c = c.detach()
-    pos_dist = pos_dist - c
+
+    pos_dist = pos_dist - c.squeeze(1)
     neg_dist = neg_dist - c
     align = (-pos_dist).mean()
     uniform = torch.logsumexp(neg_dist, dim=1).mean()
-    return align + uniform, align, uniform
+
+    c_mean = c.mean()
+    align_corrected = align - c_mean
+    uniform_corrected = uniform + c_mean
+
+    return align + uniform, align_corrected, uniform_corrected
 
 
 class ContrastiveLoss(nn.Module):

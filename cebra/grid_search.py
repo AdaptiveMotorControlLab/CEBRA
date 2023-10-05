@@ -151,7 +151,7 @@ class GridSearch:
             ...     verbose = False)
             >>> # 2. Fit the models generated from the list of parameters
             >>> grid_search = cebra.grid_search.GridSearch()
-            >>> grid_search = grid_search.fit_models(datasets={"neural_data": neural_data}, 
+            >>> grid_search = grid_search.fit_models(datasets={"neural_data": neural_data},
             ...                                      params=params_grid,
             ...                                      models_dir="grid_search_models")
 
@@ -232,7 +232,7 @@ class GridSearch:
 
             >>> import cebra.grid_search
             >>> models, parameter_grid = cebra.grid_search.GridSearch().load(dir="grid_search_models")
-        
+
         """
         dir = pathlib.Path(dir)
         if not pathlib.Path.exists(dir):
@@ -331,7 +331,7 @@ class GridSearch:
             >>> # 2. Fit the models generated from the list of parameters
             >>> grid_search = cebra.grid_search.GridSearch()
             >>> grid_search = grid_search.fit_models(datasets={"neural_data": neural_data},
-            ...                        params=params_grid, 
+            ...                        params=params_grid,
             ...                        models_dir="grid_search_models")
             >>> # 3. Get model with the best performances and use it as usual
             >>> best_model, best_model_name = grid_search.get_best_model()
@@ -395,7 +395,7 @@ class GridSearch:
             >>> # 2. Fit the models generated from the list of parameters
             >>> grid_search = cebra.grid_search.GridSearch()
             >>> grid_search = grid_search.fit_models(datasets={"neural_data": neural_data},
-            ...                        params=params_grid, 
+            ...                        params=params_grid,
             ...                        models_dir="grid_search_models")
             >>> # 3. Get results for all models
             >>> df_results = grid_search.get_df_results()
@@ -453,7 +453,7 @@ class GridSearch:
             >>> # 2. Fit the models generated from the list of parameters
             >>> grid_search = cebra.grid_search.GridSearch()
             >>> grid_search = grid_search.fit_models(datasets={"neural_data": neural_data},
-            ...                        params=params_grid, 
+            ...                        params=params_grid,
             ...                        models_dir="grid_search_models")
             >>> # 3. Plot losses for all models
             >>> ax = grid_search.plot_loss_comparison()

@@ -20,7 +20,7 @@ References:
 """
 import glob
 import hashlib
-import os
+import pathlib
 
 import h5py
 import joblib
@@ -38,15 +38,17 @@ from cebra.datasets import init
 from cebra.datasets import parametrize
 from cebra.datasets import register
 
+_DEFAULT_DATADIR = get_datapath()
+
 _SINGLE_SESSION_CA = (
-    get_datapath(
-        "allen/visual_drift/data/calcium_excitatory/VISp/680156909.mat"),
-    get_datapath(
-        "allen/visual_drift/data/calcium_excitatory/VISp/511510779.mat"),
-    get_datapath(
-        "allen/visual_drift/data/calcium_excitatory/VISp/679702882.mat"),
-    get_datapath(
-        "allen/visual_drift/data/calcium_excitatory/VISp/688678764.mat"),
+    pathlib.Path(_DEFAULT_DATADIR) / "allen" / "visual_drift" / "data" /
+    "calcium_excitatory" / "VISp" / "680156909.mat",
+    pathlib.Path(_DEFAULT_DATADIR) / "allen" / "visual_drift" / "data" /
+    "calcium_excitatory" / "VISp" / "511510779.mat",
+    pathlib.Path(_DEFAULT_DATADIR) / "allen" / "visual_drift" / "data" /
+    "calcium_excitatory" / "VISp" / "679702882.mat",
+    pathlib.Path(_DEFAULT_DATADIR) / "allen" / "visual_drift" / "data" /
+    "calcium_excitatory" / "VISp" / "688678764.mat",
 )
 
 
@@ -70,9 +72,9 @@ class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
     def __init__(
         self,
         session_id: int,
-        frame_feature_path: str = get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
+        frame_feature_path: str = pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
         pca: bool = False,
     ):
         self.path = _SINGLE_SESSION_CA[session_id]
@@ -125,9 +127,9 @@ class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
     def __init__(
         self,
         session_id: int,
-        frame_feature_path: str = get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
+        frame_feature_path: str = pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
         pca: bool = False,
     ):
         self.path = _SINGLE_SESSION_CA[session_id]
@@ -214,9 +216,9 @@ class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
         session_id: int,
         repeat_no: int,
         split_flag: str,
-        frame_feature_path: str = get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
+        frame_feature_path: str = pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
         pca: bool = False,
     ):
         self.path = _SINGLE_SESSION_CA[session_id]
@@ -269,9 +271,9 @@ class SingleSessionAllenCaDecodingLeave2Out(cebra.data.SingleSessionDataset):
         session_id,
         repeat_no,
         split_flag,
-        frame_feature_path=get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
+        frame_feature_path=pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
     ):
         self.path = _SINGLE_SESSION_CA[session_id]
         traces = scipy.io.loadmat(self.path)
@@ -351,16 +353,16 @@ class MultiSessionAllenCaLeave2Out(cebra.data.DatasetCollection):
 class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
     """A corrupted single mouse 30Hz calcium events dataset during the allen MOVIE1 stimulus with train/test splits.
 
-    A dataset of a single mouse 30Hz calcium events from the excitatory neurons 
-    in the primary visual cortex during the 10 repeats of the MOVIE1 stimulus 
+    A dataset of a single mouse 30Hz calcium events from the excitatory neurons
+    in the primary visual cortex during the 10 repeats of the MOVIE1 stimulus
     in session type A. The preprocessed data from *Deitch et al. (2021) are used.
-    The continuous labels corresponding to a DINO embedding of each stimulus frame, 
+    The continuous labels corresponding to a DINO embedding of each stimulus frame,
     but in randomly shuffled order.
-    A neural recording during the chosen repeat is used as a test set and the 
+    A neural recording during the chosen repeat is used as a test set and the
     remaining 9 repeats are used as a train set.
 
     Args:
-        session_id: The integer value to pick a session among 4 sessions with the 
+        session_id: The integer value to pick a session among 4 sessions with the
             largest number of recorded neruons. Choose between 0-3.
         repeat_no: The nth repeat to use as the test set. Choose between 0-9.
         split_flag: The `train`/`test` split to load.
@@ -373,9 +375,9 @@ class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
         session_id: int,
         repeat_no: int,
         split_flag: str,
-        frame_feature_path: str = get_datapath(
-            "allen/features/allen_movies/vit_base/8/movie_one_image_stack.npz/testfeat.pth"
-        ),
+        frame_feature_path: str = pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
         pca: bool = False,
     ):
         self.path = _SINGLE_SESSION_CA[session_id]

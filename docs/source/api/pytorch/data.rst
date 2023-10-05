@@ -34,7 +34,7 @@ Pre-defined Datasets
    :show-inheritance:
 
 
-Single Session Dataloaders 
+Single Session Dataloaders
 --------------------------------
 
 .. automodule:: cebra.data.single_session
@@ -42,7 +42,7 @@ Single Session Dataloaders
    :show-inheritance:
 
 
-Multi Session Dataloaders 
+Multi Session Dataloaders
 --------------------------------
 
 .. automodule:: cebra.data.multi_session
@@ -56,5 +56,3 @@ Datatypes
 .. automodule:: cebra.data.datatypes
    :members:
    :show-inheritance:
-
-

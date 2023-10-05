@@ -81,6 +81,13 @@ except ModuleNotFoundError:
     )
 
 
+def _module_not_found_error(module_name):
+    return ModuleNotFoundError(
+        f"Could not load {module_name}. You can manually install {module_name} "
+        "or install the [datasets] dependency in cebra: "
+        "pip install 'cebra[datasets]'")
+
+
 class _BaseLoader(abc.ABC):
     """Base loader."""
 
@@ -186,7 +193,13 @@ class _H5pyLoader(_BaseLoader):
                                                            keypoints=columns)
                         else:
                             raise ModuleNotFoundError(
-                                "DLC integration could not be loaded.")
+                                "DLC integration could not be loaded. "
+                                "Most likely, this is because you do not have all "
+                                "integrations dependencies installed. Try installing "
+                                "cebra with the [integrations] and [datasets] dependency to fix this "
+                                "error. You might need to re-start your environment "
+                                "after installing: "
+                                "pip install 'cebra[integrations,datasets]'.")
                     # if the provided key is valid
                     elif key in df_keys:
                         loaded_array = _PandasLoader.load_from_h5(
@@ -208,7 +221,7 @@ class _H5pyLoader(_BaseLoader):
                     raise AttributeError(
                         "No valid data structure was found in your file.")
         else:
-            raise ModuleNotFoundError()
+            raise _module_not_found_error("h5py")
         return loaded_array
 
     @staticmethod
@@ -385,7 +398,7 @@ class _CsvLoader(_BaseLoader):
             except pd.errors.EmptyDataError:
                 raise AttributeError(".csv file is empty.")
         else:
-            raise ModuleNotFoundError()
+            raise _module_not_found_error("pandas")
         return loaded_array
 
 
@@ -420,7 +433,7 @@ class _ExcelLoader(_BaseLoader):
                     loaded_array = loaded_dict[key].values
                     break
         else:
-            raise ModuleNotFoundError()
+            raise _module_not_found_error("pandas")
         return loaded_array
 
     # def prepare_engine(extension: str):
@@ -486,7 +499,7 @@ class _JoblibLoader(_BaseLoader):
                 raise NotImplementedError(
                     f"{type(loaded_data)} is not handled for .jl files.")
         else:
-            raise ModuleNotFoundError()
+            raise _module_not_found_error("joblib")
         return loaded_array
 
 
@@ -508,8 +521,8 @@ class _PickleLoader(_BaseLoader):
                 loaded_array = loaded_data
             elif type(loaded_data) is dict:
                 if key is not None:
-                    if (key in loaded_data.keys() and type(loaded_data[key]) is
-                            np.ndarray):  # check that key is valid
+                    if (key in loaded_data.keys() and type(loaded_data[key])
+                            is np.ndarray):  # check that key is valid
                         loaded_array = loaded_data[key]
                     else:
                         raise AttributeError(
@@ -531,7 +544,7 @@ class _PickleLoader(_BaseLoader):
                 raise NotImplementedError(
                     f"{type(loaded_data)} is not handled for .pk files.")
         else:
-            raise ModuleNotFoundError()
+            raise _module_not_found_error("pickle")
         return loaded_array
 
 
@@ -572,7 +585,7 @@ class _MatfileLoader(_BaseLoader):
             if _IS_H5PY_AVAILABLE:
                 loaded_array = _H5pyLoader.load(file, key)
             else:
-                raise ModuleNotFoundError()
+                raise _module_not_found_error("h5py")
         return loaded_array
 
 

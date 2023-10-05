@@ -53,8 +53,8 @@ def infonce_loss(
         >>> cebra_model = cebra.CEBRA(max_iterations=10)
         >>> cebra_model.fit(neural_data)
         CEBRA(max_iterations=10)
-        >>> loss = cebra.sklearn.metrics.infonce_loss(cebra_model, 
-        ...                                           neural_data, 
+        >>> loss = cebra.sklearn.metrics.infonce_loss(cebra_model,
+        ...                                           neural_data,
         ...                                           num_batches=5)
 
     """
@@ -110,7 +110,7 @@ def _consistency_scores(
     Args:
         embeddings: List of embedding matrices.
         dataset_ids: List of dataset ID associated to each embedding. Multiple embeddings can be
-        associated to the same dataset.
+            associated to the same dataset.
 
     Returns:
         List of the consistencies for each embeddings pair (first element) and
@@ -145,6 +145,7 @@ def _consistency_datasets(
     embeddings: List[Union[npt.NDArray, torch.Tensor]],
     dataset_ids: Optional[List[Union[int, str, float]]],
     labels: List[Union[npt.NDArray, torch.Tensor]],
+    num_discretization_bins: int = 100
 ) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
     """Compute consistency between embeddings from different datasets.
 
@@ -158,14 +159,19 @@ def _consistency_datasets(
     Args:
         embeddings: List of embedding matrices.
         dataset_ids: List of dataset ID associated to each embedding. Multiple embeddings can be
-        associated to the same dataset.
+            associated to the same dataset.
         labels: List of labels corresponding to each embedding and to use for alignment
             between them.
+        num_discretization_bins: Number of values for the digitalized common labels. The discretized labels are used
+            for embedding alignment. Also see the ``n_bins`` argument in
+            :py:mod:`cebra.integrations.sklearn.helpers.align_embeddings` for more information on how this
+            parameter is used internally. This argument is only used if ``labels``
+            is not ``None`` and the given labels are continuous and not already discrete.
 
     Returns:
         A list of scores obtained between embeddings from different datasets (first element),
         a list of pairs of IDs corresponding to the scores (second element), and a list of the
-        datasets (third element).
+        dataset IDs (third element).
 
     """
     if labels is None:
@@ -203,7 +209,7 @@ def _consistency_datasets(
 
     # NOTE(celia): with default values normalized=True and n_bins = 100
     aligned_embeddings = cebra_sklearn_helpers.align_embeddings(
-        embeddings, labels)
+        embeddings, labels, n_bins=num_discretization_bins)
     scores, pairs = _consistency_scores(aligned_embeddings,
                                         datasets=dataset_ids)
     between_dataset = [p[0] != p[1] for p in pairs]
@@ -211,7 +217,7 @@ def _consistency_datasets(
     pairs = np.array(pairs)[between_dataset]
     scores = _average_scores(np.array(scores)[between_dataset], pairs)
 
-    return (scores, pairs, datasets)
+    return (scores, pairs, np.array(dataset_ids))
 
 
 def _average_scores(scores: Union[npt.NDArray, list], pairs: Union[npt.NDArray,
@@ -240,61 +246,34 @@ def _average_scores(scores: Union[npt.NDArray, list], pairs: Union[npt.NDArray,
 
 def _consistency_runs(
     embeddings: List[Union[npt.NDArray, torch.Tensor]],
-    dataset_ids: Optional[List[Union[int, str, float]]],
 ) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
     """Compute consistency between embeddings coming from the same dataset.
 
-    If no `dataset_ids` is provided, then the embeddings are considered to be coming from the
-    same dataset and consequently not realigned.
-
-    For both modes (``between=runs`` or ``between=datasets``), if no `dataset_ids` is provided
-    (default value is ``None``), then the embeddings are considered individually and the consistency
-    is computed for possible pairs.
-
     Args:
         embeddings: List of embedding matrices.
-        dataset_ids: List of dataset ID associated to each embedding. Multiple embeddings can be
-            associated to the same dataset.
 
     Returns:
         A list of lists of scores obtained between embeddings of the same dataset (first element),
         a list of lists of pairs of ids of the embeddings of the same datasets that were compared
         (second element), they are identified with :py:class:`numpy.int` from 0 to the number of
-        embeddings for the dataset, and a list of the datasets (third element).
+        embeddings for the dataset, and a list of the unique IDs (third element).
     """
-    # we consider all embeddings as the same dataset
-    if dataset_ids is None:
-        datasets = np.array(["unique"])
-        dataset_ids = ["unique" for i in range(len(embeddings))]
-    else:
-        datasets = np.array(sorted(set(dataset_ids)))
+    # NOTE(celia): The number of samples of the embeddings should be the same for all as there is
+    # no realignment, the number of output dimensions can vary between the embeddings we compare.
+    if not all(embeddings[0].shape[0] == embeddings[i].shape[0]
+               for i in range(1, len(embeddings))):
+        raise ValueError(
+            f"Invalid embeddings, all embeddings should be the same shape to be compared in a between-runs way."
+            f"If your embeddings are coming from different models, you can use between-datasets"
+        )
 
-    within_dataset_scores = []
-    within_dataset_pairs = []
-    for dataset in datasets:
-        # get all embeddings for `dataset`
-        dataset_embeddings = [
-            embeddings[i]
-            for i, dataset_id in enumerate(dataset_ids)
-            if dataset_id == dataset
-        ]
-        if len(dataset_embeddings) <= 1:
-            raise ValueError(
-                f"Invalid number of embeddings for dataset {dataset}, expect at least 2 embeddings "
-                f"to be able to compare them, got {len(dataset_embeddings)}")
-        score, pairs = _consistency_scores(embeddings=dataset_embeddings,
-                                           datasets=np.arange(
-                                               len(dataset_embeddings)))
-        within_dataset_scores.append(score)
-        within_dataset_pairs.append(pairs)
-
-    scores = np.array(within_dataset_scores)
-    pairs = np.array(within_dataset_pairs)
+    run_ids = np.arange(len(embeddings))
+    scores, pairs = _consistency_scores(embeddings=embeddings, datasets=run_ids)
 
     return (
         _average_scores(scores, pairs),
-        pairs,
-        datasets,
+        np.array(pairs),
+        np.array(run_ids),
     )
 
 
@@ -303,6 +282,7 @@ def consistency_score(
     between: Optional[Literal["datasets", "runs"]] = None,
     labels: Optional[List[Union[npt.NDArray, torch.Tensor]]] = None,
     dataset_ids: Optional[List[Union[int, str, float]]] = None,
+    num_discretization_bins: int = 100
 ) -> Tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
     """Compute the consistency score between embeddings, either between runs or between datasets.
 
@@ -320,10 +300,18 @@ def consistency_score(
             *Consistency between runs* means the consistency between embeddings obtained from multiple models
             trained on the **same dataset**. *Consistency between datasets* means the consistency between embeddings
             obtained from models trained on **different datasets**, such as different animals, sessions, etc.
+        num_discretization_bins: Number of values for the digitalized common labels. The discretized labels are used
+            for embedding alignment. Also see the ``n_bins`` argument in
+            :py:mod:`cebra.integrations.sklearn.helpers.align_embeddings` for more information on how this
+            parameter is used internally. This argument is only used if ``labels``
+            is not ``None``, alignment between datasets is used (``between = "datasets"``), and the given labels
+            are continuous and not already discrete.
 
     Returns:
         The list of scores computed between the embeddings (first returns), the list of pairs corresponding
-        to each computed score (second returns) and the list of datasets present in the comparison (third returns).
+        to each computed score (second returns) and the list of id of the entities present in the comparison,
+        either different datasets in the between-datasets comparison or runs in the between-runs comparison
+        (third returns).
 
     Example:
 
@@ -333,13 +321,13 @@ def consistency_score(
         >>> embedding2 = np.random.uniform(0, 1, (1000, 8))
         >>> labels1 = np.random.uniform(0, 1, (1000, ))
         >>> labels2 = np.random.uniform(0, 1, (1000, ))
-        >>> # Between-runs, with dataset IDs (optional)
-        >>> scores, pairs, datasets = cebra.sklearn.metrics.consistency_score(embeddings=[embedding1, embedding2],
-        ...                                                                   dataset_ids=["achilles", "achilles"],
+        >>> # Between-runs consistency
+        >>> scores, pairs, ids_runs = cebra.sklearn.metrics.consistency_score(embeddings=[embedding1, embedding2],
         ...                                                                   between="runs")
         >>> # Between-datasets consistency, by aligning on the labels
-        >>> scores, pairs, datasets = cebra.sklearn.metrics.consistency_score(embeddings=[embedding1, embedding2],
+        >>> scores, pairs, ids_datasets = cebra.sklearn.metrics.consistency_score(embeddings=[embedding1, embedding2],
         ...                                                                   labels=[labels1, labels2],
+        ...                                                                   dataset_ids=["achilles", "buddy"],
         ...                                                                   between="datasets")
 
     """
@@ -356,14 +344,19 @@ def consistency_score(
         if labels is not None:
             raise ValueError(
                 f"No labels should be provided for between-runs consistency.")
-        scores, pairs, datasets = _consistency_runs(embeddings=embeddings,
-                                                    dataset_ids=dataset_ids)
+        if dataset_ids is not None:
+            raise ValueError(
+                f"No dataset ID should be provided for between-runs consistency."
+                f"All embeddings should be computed on the same dataset.")
+        scores, pairs, ids = _consistency_runs(embeddings=embeddings,)
     elif between == "datasets":
-        scores, pairs, datasets = _consistency_datasets(embeddings=embeddings,
-                                                        dataset_ids=dataset_ids,
-                                                        labels=labels)
+        scores, pairs, ids = _consistency_datasets(
+            embeddings=embeddings,
+            dataset_ids=dataset_ids,
+            labels=labels,
+            num_discretization_bins=num_discretization_bins)
     else:
         raise NotImplementedError(
             f"Invalid comparison, got between={between}, expects either datasets or runs."
         )
-    return scores.squeeze(), pairs.squeeze(), datasets
+    return scores.squeeze(), pairs.squeeze(), ids

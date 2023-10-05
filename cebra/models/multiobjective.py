@@ -67,7 +67,7 @@ class MultiobjectiveModel(nn.Module):
 
         - ``OVERLAPPING``: When ``dimensions`` are set to `(x0, x1, ...)``, features will be
           extracted from ``0:x0, 0:x1, ...``.
-        - ``SEPERATE``: Features are extracted from ``x0:x1, x1:x2, ...``
+        - ``SEPARATE``: Features are extracted from ``x0:x1, x1:x2, ...``
 
         """
 

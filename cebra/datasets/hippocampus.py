@@ -12,11 +12,11 @@
 """Rat hippocampus dataset
 
 References:
-    * Grosmark, A.D., and Buzsáki, G. (2016). Diversity in neural firing dynamics supports both rigid and learned 
+    * Grosmark, A.D., and Buzsáki, G. (2016). Diversity in neural firing dynamics supports both rigid and learned
        hippocampal sequences. Science 351, 1440–1443.
-    * Chen, Z., Grosmark, A.D., Penagos, H., and Wilson, M.A. (2016). Uncovering representations of sleep-associated 
+    * Chen, Z., Grosmark, A.D., Penagos, H., and Wilson, M.A. (2016). Uncovering representations of sleep-associated
        hippocampal ensemble spike activity. Sci. Rep. 6, 32193.
-    * Grosmark, A.D., Long J. and Buzsáki, G. (2016); Recordings from hippocampal area CA1, PRE, during and POST 
+    * Grosmark, A.D., Long J. and Buzsáki, G. (2016); Recordings from hippocampal area CA1, PRE, during and POST
       novel spatial learning. CRCNS.org. http://dx.doi.org/10.6080/K0862DC5
 
 """
@@ -75,7 +75,7 @@ rat_dataset_urls = {
 class SingleRatDataset(cebra.data.SingleSessionDataset):
     """A single rat hippocampus tetrode recording while the rat navigates on a linear track.
 
-    Neural data is spike counts binned into 25ms time window and the continuous behavior label is position and the running driection (left, right) of a rat.
+    Neural data is spike counts binned into 25ms time window and the continuous behavior label is position and the running direction (left, right) of a rat.
     The behavior label is structured as 3D array consists of position, right, and left.
 
     Args:
@@ -152,7 +152,7 @@ class SingleRatDataset(cebra.data.SingleSessionDataset):
 class SingleRatTrialSplitDataset(SingleRatDataset):
     """A single rat hippocampus tetrode recording while the rat navigates on a linear track with 3-fold splits.
 
-    Neural data is spike counts binned into 25ms time window and the behavior is position and the running driection (left, right) of a rat.
+    Neural data is spike counts binned into 25ms time window and the behavior is position and the running direction (left, right) of a rat.
     The behavior label is structured as 3D array consists of position, right, and left.
     The neural and behavior recordings are parsed into trials (a round trip from one end of the track) and the trials are split into a train, valid and test set with k=3 nested cross validation.
 
@@ -249,7 +249,7 @@ class SingleRatTrialSplitDataset(SingleRatDataset):
 class SingleRatCorruptDataset(SingleRatDataset):
     """A single rat hippocampus tetrode recording while the rat navigates on a linear track with a shuffled behavior label.
 
-    Neural data is spike counts binned into 25ms time window and the behavior is position and the running driection (left, right) of a rat.
+    Neural data is spike counts binned into 25ms time window and the behavior is position and the running direction (left, right) of a rat.
     The behavior label is structured as 3D array consists of position, right, and left and it is shuffled in random orders.
 
     Args:
@@ -273,7 +273,7 @@ class MultipleRatsTrialSplitDataset(cebra.data.DatasetCollection):
     """4 rats hippocampus tetrode recording while the rat navigates on a linear track with 3-fold splits.
 
     Neural and behavior recordings of 4 rats.
-    For each rat, neural data is spike counts binned into 25ms time window and the behavior is position and the running driection (left, right) of a rat.
+    For each rat, neural data is spike counts binned into 25ms time window and the behavior is position and the running direction (left, right) of a rat.
     The behavior label is structured as 3D array consists of position, right, and left.
     Neural and behavior recordings of each rat are parsed into trials (a round trip from one end of the track) and the trials are split into a train, valid and test set with k=3 nested cross validation.
 

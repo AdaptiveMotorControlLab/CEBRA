@@ -13,19 +13,19 @@ in two categories:
      on a set of worked examples, this is the place to start.
    * The collection of plotting code for all paper figures. The figures are generated from cached experimental
      results. For data (re-) analysis and performance comparisons of CEBRA, this is the easiest way to get started.
-   * The collection of experiments for obtaining results for the figures. Experiments should ideally be run on 
-     a GPU cluster with SLURM pre-installed for the best user experience. Alternatively, experiments can also be 
+   * The collection of experiments for obtaining results for the figures. Experiments should ideally be run on
+     a GPU cluster with SLURM pre-installed for the best user experience. Alternatively, experiments can also be
      manually scheduled (our submission system produces a stack of bash files which can be executed on any machine).
      We recommend this route for follow-up research, when CEBRA (or any of our baselines) should be used for
      comparisons against other methods.
 
 
 
-List of paper figures 
+List of paper figures
 ---------------------
 
 We provide reference code for plotting all paper figures here.
-Note that for the paper version, panels might have been post edited, and the figures might 
+Note that for the paper version, panels might have been post edited, and the figures might
 differ in minor typographic details.
 
 .. toctree::

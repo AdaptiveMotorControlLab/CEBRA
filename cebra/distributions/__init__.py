@@ -14,7 +14,7 @@
 This package contains classes for sampling and indexing of datasets.
 Typically, the functionality of
 classes in this module is guided by the auxiliary variables of CEBRA. A dataset would pass auxiliary
-variables to a sampler, and within the sampler the *indices* of reference, negative and positive 
+variables to a sampler, and within the sampler the *indices* of reference, negative and positive
 samples will be sampled based on the auxiliary information. Custom ways of sampling should therefore
 be implemented in this package. Functionality in this package is fully agnostic to the actual signal
 to be analysed, and only considers the auxiliary information of a dataset (called "index").
@@ -51,6 +51,7 @@ __all__ = [
     "Discrete",
     "DiscreteUniform",
     "DiscreteEmpirical",
+    "DeltaNormalDistribution",
     "MultivariateDiscrete",
     "MultisessionSampler",
 ]

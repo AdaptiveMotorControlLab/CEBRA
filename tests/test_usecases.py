@@ -121,8 +121,9 @@ _args = list(
     "leave_out,args",
     [(leave_out, args) for args in _args for leave_out in args.keys()])
 def test_leave_arg_out(leave_out, args):
-    model = cebra.CEBRA(**{k: v for k, v in args.items() if k != leave_out},
-                        **_default_kwargs())
+    model = cebra.CEBRA(**{
+        k: v for k, v in args.items() if k != leave_out
+    }, **_default_kwargs())
     _run_test(model)
 
 

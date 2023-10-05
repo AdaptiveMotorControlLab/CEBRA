@@ -9,7 +9,7 @@
 # Please see LICENSE.md for the full license document:
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
-"""Allen pseudomouse Ca decoding dataset with train/test split. 
+"""Allen pseudomouse Ca decoding dataset with train/test split.
 
 References:
     *Deitch, Daniel, Alon Rubin, and Yaniv Ziv. "Representational drift in the mouse visual cortex." Current biology 31.19 (2021): 4327-4339.
@@ -22,6 +22,7 @@ References:
 import glob
 import hashlib
 import os
+import pathlib
 
 import h5py
 import joblib
@@ -40,6 +41,8 @@ from cebra.datasets import register
 from cebra.datasets.allen import NUM_NEURONS
 from cebra.datasets.allen import SEEDS
 from cebra.datasets.allen import SEEDS_DISJOINT
+
+_DEFAULT_DATADIR = get_datapath()
 
 
 @parametrize(
@@ -107,9 +110,9 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
 
         """
 
-        frame_feature_path = get_datapath(
-            f"allen/features/allen_movies/vit_base/8/movie_{num_movie}_image_stack.npz/testfeat.pth"
-        )
+        frame_feature_path = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "allen" / "features" / "allen_movies" / "vit_base" / "8" / f"movie_{num_movie}_image_stack.npz" / "testfeat.pth"
         frame_feature = torch.load(frame_feature_path)
         return frame_feature
 
@@ -149,9 +152,11 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
             )
             self.index = frame_feature.repeat(9, 1)
         elif self.split_flag == "test":
-            neural = pseudo_mice[self.neurons_indices, (self.test_repeat - 1) *
-                                 self.movie_len:self.test_repeat *
-                                 self.movie_len,]
+            neural = pseudo_mice[
+                self.neurons_indices,
+                (self.test_repeat - 1) * self.movie_len:self.test_repeat *
+                self.movie_len,
+            ]
             self.index = frame_feature.repeat(1, 1)
         else:
             raise ValueError("split_flag should be either train or test")
@@ -169,15 +174,14 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
 
         """
 
-        list_mice = glob.glob(
-            get_datapath(
-                f"allen/visual_drift/data/calcium_excitatory/{area}/*"))
-        exp_containers = [
-            int(mice.split(f"{area}/")[1].replace(".mat", ""))
-            for mice in list_mice
-        ]
+        path = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "allen" / "visual_drift" / "data" / "calcium_excitatory" / str(area)
+        list_mice = path.glob("*.mat")
+        exp_containers = [int(file.stem) for file in list_mice]
         ## Load summary file
-        summary = pd.read_csv(get_datapath("allen/data_summary.csv"))
+        summary = pd.read_csv(
+            pathlib.Path(_DEFAULT_DATADIR) / "allen" / "data_summary.csv")
         ## Filter excitatory neurons in V1
         area_filtered = summary[(summary["exp"].isin(exp_containers)) &
                                 (summary["target"] == area) &
@@ -221,9 +225,10 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
             indices2.sort()
             indices3.sort()
             indices = [indices1, indices2, indices3]
-            matfile = get_datapath(
-                f"allen/visual_drift/data/calcium_excitatory/{area}/{exp_container}.mat"
-            )
+            matfile = pathlib.Path(
+                _DEFAULT_DATADIR
+            ) / "allen" / "visual_drift" / "data" / "calcium_excitatory" / str(
+                area) / f"{exp_container}.mat"
             traces = scipy.io.loadmat(matfile)
             for n, i in enumerate(seq_sessions):
                 session = traces["filtered_traces_days_events"][n, 0][
@@ -323,10 +328,10 @@ class AllenCaMoviesDisjointDataset(AllenCaMoviesDataset,
             area: The visual cortical area to sample the neurons. Possible options: VISp, VISpm, VISam, VISal, VISl, VISrl.
 
         """
-
-        list_mice = glob.glob(
-            get_datapath(
-                f"allen/visual_drift/data/calcium_excitatory/{area}/*"))
+        path = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "allen" / "visual_drift" / "data" / "calcium_excitatory" / str(area)
+        list_mice = path.glob("*")
 
         def _get_neural_data(num_movie, mat_file):
             mat = scipy.io.loadmat(mat_file)
