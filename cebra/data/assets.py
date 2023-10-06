@@ -28,7 +28,7 @@ def download_file_with_progress_bar(url: str,
                                     file_name: str,
                                     retry_count: int = 0) -> Optional[str]:
     """Download a file from the given URL.
-    
+
     During download, progress is reported using a progress bar. The downloaded
     file's checksum is compared to the provided ``expected_checksum``.
 

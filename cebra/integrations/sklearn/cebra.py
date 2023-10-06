@@ -1417,8 +1417,9 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 f"Cannot use 'torch' backend with a dictionary-based checkpoint. "
                 f"Please try a different backend.")
         if not isinstance(checkpoint, dict) and backend == "sklearn":
-            raise RuntimeError(f"Cannot use 'sklearn' backend a non dictionary-based checkpoint. "
-                               f"Please try a different backend.")
+            raise RuntimeError(
+                f"Cannot use 'sklearn' backend a non dictionary-based checkpoint. "
+                f"Please try a different backend.")
 
         if backend == "sklearn":
             cebra_ = _load_cebra_with_sklearn_backend(checkpoint)
