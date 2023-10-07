@@ -106,7 +106,7 @@ file: https://github.com/AdaptiveMotorControlLab/CEBRA-demos/blob/main/README.rs
 
 For that, extend the ``toctree`` (at the end of the file) using the following template:
 
-.. code:: rst 
+.. code:: rst
 
     .. nbgallery::
     :maxdepth: 2
@@ -124,7 +124,7 @@ https://github.com/AdaptiveMotorControlLab/CEBRA-assets/tree/main/docs/source/_s
 and then referenced in the documentation config:
 https://github.com/AdaptiveMotorControlLab/CEBRA/blob/bb9d55e5a533372cb011c3db322fbd9a1a5ea278/docs/source/conf.py#L203-L228
 
-To build the docs and verify the demo notebooks, you can run 
+To build the docs and verify the demo notebooks, you can run
 
 .. code:: bash
 
@@ -137,7 +137,7 @@ For local edits,
 - CEBRA-figures is checkout out under the ``/docs/source/cebra-figures/`` path
 - CEBRA-demos is checkout out under the ``/docs/source/demo_notebooks/`` path
 
-You can edit files there, create branches, and re-run ``./tools/build_docs.sh`` for re-building the docs. 
+You can edit files there, create branches, and re-run ``./tools/build_docs.sh`` for re-building the docs.
 
 
 Building the Python package (information for maintainers only)

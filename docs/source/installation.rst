@@ -91,7 +91,7 @@ we outline different options below.
             $ pip install cebra
 
         * 🚀 For more advanced users, CEBRA has different extra install options that you can select based on your usecase:
-        
+
             * ``[integrations]``: This will install (experimental) support for our streamlit and jupyter integrations.
             * ``[docs]``: This will install additional dependencies for building the package documentation.
             * ``[dev]``: This will install additional dependencies for development, unit and integration testing,

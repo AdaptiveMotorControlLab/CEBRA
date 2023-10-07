@@ -15,7 +15,7 @@ pip uninstall -y cebra
 # Get version info after uninstalling --- this will automatically get the
 # most recent version based on the source code in the current directory.
 # $(tools/get_cebra_version.sh)
-VERSION=0.3.0rc1
+VERSION=0.3.0rc2
 echo "Upgrading to CEBRA v${VERSION}"
 
 # Upgrade the build system (PEP517/518 compatible)
