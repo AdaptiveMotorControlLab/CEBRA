@@ -10,7 +10,7 @@ build: dist
 archlinux:
 	mkdir -p dist/arch
 	cp PKGBUILD dist/arch
-	cp dist/cebra-0.3.0rc2.tar.gz dist/arch
+	cp dist/cebra-0.3.0.tar.gz dist/arch
 	(cd dist/arch; makepkg --skipchecksums -f)
 
 # NOTE(stes): Ensure that no old tempfiles are present. Ideally, move this into
