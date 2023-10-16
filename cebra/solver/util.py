@@ -25,6 +25,7 @@ from collections.abc import Iterable
 from typing import Dict
 
 import literate_dataclasses as dataclasses
+import torch
 import tqdm
 
 
@@ -106,3 +107,31 @@ class ProgressBar:
         """
         if self.use_tqdm:
             self.iterator.set_description(_description(stats))
+
+
+def initalize_torch_dataloader(inputs: torch.Tensor, batch_size: int):
+    """
+    Initializes a torch DataLoader.
+    Args:
+        inputs: NxD tensor
+        batch_size: what happens when is None? it should return the whole dataset.
+    """
+
+    class TorchDataset(torch.utils.data.Dataset):
+
+        def __init__(self, inputs):
+            self.inputs = inputs
+
+        def __len__(self):
+            return len(self.inputs)
+
+        def __getitem__(self, idx):
+            return self.data[idx]
+
+        # TODO: I need to implement the padding inside the dataset, otherwise
+        # I can't properly do this afterwards I think.
+
+        # I wrote the simplest version possible of a torch.utils.data.Dataset,
+        # but should be extended with the padding.
+
+    return torch.util.data.DataLoader(TorchDataset, batch_size=batch_size)
