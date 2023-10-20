@@ -25,8 +25,13 @@ from collections.abc import Iterable
 from typing import Dict
 
 import literate_dataclasses as dataclasses
+import numpy as np
 import torch
 import tqdm
+from torch.utils.data import DataLoader
+from torch.utils.data import Dataset
+
+import cebra.data
 
 
 def _description(stats: Dict[str, float]):
@@ -109,15 +114,13 @@ class ProgressBar:
             self.iterator.set_description(_description(stats))
 
 
-def initalize_torch_dataloader(inputs: torch.Tensor, batch_size: int):
-    """
-    Initializes a torch DataLoader.
-    Args:
-        inputs: NxD tensor
-        batch_size: what happens when is None? it should return the whole dataset.
-    """
+def get_batches_of_data(inputs: torch.Tensor,
+                        batch_size: int,
+                        padding: bool,
+                        offset: cebra.data.Offset = None):
+    batches = []
 
-    class TorchDataset(torch.utils.data.Dataset):
+    class IndexDataset(Dataset):
 
         def __init__(self, inputs):
             self.inputs = inputs
@@ -126,12 +129,40 @@ def initalize_torch_dataloader(inputs: torch.Tensor, batch_size: int):
             return len(self.inputs)
 
         def __getitem__(self, idx):
-            return self.data[idx]
+            return idx
 
-        # TODO: I need to implement the padding inside the dataset, otherwise
-        # I can't properly do this afterwards I think.
+    index_dataset = IndexDataset(inputs)
+    index_dataloader = DataLoader(index_dataset, batch_size=batch_size)
+    for batch_id, index_batch in enumerate(index_dataloader):
 
-        # I wrote the simplest version possible of a torch.utils.data.Dataset,
-        # but should be extended with the padding.
+        start_batch_idx, end_batch_idx = index_batch[0], index_batch[-1]
+        if padding:
+            if offset is None:
+                raise ValueError("offset needs to be set if padding is True.")
 
-    return torch.util.data.DataLoader(TorchDataset, batch_size=batch_size)
+            if batch_id == 0:
+                indices = start_batch_idx, (end_batch_idx + offset.right)
+                batched_data = inputs[slice(*indices)]
+                batched_data = np.pad(batched_data.cpu().numpy(),
+                                      ((offset.left, 0), (0, 0)),
+                                      mode="edge")
+
+            elif batch_id == len(index_dataloader) - 1:
+                indices = (start_batch_idx - offset.left), end_batch_idx
+                batched_data = inputs[slice(*indices)]
+                batched_data = np.pad(batched_data.cpu().numpy(),
+                                      ((0, offset.right), (0, 0)),
+                                      mode="edge")
+            else:  # Middle batches
+                indices = start_batch_idx - offset.left, end_batch_idx + offset.right
+                batched_data = inputs[slice(*indices)]
+
+        else:
+            indices = start_batch_idx, end_batch_idx
+            batched_data = inputs[slice(*indices)]
+
+        batched_data = torch.from_numpy(batched_data) if isinstance(
+            batched_data, np.ndarray) else batched_data
+        batches.append(batched_data)
+
+    return batches

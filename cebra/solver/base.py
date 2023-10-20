@@ -43,6 +43,7 @@ import cebra
 import cebra.data
 import cebra.io
 import cebra.models
+import cebra.solver.util as cebra_solver_util
 from cebra.solver.util import Meter
 from cebra.solver.util import ProgressBar
 
@@ -285,6 +286,17 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         )
         return decode_metric
 
+    def _inference_transform(self, model, inputs):
+
+        if isinstance(model, cebra.models.ConvolutionalModelMixin):
+            # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
+            inputs = inputs.transpose(1, 0).unsqueeze(0)
+            output = model(inputs).squeeze(0).transpose(1, 0)
+        else:
+            output = model(inputs)
+
+        return output
+
     def _select_model(self, inputs: torch.Tensor, session_id: int):
         """ Select the right model based on the type of solver we have."""
 
@@ -327,78 +339,23 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         offset = model.get_offset()
         return model, offset
 
-    def _get_batched_data_with_padding(self, inputs: torch.Tensor,
-                                       offset: cebra.data.Offset,
-                                       start_batch_idx: int, end_batch_idx: int,
-                                       batch_id: int,
-                                       num_batches: int) -> torch.Tensor:
-        """
-        Given the start_batch_idx, end_batch_idx, adds padding.
-        For the first batch it adds 0 to left, data to right
-        For the last batch it adds data to left, 0 to right
-        For the middle batches if adds data both to left and right
-
-        Args:
-            inputs
-            offset:
-            start_batch_idx:
-            end_batch_idx:
-            offset: cebra.datatypes.Offset
-
-        """
-        if batch_id == 0:  # First batch
-            batched_data = inputs[start_batch_idx:(end_batch_idx +
-                                                   offset.right - 1)]
-            batched_data = np.pad(batched_data.cpu().numpy(),
-                                  ((offset.left, 0), (0, 0)),
-                                  mode="edge")
-
-        elif batch_id == num_batches - 1:  #Last batch
-            batched_data = inputs[(start_batch_idx - offset.left):end_batch_idx]
-            batched_data = np.pad(batched_data.cpu().numpy(),
-                                  ((0, offset.right - 1), (0, 0)),
-                                  mode="edge")
-
-        else:  # Middle batches
-            batched_data = inputs[(start_batch_idx -
-                                   offset.left):(end_batch_idx + offset.right -
-                                                 1)]
-
-        return torch.from_numpy(batched_data) if isinstance(
-            batched_data, np.ndarray) else batched_data
-
     @torch.no_grad()
     def _batched_transform(self, model, inputs, offset, batch_size,
                            pad_before_transform) -> torch.Tensor:
-        num_samples = inputs.shape[0]
-        num_batches = (num_samples + batch_size - 1) // batch_size
         output = []
+        batches = cebra_solver_util.get_batches_of_data(
+            inputs=inputs,
+            batch_size=batch_size,
+            padding=pad_before_transform,
+            offset=offset)
 
-        for i in range(num_batches):
-            start_batch_idx = i * batch_size
-            end_batch_idx = min((i + 1) * batch_size, num_samples)
-
-            if pad_before_transform:
-                batched_data = self._get_batched_data_with_padding(
-                    inputs=inputs,
-                    offset=offset,
-                    start_batch_idx=start_batch_idx,
-                    end_batch_idx=end_batch_idx,
-                    batch_id=i,
-                    num_batches=num_batches)
-            else:
-                batched_data = inputs[start_batch_idx:end_batch_idx]
-
-            if isinstance(model, cebra.models.ConvolutionalModelMixin):
-                # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
-                batched_data = batched_data.transpose(1, 0).unsqueeze(0)
-                output_batch = model(batched_data).squeeze(0).transpose(1, 0)
-            else:
-                output_batch = model(batched_data)
-
+        # NOTE: If we move this inside the `cebra_solver_util.get_batches_of_data`or similar
+        # we avoid a second for loop. Is it good practice to do inference outside the solver?
+        for batch in batches:
+            output_batch = self._inference_transform(model, batch)
             output.append(output_batch)
-        output = torch.cat(output)
 
+        output = torch.cat(output)
         return output
 
     @torch.no_grad()
@@ -410,13 +367,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                             mode="edge")
             inputs = torch.from_numpy(inputs)
 
-        if isinstance(model, cebra.models.ConvolutionalModelMixin):
-            # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
-            inputs = inputs.transpose(1, 0).unsqueeze(0)
-            output = model(inputs).squeeze(0).transpose(1, 0)
-        else:
-            output = model(inputs)
-
+        output = self._inference_transform(model, inputs)
         return output
 
     @torch.no_grad()
