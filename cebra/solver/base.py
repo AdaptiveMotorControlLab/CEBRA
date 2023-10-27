@@ -38,6 +38,8 @@ import literate_dataclasses as dataclasses
 import numpy as np
 import torch
 import tqdm
+from torch.utils.data import DataLoader
+from torch.utils.data import Dataset
 
 import cebra
 import cebra.data
@@ -46,6 +48,102 @@ import cebra.models
 import cebra.solver.util as cebra_solver_util
 from cebra.solver.util import Meter
 from cebra.solver.util import ProgressBar
+
+
+def _inference_transform(model, inputs):
+    if isinstance(model, cebra.models.ConvolutionalModelMixin):
+        # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
+        inputs = inputs.transpose(1, 0).unsqueeze(0)
+        output = model(inputs).squeeze(0).transpose(1, 0)
+    else:
+        output = model(inputs)
+    return output
+
+
+def _process_batch(inputs: torch.Tensor, add_padding: bool,
+                   offset: cebra.data.Offset, start_batch_idx: int,
+                   end_batch_idx: int) -> torch.Tensor:
+    """
+    Process a batch of input data, optionally applying padding based on specified parameters.
+
+    Args:
+        inputs: The input data to be processed.
+        add_padding: Indicates whether padding should be applied before inference.
+        offset: Offset configuration for padding. If add_padding is True,
+            offset must be set. If add_padding is False, offset is not used and can be None.
+        start_batch_idx: The starting index of the current batch.
+        end_batch_idx: The last index of the current batch.
+
+    Returns:
+        torch.Tensor: The (potentially) padded data.
+
+    Raises:
+        ValueError: If pad_beforadd_paddinge_transform is True and offset is not provided.
+    """
+
+    if add_padding:
+        if offset is None:
+            raise ValueError("offset needs to be set if add_padding is True.")
+
+        if start_batch_idx == 0:  # First batch
+            indices = start_batch_idx, (end_batch_idx + offset.right - 1)
+            batched_data = inputs[slice(*indices)]
+            batched_data = np.pad(batched_data.cpu().numpy(),
+                                  ((offset.left, 0), (0, 0)),
+                                  mode="edge")
+
+        elif end_batch_idx == len(inputs):  # Last batch
+            indices = (start_batch_idx - offset.left), end_batch_idx
+            batched_data = inputs[slice(*indices)]
+            batched_data = np.pad(batched_data.cpu().numpy(),
+                                  ((0, offset.right - 1), (0, 0)),
+                                  mode="edge")
+        else:  # Middle batches
+            indices = start_batch_idx - offset.left, end_batch_idx + offset.right - 1
+            batched_data = inputs[slice(*indices)]
+
+    else:
+        indices = start_batch_idx, end_batch_idx
+        batched_data = inputs[slice(*indices)]
+
+    batched_data = torch.from_numpy(batched_data) if isinstance(
+        batched_data, np.ndarray) else batched_data
+    return batched_data
+
+
+def _batched_transform(model,
+                       inputs: torch.Tensor,
+                       batch_size: int,
+                       pad_before_transform: bool,
+                       offset=None) -> torch.Tensor:
+
+    class IndexDataset(Dataset):
+
+        def __init__(self, inputs):
+            self.inputs = inputs
+
+        def __len__(self):
+            return len(self.inputs)
+
+        def __getitem__(self, idx):
+            return idx
+
+    index_dataset = IndexDataset(inputs)
+    index_dataloader = DataLoader(index_dataset, batch_size=batch_size)
+
+    output = []
+    for batch_id, index_batch in enumerate(index_dataloader):
+        start_batch_idx, end_batch_idx = index_batch[0], index_batch[-1] + 1
+        batched_data = _process_batch(inputs=inputs,
+                                      add_padding=pad_before_transform,
+                                      offset=offset,
+                                      start_batch_idx=start_batch_idx,
+                                      end_batch_idx=end_batch_idx)
+        output_batch = _inference_transform(model, batched_data)
+        output.append(output_batch)
+
+    output = torch.cat(output)
+    return output
 
 
 @dataclasses.dataclass
@@ -286,22 +384,14 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         )
         return decode_metric
 
-    def _inference_transform(self, model, inputs):
-
-        if isinstance(model, cebra.models.ConvolutionalModelMixin):
-            # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
-            inputs = inputs.transpose(1, 0).unsqueeze(0)
-            output = model(inputs).squeeze(0).transpose(1, 0)
-        else:
-            output = model(inputs)
-
-        return output
-
     def _select_model(self, inputs: torch.Tensor, session_id: int):
+        #NOTE: In the torch API the inputs will be a torch tensor. Then in the
+        # sklearn API we will convert it to numpy array.
         """ Select the right model based on the type of solver we have."""
 
-        self.num_sessions = self.loader.dataset.num_sessions if isinstance(
-            inputs, list) else None
+        # before: self.loader.dataset.num_sessions
+        self.num_sessions = len(inputs) if isinstance(inputs, list) else None
+
         if self.num_sessions is not None:  # multisession implementation
             if session_id is None:
                 raise RuntimeError(
@@ -340,25 +430,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         return model, offset
 
     @torch.no_grad()
-    def _batched_transform(self, model, inputs, offset, batch_size,
-                           pad_before_transform) -> torch.Tensor:
-        output = []
-        batches = cebra_solver_util.get_batches_of_data(
-            inputs=inputs,
-            batch_size=batch_size,
-            padding=pad_before_transform,
-            offset=offset)
-
-        # NOTE: If we move this inside the `cebra_solver_util.get_batches_of_data`or similar
-        # we avoid a second for loop. Is it good practice to do inference outside the solver?
-        for batch in batches:
-            output_batch = self._inference_transform(model, batch)
-            output.append(output_batch)
-
-        output = torch.cat(output)
-        return output
-
-    @torch.no_grad()
     def _transform(self, model, inputs, offset,
                    pad_before_transform) -> torch.Tensor:
 
@@ -367,7 +438,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                             mode="edge")
             inputs = torch.from_numpy(inputs)
 
-        output = self._inference_transform(model, inputs)
+        output = _inference_transform(model, inputs)
         return output
 
     @torch.no_grad()
@@ -405,7 +476,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             )
 
         if batch_size is not None:
-            output = self._batched_transform(
+            output = _batched_transform(
                 model=model,
                 inputs=inputs,
                 offset=offset,
