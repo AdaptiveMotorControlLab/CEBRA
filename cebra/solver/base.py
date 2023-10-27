@@ -39,6 +39,7 @@ import numpy.typing as npt
 import numpy as np
 import torch
 import torch.nn.functional as F
+import tqdm
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
