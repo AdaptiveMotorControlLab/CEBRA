@@ -81,25 +81,53 @@ def _process_batch(inputs: torch.Tensor, add_padding: bool,
         ValueError: If pad_beforadd_paddinge_transform is True and offset is not provided.
     """
 
+    def _check_indices(indices, inputs):
+        if (indices[0] < 0) or (indices[1] > inputs.shape[0]):
+            raise ValueError(
+                f"offset {offset} is too big for the length of the inputs ({len(inputs)}) "
+                f"The indices {indices} do not match the inputs length {len(inputs)}."
+            )
+
+    if start_batch_idx < 0 or end_batch_idx < 0:
+        raise ValueError(
+            f"start_batch_idx ({start_batch_idx}) and end_batch_idx ({end_batch_idx}) must be non-negative."
+        )
+
+    if start_batch_idx > end_batch_idx:
+        raise ValueError(
+            f"start_batch_idx ({start_batch_idx}) cannot be greater than end_batch_idx ({end_batch_idx})."
+        )
+
+    if end_batch_idx > len(inputs):
+        raise ValueError(
+            f"end_batch_idx ({end_batch_idx}) cannot exceed the length of inputs ({len(inputs)})."
+        )
+
     if add_padding:
         if offset is None:
             raise ValueError("offset needs to be set if add_padding is True.")
 
+        if not isinstance(offset, cebra.data.Offset):
+            raise ValueError("offset must be an instance of cebra.data.Offset")
+
         if start_batch_idx == 0:  # First batch
             indices = start_batch_idx, (end_batch_idx + offset.right - 1)
+            _check_indices(indices, inputs)
             batched_data = inputs[slice(*indices)]
-            batched_data = np.pad(batched_data.cpu().numpy(),
-                                  ((offset.left, 0), (0, 0)),
+            batched_data = np.pad(array=batched_data.cpu().numpy(),
+                                  pad_width=((offset.left, 0), (0, 0)),
                                   mode="edge")
 
         elif end_batch_idx == len(inputs):  # Last batch
             indices = (start_batch_idx - offset.left), end_batch_idx
+            _check_indices(indices, inputs)
             batched_data = inputs[slice(*indices)]
-            batched_data = np.pad(batched_data.cpu().numpy(),
-                                  ((0, offset.right - 1), (0, 0)),
+            batched_data = np.pad(array=batched_data.cpu().numpy(),
+                                  pad_width=((0, offset.right - 1), (0, 0)),
                                   mode="edge")
         else:  # Middle batches
             indices = start_batch_idx - offset.left, end_batch_idx + offset.right - 1
+            _check_indices(indices, inputs)
             batched_data = inputs[slice(*indices)]
 
     else:

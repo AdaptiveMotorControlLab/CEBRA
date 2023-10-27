@@ -229,6 +229,112 @@ for model_name in ["offset1-model", "offset10-model"]:
                 (*args, cebra.solver.MultiSessionSolver))
 
 
+@pytest.mark.parametrize(
+    "inputs, add_padding, offset, start_batch_idx, end_batch_idx, expected_output",
+    [
+        # Test case 1: No padding
+        (torch.tensor([[1, 2], [3, 4]]), False, None, 0, 1,
+         torch.tensor([[1, 2]])),  # first batch
+        (torch.tensor([[1, 2], [3, 4]]), False, None, 0, 2,
+         torch.tensor([[1, 2], [3, 4]])),  # first batch
+        (torch.tensor([[1, 2], [3, 4]]), False, None, 1, 2,
+         torch.tensor([[3, 4]])),  # last batch
+
+        # Test case 2: First batch with padding
+        (
+            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+            True,
+            cebra.data.Offset(1, 1),
+            0,
+            2,
+            torch.tensor([[1, 2, 3], [1, 2, 3], [4, 5, 6]]),
+        ),
+        (
+            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+            True,
+            cebra.data.Offset(1, 1),
+            0,
+            3,
+            torch.tensor([[1, 2, 3], [1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+        ),
+
+        # Test case 3: Last batch with padding
+        (
+            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+            True,
+            cebra.data.Offset(0, 1),
+            1,
+            3,
+            torch.tensor([[4, 5, 6], [7, 8, 9]]),
+        ),
+        (
+            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+            True,
+            cebra.data.Offset(1, 3),
+            1,
+            3,
+            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [7, 8, 9], [7, 8, 9]
+                         ]),
+        ),
+
+        # Test case 4: Middle batch with padding
+        (
+            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+            True,
+            cebra.data.Offset(0, 1),
+            1,
+            2,
+            torch.tensor([[4, 5, 6]]),
+        ),
+        (
+            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+            True,
+            cebra.data.Offset(0, 2),
+            1,
+            2,
+            torch.tensor([[4, 5, 6], [7, 8, 9]]),
+        ),
+        (
+            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+            True,
+            cebra.data.Offset(1, 1),
+            1,
+            2,
+            torch.tensor([[1, 2, 3], [4, 5, 6]]),
+        ),
+        (
+            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+            True,
+            cebra.data.Offset(1, 2),
+            1,
+            2,
+            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+        ),
+
+        # Examples that throw an error:
+
+        # Padding without offset (should raise an error)
+        (torch.tensor([[1, 2]]), True, None, 0, 2, ValueError),
+        # Negative start_batch_idx or end_batch_idx (should raise an error)
+        (torch.tensor([[1, 2]]), False, None, -1, 2, ValueError),
+        # out of bound indices because offset is too large
+        (torch.tensor([[1, 2], [3, 4]]), True, cebra.data.Offset(
+            5, 5), 1, 2, ValueError),
+    ],
+)
+def test_process_batch(inputs, add_padding, offset, start_batch_idx,
+                       end_batch_idx, expected_output):
+    if expected_output == ValueError:
+        with pytest.raises(ValueError):
+            cebra.solver.base._process_batch(inputs, add_padding, offset,
+                                             start_batch_idx, end_batch_idx)
+    else:
+        result = cebra.solver.base._process_batch(inputs, add_padding, offset,
+                                                  start_batch_idx,
+                                                  end_batch_idx)
+        assert torch.equal(result, expected_output)
+
+
 @pytest.mark.parametrize("data_name, model_name,session_id,solver_initfunc",
                          single_session_tests_select_model +
                          single_session_hybrid_tests_select_model)
