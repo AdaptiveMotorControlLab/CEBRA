@@ -56,7 +56,7 @@ except (ImportError, NameError):
 
 import cebra.integrations.sklearn as sklearn
 
-__version__ = "0.3.0"
+__version__ = "0.3.1rc1"
 __all__ = ["CEBRA"]
 __allow_lazy_imports = False
 __lazy_imports = {}
