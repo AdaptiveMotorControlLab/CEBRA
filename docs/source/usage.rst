@@ -1252,10 +1252,11 @@ Putting all previous snippet examples together, we obtain the following pipeline
 Quick Start: Torch API example
 ------------------------------
 
-🚀 You have special custom data analysis needs? We invite you to use the ``torch``-API interface.
+🚀 You have special custom data analysis needs or want more features? We invite you to use the ``torch``-API interface.
 
-Refer to the ``examples/`` folder for a set of demo scripts.
-Single- and multi-session training can be launched using the following ``bash`` command.
+Refer to the ``Demos`` tab for a demo notebook using the ``torch``-API: https://cebra.ai/docs/demo_notebooks/Demo_Allen.html.
+
+Single- and multi-session training could be launched using the following ``bash`` command.
 
 .. code:: bash
 
