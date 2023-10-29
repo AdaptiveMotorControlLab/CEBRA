@@ -12,7 +12,7 @@
 """A simple API for loading various data formats used with CEBRA.
 
 Availability of different data formats depends on the installed
-depedencies. If a dependency is not installed, an attempt to load
+dependencies. If a dependency is not installed, an attempt to load
 a file of that format will throw an error with further installation
 instructions.
 
