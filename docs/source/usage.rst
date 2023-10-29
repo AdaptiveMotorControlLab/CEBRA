@@ -1335,7 +1335,6 @@ gets initilized which also allows the `prior` to be directly parametrized.
 
     import numpy as np
     import cebra.datasets
-    from cebra import plot_embedding
     import torch
 
     if torch.cuda.is_available():
