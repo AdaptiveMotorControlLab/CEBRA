@@ -116,6 +116,7 @@ autodoc_mock_imports = [
     "h5py",
     "pandas",
     "matplotlib",
+    "plotly"
 ]
 # autodoc_typehints = "none"
 
