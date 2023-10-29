@@ -174,7 +174,7 @@ def plot_embedding_interactive(
         CEBRA(max_iterations=10)
         >>> embedding = cebra_model.transform(X)
         >>> cebra_time = np.arange(X.shape[0])
-        >>> fig = cebra.integrations.plotly.plot_embedding_interactive(embedding, embedding_labels=cebra_time)
+        >>> fig = cebra.plot_embedding_interactive(embedding, embedding_labels=cebra_time)
 
     """
     return _EmbeddingInteractivePlot(
