@@ -1318,8 +1318,8 @@ Below is the documentation on the available arguments.
     --valid-ratio 0.1     Ratio of validation set after the train data split. The remaining will be test split
     --share-model
 
-Model initialization using the Torch API 
-----------------------------------------
+Model training using the Torch API 
+----------------------------------
 
 The scikit-learn API provides parametrization to many common use cases.
 The Torch API however allows for more flexibility and customization, for e.g. 
