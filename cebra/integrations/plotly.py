@@ -135,7 +135,7 @@ def plot_embedding_interactive(
     This is supposing that the dimensions provided to ``idx_order`` are in the range of the number of
     dimensions of the embedding (i.e., between 0 and :py:attr:`cebra.CEBRA.output_dimension` -1).
 
-    The function makes use of :py:func:`plotly.graph_objs.Scatter` and parameters from that function can be provided
+    The function makes use of :py:func:`plotly.graph_objects.Scatter` and parameters from that function can be provided
     as part of ``kwargs``.
 
 
@@ -156,7 +156,7 @@ def plot_embedding_interactive(
         title: The title on top of the embedding.
         figsize: Figure width and height in inches.
         dpi: Figure resolution.
-        kwargs: Optional arguments to customize the plots. See :py:func:`plotly.graph_objs.Scatter` documentation for more
+        kwargs: Optional arguments to customize the plots. See :py:func:`plotly.graph_objects.Scatter` documentation for more
             details on which arguments to use.
 
     Returns:
