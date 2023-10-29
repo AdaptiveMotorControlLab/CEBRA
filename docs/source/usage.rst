@@ -1349,7 +1349,7 @@ gets initilized which also allows the `prior` to be directly parametrized.
     )
 
     # 1. Define Cebra Dataset
-    InputData = cebra.data.TensorDataset(
+    input_data = cebra.data.TensorDataset(
         torch.from_numpy(neural_data).type(torch.FloatTensor),
         discrete=torch.from_numpy(np.array(discrete_label[:, 0])).type(torch.LongTensor),
     ).to(device)
