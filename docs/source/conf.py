@@ -101,6 +101,7 @@ intersphinx_mapping = {
     "pandas": ("http://pandas.pydata.org/pandas-docs/dev", None),
     "scipy": ("http://docs.scipy.org/doc/scipy/reference/", None),
     "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
+    "plotly": ("https://plotly.com/python-api-reference/", None)
 }
 
 # Config is documented here: https://sphinx-copybutton.readthedocs.io/en/latest/
@@ -116,6 +117,7 @@ autodoc_mock_imports = [
     "h5py",
     "pandas",
     "matplotlib",
+    "plotly"
 ]
 # autodoc_typehints = "none"
 
