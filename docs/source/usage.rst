@@ -1326,7 +1326,7 @@ sampling, criterions, and data loaders.
 
 In this minimal example we show how to initialize a CEBRA model using the Torch API.
 Here the :py:class:`cebra.data.single_session.DiscreteDataLoader` 
-gets initilized which also allows the `prior` to be directly parametrized.
+gets initialized which also allows the `prior` to be directly parametrized.
 
 👉 For an example notebook using the Torch API check out the :doc:`demo_notebooks/Demo_Allen`.
 
@@ -1403,7 +1403,7 @@ gets initilized which also allows the `prior` to be directly parametrized.
     ).to(device)
 
     # 8. Plot Embedding
-    plot_embedding(
+    cebra.plot_embedding(
         X_train_emb,
         discrete_label[neural_model.get_offset().__len__() - 1 :, 0],
         markersize=10,
