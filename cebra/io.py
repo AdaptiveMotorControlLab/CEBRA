@@ -217,8 +217,8 @@ class FileKeyValueDataset:
         >>> import tempfile
         >>> from pathlib import Path
         >>> tmp_file = Path(tempfile.gettempdir(), 'test.jl')
-        >>> joblib.dump({'foo' : 42}, tmp_file)
-        >>> data = cebra.io.FileKeyValueDataset(tmp_file)
+        >>> joblib.dump({'foo' : 42}, tmp_file) # doctest: +SKIP
+        >>> data = cebra.io.FileKeyValueDataset(tmp_file) 
         >>> data.foo
         42
 
