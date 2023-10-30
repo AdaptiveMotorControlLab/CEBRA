@@ -214,9 +214,11 @@ class FileKeyValueDataset:
 
         >>> import cebra.io
         >>> import joblib
-        >>> joblib.dump({'foo' : 42}, '/tmp/test.jl')
-        ['/tmp/test.jl']
-        >>> data = cebra.io.FileKeyValueDataset('/tmp/test.jl')
+        >>> import tempfile
+        >>> from pathlib import Path
+        >>> tmp_file = Path(tempfile.gettempdir(), 'test.jl')
+        >>> joblib.dump({'foo' : 42}, tmp_file)
+        >>> data = cebra.io.FileKeyValueDataset(tmp_file)
         >>> data.foo
         42
 
@@ -242,14 +244,14 @@ class FileKeyValueDataset:
         return f"{type(self).__name__}(keys=(\n  {sizes}\n))"
 
     def _iterate_items(self):
-        extension = self.path.split(".")[-1]
-        if extension in ["jl", "joblib"]:
+        extension = self.path.suffix
+        if extension in [".jl", ".joblib"]:
             dataset = joblib.load(self.path)
-        elif extension in ["h5", "hdf", "hdf5"]:
+        elif extension in [".h5", ".hdf", ".hdf5"]:
             raise NotImplementedError()
-        elif extension in ["pth", "pt"]:
+        elif extension in [".pth", ".pt"]:
             dataset = torch.load(self.path)
-        elif extension in ["npz"]:
+        elif extension in [".npz"]:
             dataset = np.load(self.path, allow_pickle=True)
         else:
             raise ValueError(f"Invalid file format: {extension} in {self.path}")
