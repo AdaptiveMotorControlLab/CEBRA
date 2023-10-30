@@ -32,7 +32,7 @@ implement larger changes to the training loop.
 
 import abc
 import os
-from typing import Callable, Dict, List, Literal, Optional, Union
+from typing import Callable, Dict, Iterable, List, Literal, Optional, Union
 
 import literate_dataclasses as dataclasses
 import numpy as np
@@ -78,7 +78,7 @@ def _process_batch(inputs: torch.Tensor, add_padding: bool,
         torch.Tensor: The (potentially) padded data.
 
     Raises:
-        ValueError: If pad_beforadd_paddinge_transform is True and offset is not provided.
+        ValueError: If add_padding is True and offset is not provided.
     """
 
     def _check_indices(indices, inputs):
@@ -314,6 +314,12 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             * Refine the API here. Drop the validation entirely, and implement this via a hook?
         """
 
+        self.num_sessions = loader.dataset.num_sessions if loader.dataset.num_sessions is not None else None
+        self.n_features = ([
+            loader.dataset.get_input_dimension(session_id)
+            for session_id in range(loader.dataset.num_sessions)
+        ] if self.num_sessions is not None else loader.dataset.input_dimension)
+
         self.to(loader.device)
 
         iterator = self._get_loader(loader)
@@ -417,9 +423,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         # sklearn API we will convert it to numpy array.
         """ Select the right model based on the type of solver we have."""
 
-        # before: self.loader.dataset.num_sessions
-        self.num_sessions = len(inputs) if isinstance(inputs, list) else None
-
         if self.num_sessions is not None:  # multisession implementation
             if session_id is None:
                 raise RuntimeError(
@@ -429,14 +432,13 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 raise RuntimeError(
                     f"Invalid session_id {session_id}: session_id for the current multisession model must be between 0 and {self.num_sessions-1}."
                 )
-            if self.n_features_[session_id] != X.shape[1]:
+            if self.n_features[session_id] != inputs.shape[1]:
                 raise ValueError(
                     f"Invalid input shape: model for session {session_id} requires an input of shape"
-                    f"(n_samples, {self.n_features_[session_id]}), got (n_samples, {X.shape[1]})."
+                    f"(n_samples, {self.n_features[session_id]}), got (n_samples, {inputs.shape[1]})."
                 )
 
             model = self.model[session_id]
-            model.to(self.device_)  #TODO: why do I need to do this?
 
         else:  # single session
             if session_id is not None and session_id > 0:
@@ -495,6 +497,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Returns:
             The output embedding.
         """
+        #TODO: add check like sklearn?
+        # #sklearn_utils_validation.check_is_fitted(self, "n_features_")
         model, offset = self._select_model(inputs, session_id)
         model.eval()
 

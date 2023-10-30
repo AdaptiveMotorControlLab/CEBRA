@@ -222,8 +222,8 @@ for model_name in ["offset1-model", "offset10-model"]:
                 (*args, cebra.solver.SingleSessionHybridSolver))
 
 multi_session_tests_select_model = []
-for model_name in ["offset1-model", "offset10-model"]:
-    for session_id in [None, 0, 1, 4]:
+for model_name in ["offset10-model"]:
+    for session_id in [None, 0, 1, 5, 2, 6, 4]:
         for args in [("demo-continuous-multisession", model_name, session_id)]:
             multi_session_tests_select_model.append(
                 (*args, cebra.solver.MultiSessionSolver))
@@ -355,25 +355,41 @@ def test_select_model_single_session(data_name, model_name, session_id,
         assert model == model_
 
 
-#@pytest.mark.parametrize(
-#    "data_name, model_name,session_id,solver_initfunc",
-#    single_session_tests_select_model + single_session_hybrid_tests_select_model)
-#def test_select_model_multi_session(data_name, model_name, session_id, solver_initfunc):
-#    dataset = cebra.datasets.init(data_name)
-#    model = nn.ModuleList(
-#             [create_model(model_name, dataset.input_dimension) for dataset in dataset.iter_sessions()])
-#    offset = model[0].get_offset()
-#    solver = solver_initfunc(model=model,
-#                             criterion=None,
-#                             optimizer=None)
-#
-#    if session_id is not None and session_id > 0:
-#        with pytest.raises(RuntimeError):
-#            solver._select_model(dataset.neural, session_id=session_id)
-#    else:
-#        model_, offset_ = solver._select_model(dataset.neural, session_id=session_id)
-#        assert offset.left == offset_.left and offset.right == offset_.right
-#        assert model == model_
+@pytest.mark.parametrize("data_name, model_name,session_id,solver_initfunc",
+                         multi_session_tests_select_model)
+def test_select_model_multi_session(data_name, model_name, session_id,
+                                    solver_initfunc):
+    dataset = cebra.datasets.init(data_name)
+    model = nn.ModuleList([
+        create_model(model_name, dataset.input_dimension)
+        for dataset in dataset.iter_sessions()
+    ])
+
+    offset = model[0].get_offset()
+    solver = solver_initfunc(model=model,
+                             criterion=cebra.models.InfoNCE(),
+                             optimizer=torch.optim.Adam(model.parameters(),
+                                                        lr=1e-3))
+
+    loader_kwargs = dict(num_steps=10, batch_size=32)
+    loader = cebra.data.ContinuousMultiSessionDataLoader(
+        dataset, **loader_kwargs)
+    solver.fit(loader)
+
+    for i, (model, dataset_) in enumerate(zip(model, dataset.iter_sessions())):
+        inputs = dataset_.neural
+
+        if session_id is None or session_id >= dataset.num_sessions:
+            with pytest.raises(RuntimeError):
+                solver._select_model(inputs, session_id=session_id)
+        elif i != session_id:
+            with pytest.raises(ValueError):
+                solver._select_model(inputs, session_id=session_id)
+        else:
+            model_, offset_ = solver._select_model(inputs,
+                                                   session_id=session_id)
+            assert offset.left == offset_.left and offset.right == offset_.right
+            assert model == model_
 
 
 @pytest.mark.parametrize(
