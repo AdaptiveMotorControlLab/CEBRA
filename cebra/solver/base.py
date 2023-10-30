@@ -32,7 +32,8 @@ implement larger changes to the training loop.
 
 import abc
 import os
-from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
+import warnings
+from typing import Callable, Dict, Iterable, List, Literal, Optional, Union
 
 import literate_dataclasses as dataclasses
 import numpy.typing as npt
@@ -194,7 +195,10 @@ def _transform(
         offset: Model offset.
 
     Returns:
-        The embedding.
+        torch.Tensor: The (potentially) padded data.
+
+    Raises:
+        ValueError: If add_padding is True and offset is not provided.
     """
     if pad_before_transform:
         inputs = F.pad(inputs.T, (offset.left, offset.right - 1), 'replicate').T
@@ -592,28 +596,24 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Returns:
             The output embedding.
         """
-        if not self.is_fitted:
-            raise ValueError(
-                f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
-                "appropriate arguments before using this estimator.")
-
-        if batch_size is not None and batch_size < 1:
-            raise ValueError(
-                f"Batch size should be at least 1, got {batch_size}")
-
         if isinstance(inputs, list):
-            raise ValueError(
-                "Inputs to transform() should be the data for a single session, but received a list."
+            raise NotImplementedError(
+                "Inputs to transform() should be the data for a single session."
             )
-
         elif not isinstance(inputs, torch.Tensor):
             raise ValueError(
                 f"Inputs should be a torch.Tensor, not {type(inputs)}.")
-
+            
+        self._check_is_fitted()
+        
         model, offset = self._select_model(inputs, session_id)
 
         if len(offset) < 2 and pad_before_transform:
             pad_before_transform = False
+            
+        if batch_size is not None and batch_size < 1:
+            raise ValueError(
+                f"Batch size should be at least 1, got {batch_size}")
 
         model.eval()
         if batch_size is not None:
