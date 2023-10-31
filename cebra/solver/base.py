@@ -314,7 +314,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             * Refine the API here. Drop the validation entirely, and implement this via a hook?
         """
 
-        self.num_sessions = loader.dataset.num_sessions if loader.dataset.num_sessions is not None else None
+        self.num_sessions = loader.dataset.num_sessions if hasattr(
+            loader.dataset, "num_sessions") else None
         self.n_features = ([
             loader.dataset.get_input_dimension(session_id)
             for session_id in range(loader.dataset.num_sessions)
