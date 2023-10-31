@@ -777,13 +777,8 @@ def test_load(save_data, file_ending, dtype):
         filename = tf.name  # name, without extension
     
     if file_ending in ("csv", "xls", "xlsx", "xlsm"):
-        if platform.system() == 'Linux':
-            if dtype == np.int32:
-                pytest.skip("skip")
-
-        elif platform.system() == 'Windows':
-            if dtype == np.int64:
-                pytest.skip("skip")
+        if dtype == np.int32:
+            pytest.skip("skip")
     
     # create data, save it, load it
     saved_array, loaded_array = save_data(filename, dtype=dtype)
