@@ -778,7 +778,12 @@ def test_load(save_data, file_ending, dtype):
     
     if file_ending in ("csv", "xls", "xlsx", "xlsm"):
         if dtype == np.int32:
-            pytest.skip("skip")
+            pytest.skip("Skipping test. For CSV, XLS, XLSX, and XLM file formats, "
+                        "the integer loading data type is always int64, regardless of the "
+                        "data type it was saved with. This can lead to compatibility issues, "
+                        "especially on Windows. To ensure accurate testing, we only perform "
+                        "tests with int64 data type for these formats, and we skip the test "
+                        "cases involving int32.")
     
     # create data, save it, load it
     saved_array, loaded_array = save_data(filename, dtype=dtype)
