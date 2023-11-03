@@ -1172,6 +1172,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> cebra_model.save(tmp_file)
             >>> cebra_model.fit(dataset2, adapt=True)
             CEBRA(max_iterations=10)
+            >>> tmp_file.unlink()
         """
         if adapt and sklearn_utils.check_fitted(self):
             self._adapt_fit(X,
@@ -1407,6 +1408,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> dataset =  np.random.uniform(0, 1, (1000, 20))
             >>> loaded_model = cebra.CEBRA.load(tmp_file)
             >>> embedding = loaded_model.transform(dataset)
+            >>> tmp_file.unlink()
 
         """
 
