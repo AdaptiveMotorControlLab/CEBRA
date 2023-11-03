@@ -1163,7 +1163,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> import numpy as np
             >>> import tempfile
             >>> from pathlib import Path
-            >>> tmp_file = Path(tempfile.gettempdir(), 'foo.pt')
+            >>> tmp_file = Path(tempfile.gettempdir(), 'cebra.pt')
             >>> dataset =  np.random.uniform(0, 1, (1000, 20))
             >>> dataset2 =  np.random.uniform(0, 1, (1000, 40))
             >>> cebra_model = cebra.CEBRA(max_iterations=10)
@@ -1403,7 +1403,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> import numpy as np        
             >>> import tempfile
             >>> from pathlib import Path
-            >>> tmp_file = Path(tempfile.gettempdir(), 'foo.pt')
+            >>> tmp_file = Path(tempfile.gettempdir(), 'cebra.pt')
             >>> dataset =  np.random.uniform(0, 1, (1000, 20))
             >>> loaded_model = cebra.CEBRA.load(tmp_file)
             >>> embedding = loaded_model.transform(dataset)

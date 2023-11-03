@@ -498,7 +498,7 @@ The model will be saved as a ``.pt`` file.
     from pathlib import Path
 
     # create temporary file to save the model
-    tmp_file = Path(tempfile.gettempdir(), 'foo.pt')
+    tmp_file = Path(tempfile.gettempdir(), 'cebra.pt')
 
     cebra_model = cebra.CEBRA(max_iterations=10)
     cebra_model.fit(neural_data)
@@ -1227,11 +1227,10 @@ Putting all previous snippet examples together, we obtain the following pipeline
      cebra_model.fit(train_data, train_discrete_label, train_continuous_label)
 
      # 5. Save the model
-     tmp_file = Path(tempfile.gettempdir(), 'foo.pt')
+     tmp_file = Path(tempfile.gettempdir(), 'cebra.pt')
      cebra_model.save(tmp_file)
 
      # 6. Load the model and compute an embedding
-     tmp_file = Path(tempfile.gettempdir(), 'foo.pt')
      cebra_model = cebra.CEBRA.load(tmp_file)
      train_embedding = cebra_model.transform(train_data)
      valid_embedding = cebra_model.transform(valid_data)
