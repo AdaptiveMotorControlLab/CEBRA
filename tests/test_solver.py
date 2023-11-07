@@ -368,9 +368,11 @@ def test_select_model_multi_session(data_name, model_name, session_id,
 #try to isolate this from the remaining tests, and make it really rigorous with a lot of test cases.
 
 models = [
-    "offset1-model", "offset10-model"
+    "offset1-model",
+    "offset10-model",
+    #"offset1-model", "offset10-model",
 ]  # there is an issue with subsampe models e.g. "offset4-model-2x-subsample"
-batch_size_inference = [99_999]  #1, 1000
+batch_size_inference = [23432, 99_999]  #1, 1000
 
 single_session_tests_transform = []
 for padding in [True, False]:
@@ -396,17 +398,9 @@ for padding in [True, False]:
                 single_session_hybrid_tests_transform.append(
                     (*args, cebra.solver.SingleSessionHybridSolver))
 
-#multi_session_tests_transform = []
-#for padding in [True, False]:
-#    for model_name in ["offset1-model", "offset5-model", "offset10-model"]:
-#        for args in [("demo-continuous-multisession", model_name, padding,
-#                      cebra.data.ContinuousMultiSessionDataLoader)]:
-#            multi_session_tests_transform.append(
-#                (*args, cebra.solver.MultiSessionSolver))
-
 
 @pytest.mark.parametrize(
-    "data_name, model_name,padding,batch_size_inference,loader_initfunc, solver_initfunc",
+    "data_name,model_name,padding,batch_size_inference,loader_initfunc,solver_initfunc",
     single_session_tests_transform + single_session_hybrid_tests_transform)
 def test_batched_transform_singlesession(
     data_name,
@@ -430,7 +424,12 @@ def test_batched_transform_singlesession(
                              optimizer=optimizer)
     solver.fit(loader)
 
-    if len(model.get_offset()) < 2 and padding:
+    smallest_batch_length = loader.dataset.neural.shape[0] - batch_size
+    offset_ = model.get_offset()
+    #print("here!", smallest_batch_length, len(offset_))
+    padding_left = offset_.left if padding else 0
+
+    if len(offset_) < 2 and padding:
         pytest.skip("not relevant for now.")
         with pytest.raises(ValueError):
             solver.transform(inputs=loader.dataset.neural,
@@ -438,8 +437,21 @@ def test_batched_transform_singlesession(
 
         with pytest.raises(ValueError):
             solver.transform(inputs=loader.dataset.neural,
-                             batch_size=batch_size_inference,
+                             batch_size=batch_size,
                              pad_before_transform=padding)
+
+    # NOTE: We need to add padding_left because if padding is True,
+    # the batch size is not "smallest_batch_length". and the smallest
+    # batch will always be at the end so the last batch we need to add
+    # offset.left.
+    #TODO: this wont work in the case where the data is less than
+    #the offset from the beginning, i.e len(data) = 10, len(offset) = 10
+    elif smallest_batch_length + padding_left <= len(offset_):
+        with pytest.raises(ValueError):
+            solver.transform(inputs=loader.dataset.neural,
+                             batch_size=batch_size,
+                             pad_before_transform=padding)
+
     else:
         embedding_batched = solver.transform(inputs=loader.dataset.neural,
                                              batch_size=batch_size,
@@ -464,49 +476,70 @@ def test_batched_transform_singlesession(
                 assert np.allclose(embedding_batched, embedding, rtol=1e-02)
 
 
-# def test_batched_transform_multisession(data_name, model_name, padding, loader_initfunc, solver_initfunc):
-#     batch_size = 1024
-#     dataset = cebra.datasets.init(data_name)
-#     model = nn.ModuleList(
-#             [create_model(model_name, dataset.input_dimension) for dataset in dataset.iter_sessions()])
-#     dataset.offset = model[0].get_offset()
-#     loader_kwargs = dict(num_steps=10, batch_size=32)
-#     loader = loader_initfunc(dataset, **loader_kwargs)
+multi_session_tests_transform = []
+for padding in [True, False]:
+    for model_name in models:
+        for batch_size in batch_size_inference:
+            for args in [
+                ("demo-continuous-multisession", model_name, padding,
+                 batch_size, cebra.data.ContinuousMultiSessionDataLoader)
+            ]:
+                multi_session_tests_transform.append(
+                    (*args, cebra.solver.MultiSessionSolver))
 
-#     criterion = cebra.models.InfoNCE()
-#     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-#     solver = solver_initfunc(model=model,
-#                              criterion=criterion,
-#                              optimizer=optimizer)
-#     solver.fit(loader)
+@pytest.mark.parametrize(
+    "data_name, model_name,padding,batch_size_inference,loader_initfunc, solver_initfunc",
+    multi_session_tests_transform)
+def test_batched_transform_multisession(data_name, model_name, padding,
+                                        batch_size_inference, loader_initfunc,
+                                        solver_initfunc):
+    dataset = cebra.datasets.init(data_name)
+    model = nn.ModuleList([
+        create_model(model_name, dataset.input_dimension)
+        for dataset in dataset.iter_sessions()
+    ])
+    dataset.offset = model[0].get_offset()
+    loader_kwargs = dict(num_steps=10, batch_size=32)
+    loader = loader_initfunc(dataset, **loader_kwargs)
 
-# if len(model.get_offset()) < 2 and padding:
-#     with pytest.raises(ValueError):
-#         solver.transform(inputs=loader.dataset.neural,
-#                             pad_before_transform=padding)
+    criterion = cebra.models.InfoNCE()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-#     with pytest.raises(ValueError):
-#         solver.transform(inputs=loader.dataset.neural,
-#                          batch_size=batch_size,
-#                          pad_before_transform=padding)
-# else:
-#     embedding_batched = solver.transform(inputs=loader.dataset.neural,
-#                                          batch_size=batch_size,
-#                                          pad_before_transform=padding)
+    solver = solver_initfunc(model=model,
+                             criterion=criterion,
+                             optimizer=optimizer)
+    solver.fit(loader)
 
-#     embedding = solver.transform(inputs=loader.dataset.neural,
-#                                 pad_before_transform=padding)
+    #if len(model[0].get_offset()) < 2 and padding:
+    #    with pytest.raises(ValueError):
+    #        solver.transform(inputs=loader.dataset.neural,
+    #                            pad_before_transform=padding)
 
-#     if padding:
-#         if isinstance(model, cebra.models.ConvolutionalModelMixin):
-#             assert embedding_batched.shape == embedding.shape
-#             assert embedding_batched.shape == embedding.shape
 
-#     else:
-#         if isinstance(model, cebra.models.ConvolutionalModelMixin):
-#             #TODO: what to check here exactly?
-#             pass
-#         else:
-#             assert embedding_batched.shape == embedding.shape
-#             assert np.allclose(embedding_batched, embedding, rtol=1e-02)
+#
+#    with pytest.raises(ValueError):
+#        solver.transform(inputs=loader.dataset.neural,
+#                        batch_size=batch_size,
+#                        pad_before_transform=padding)
+#else:
+#    embedding_batched = solver.transform(inputs=loader.dataset.neural,
+#                                        batch_size=batch_size,
+#                                        pad_before_transform=padding)
+#
+#    embedding = solver.transform(inputs=loader.dataset.neural,
+#                                pad_before_transform=padding)
+#
+#    if padding:
+#        if isinstance(model, cebra.models.ConvolutionalModelMixin):
+#            assert embedding_batched.shape == embedding.shape
+#            assert embedding_batched.shape == embedding.shape
+#
+#    else:
+#        if isinstance(model, cebra.models.ConvolutionalModelMixin):
+#            #TODO: what to check here exactly?
+#            pass
+#        else:
+#            assert embedding_batched.shape == embedding.shape
+#            assert np.allclose(embedding_batched, embedding, rtol=1e-02)
+#

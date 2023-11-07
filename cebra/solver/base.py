@@ -103,6 +103,17 @@ def _process_batch(inputs: torch.Tensor, add_padding: bool,
             f"end_batch_idx ({end_batch_idx}) cannot exceed the length of inputs ({len(inputs)})."
         )
 
+    def _check_batch_size_length(indices_batch, offset):
+        batch_size_lenght = indices_batch[1] - indices_batch[0]
+        print("batch_size ll", add_padding, indices, batch_size_lenght,
+              len(offset))
+        if batch_size_lenght <= len(offset):
+            raise ValueError(
+                f"The batch has length {batch_size_lenght} which "
+                f"is smaller or equal than the required offset length {len(offset)}."
+                f"Either choose a model with smaller offset or the batch shoud contain more samples."
+            )
+
     if add_padding:
         if offset is None:
             raise ValueError("offset needs to be set if add_padding is True.")
@@ -112,7 +123,8 @@ def _process_batch(inputs: torch.Tensor, add_padding: bool,
 
         if start_batch_idx == 0:  # First batch
             indices = start_batch_idx, (end_batch_idx + offset.right - 1)
-            _check_indices(indices, inputs)
+            #_check_indices(indices, inputs)
+            _check_batch_size_length(indices, offset)
             batched_data = inputs[slice(*indices)]
             batched_data = np.pad(array=batched_data.cpu().numpy(),
                                   pad_width=((offset.left, 0), (0, 0)),
@@ -120,18 +132,21 @@ def _process_batch(inputs: torch.Tensor, add_padding: bool,
 
         elif end_batch_idx == len(inputs):  # Last batch
             indices = (start_batch_idx - offset.left), end_batch_idx
-            _check_indices(indices, inputs)
+            #_check_indices(indices, inputs)
+            _check_batch_size_length(indices, offset)
             batched_data = inputs[slice(*indices)]
             batched_data = np.pad(array=batched_data.cpu().numpy(),
                                   pad_width=((0, offset.right - 1), (0, 0)),
                                   mode="edge")
         else:  # Middle batches
             indices = start_batch_idx - offset.left, end_batch_idx + offset.right - 1
-            _check_indices(indices, inputs)
+            #_check_indices(indices, inputs)
+            _check_batch_size_length(indices, offset)
             batched_data = inputs[slice(*indices)]
 
     else:
         indices = start_batch_idx, end_batch_idx
+        _check_batch_size_length(indices, offset)
         batched_data = inputs[slice(*indices)]
 
     batched_data = torch.from_numpy(batched_data) if isinstance(
@@ -139,11 +154,9 @@ def _process_batch(inputs: torch.Tensor, add_padding: bool,
     return batched_data
 
 
-def _batched_transform(model,
-                       inputs: torch.Tensor,
-                       batch_size: int,
+def _batched_transform(model, inputs: torch.Tensor, batch_size: int,
                        pad_before_transform: bool,
-                       offset=None) -> torch.Tensor:
+                       offset: cebra.data.Offset) -> torch.Tensor:
 
     class IndexDataset(Dataset):
 
