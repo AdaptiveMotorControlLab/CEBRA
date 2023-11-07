@@ -37,8 +37,16 @@ these components in other contexts and research code bases.
    api/pytorch/datasets
    api/pytorch/distributions
    api/pytorch/models
-   api/pytorch/integrations
    api/pytorch/helpers
+
+.. toctree::
+   :hidden:
+   :caption: Integrations
+
+   api/integrations/data
+   api/integrations/matplotlib
+   api/integrations/plotly
+   api/integrations/deeplabcut
 
 
 .. _Scikit-learn estimators: https://scikit-learn.org/stable/developers/develop.html

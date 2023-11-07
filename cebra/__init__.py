@@ -36,6 +36,15 @@ except ImportError as e:
     # silently fail for now
     pass
 
+is_plotly_available = False
+try:
+    from cebra.integrations.plotly import *
+
+    is_plotly_available = True
+except ImportError as e:
+    # silently fail for now
+    pass
+
 from cebra.data.load import load as load_data
 
 is_load_deeplabcut_available = False
@@ -47,7 +56,7 @@ except (ImportError, NameError):
 
 import cebra.integrations.sklearn as sklearn
 
-__version__ = "0.3.0"
+__version__ = "0.3.1rc1"
 __all__ = ["CEBRA"]
 __allow_lazy_imports = False
 __lazy_imports = {}
