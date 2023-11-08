@@ -370,9 +370,10 @@ def test_select_model_multi_session(data_name, model_name, session_id,
 models = [
     "offset1-model",
     "offset10-model",
+    "offset40-model-4x-subsample",
     #"offset1-model", "offset10-model",
-]  # there is an issue with subsampe models e.g. "offset4-model-2x-subsample"
-batch_size_inference = [23432, 99_999]  #1, 1000
+]  # there is an issue with "offset4-model-2x-subsample" because it's not a convolutional model.
+batch_size_inference = [23432, 99_999]  # 99_999
 
 single_session_tests_transform = []
 for padding in [True, False]:
@@ -500,6 +501,19 @@ def test_batched_transform_multisession(data_name, model_name, padding,
         for dataset in dataset.iter_sessions()
     ])
     dataset.offset = model[0].get_offset()
+
+    n_samples = dataset._datasets[0].neural.shape[0]
+    assert all(
+        d.neural.shape[0] == n_samples for d in dataset._datasets
+    ), "for this set all of the sessions need ot have same number of samples."
+
+    smallest_batch_length = n_samples - batch_size
+    offset_ = model[0].get_offset()
+    #print("here!", smallest_batch_length, len(offset_))
+    padding_left = offset_.left if padding else 0
+    for d in dataset._datasets:
+        d.offset = offset_
+    #dataset._datasets[0].offset = cebra.data.Offset(0, 1)
     loader_kwargs = dict(num_steps=10, batch_size=32)
     loader = loader_initfunc(dataset, **loader_kwargs)
 
@@ -511,35 +525,48 @@ def test_batched_transform_multisession(data_name, model_name, padding,
                              optimizer=optimizer)
     solver.fit(loader)
 
-    #if len(model[0].get_offset()) < 2 and padding:
-    #    with pytest.raises(ValueError):
-    #        solver.transform(inputs=loader.dataset.neural,
-    #                            pad_before_transform=padding)
+    # Transform each session with the right model, by providing the corresponding session ID
+    for i, inputs in enumerate(dataset.iter_sessions()):
 
+        if len(offset_) < 2 and padding:
+            with pytest.raises(ValueError):
+                embedding = solver.transform(inputs=inputs.neural,
+                                             session_id=i,
+                                             pad_before_transform=padding)
 
-#
-#    with pytest.raises(ValueError):
-#        solver.transform(inputs=loader.dataset.neural,
-#                        batch_size=batch_size,
-#                        pad_before_transform=padding)
-#else:
-#    embedding_batched = solver.transform(inputs=loader.dataset.neural,
-#                                        batch_size=batch_size,
-#                                        pad_before_transform=padding)
-#
-#    embedding = solver.transform(inputs=loader.dataset.neural,
-#                                pad_before_transform=padding)
-#
-#    if padding:
-#        if isinstance(model, cebra.models.ConvolutionalModelMixin):
-#            assert embedding_batched.shape == embedding.shape
-#            assert embedding_batched.shape == embedding.shape
-#
-#    else:
-#        if isinstance(model, cebra.models.ConvolutionalModelMixin):
-#            #TODO: what to check here exactly?
-#            pass
-#        else:
-#            assert embedding_batched.shape == embedding.shape
-#            assert np.allclose(embedding_batched, embedding, rtol=1e-02)
-#
+            with pytest.raises(ValueError):
+                embedding_batched = solver.transform(
+                    inputs=inputs.neural,
+                    session_id=i,
+                    pad_before_transform=padding,
+                    batch_size=batch_size)
+
+        elif smallest_batch_length + padding_left <= len(offset_):
+            with pytest.raises(ValueError):
+                solver.transform(inputs=inputs.neural,
+                                 batch_size=batch_size,
+                                 session_id=i,
+                                 pad_before_transform=padding)
+
+        else:
+            model_ = model[i]
+            embedding = solver.transform(inputs=inputs.neural,
+                                         session_id=i,
+                                         pad_before_transform=padding)
+            embedding_batched = solver.transform(inputs=inputs.neural,
+                                                 session_id=i,
+                                                 pad_before_transform=padding,
+                                                 batch_size=batch_size)
+
+            if padding:
+                if isinstance(model_, cebra.models.ConvolutionalModelMixin):
+                    assert embedding_batched.shape == embedding.shape
+                    assert embedding_batched.shape == embedding.shape
+
+            else:
+                if isinstance(model_, cebra.models.ConvolutionalModelMixin):
+                    #TODO: what to check here exactly?
+                    pass
+                else:
+                    assert embedding_batched.shape == embedding.shape
+                    assert np.allclose(embedding_batched, embedding, rtol=1e-02)
