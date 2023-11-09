@@ -37,6 +37,7 @@ from typing import Callable, Dict, Iterable, List, Literal, Optional, Union
 import literate_dataclasses as dataclasses
 import numpy as np
 import torch
+import torch.nn.functional as F
 import tqdm
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
@@ -51,6 +52,10 @@ from cebra.solver.util import ProgressBar
 
 
 def _inference_transform(model, inputs):
+
+    #TODO: I am not sure what is the best way with dealing with the types and
+    # device when using batched inference. This works for now.
+    inputs = inputs.type(torch.FloatTensor).to(next(model.parameters()).device)
     if isinstance(model, cebra.models.ConvolutionalModelMixin):
         # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
         inputs = inputs.transpose(1, 0).unsqueeze(0)
@@ -126,18 +131,24 @@ def _process_batch(inputs: torch.Tensor, add_padding: bool,
             #_check_indices(indices, inputs)
             _check_batch_size_length(indices, offset)
             batched_data = inputs[slice(*indices)]
-            batched_data = np.pad(array=batched_data.cpu().numpy(),
-                                  pad_width=((offset.left, 0), (0, 0)),
-                                  mode="edge")
+            batched_data = F.pad(batched_data.T, (offset.left, 0),
+                                 'replicate').T
+
+            #batched_data = np.pad(array=batched_data.cpu().numpy(),
+            #                      pad_width=((offset.left, 0), (0, 0)),
+            #                      mode="edge")
 
         elif end_batch_idx == len(inputs):  # Last batch
             indices = (start_batch_idx - offset.left), end_batch_idx
             #_check_indices(indices, inputs)
             _check_batch_size_length(indices, offset)
             batched_data = inputs[slice(*indices)]
-            batched_data = np.pad(array=batched_data.cpu().numpy(),
-                                  pad_width=((0, offset.right - 1), (0, 0)),
-                                  mode="edge")
+            batched_data = F.pad(batched_data.T, (0, offset.right - 1),
+                                 'replicate').T
+
+            #batched_data = np.pad(array=batched_data.cpu().numpy(),
+            #                      pad_width=((0, offset.right - 1), (0, 0)),
+            #                      mode="edge")
         else:  # Middle batches
             indices = start_batch_idx - offset.left, end_batch_idx + offset.right - 1
             #_check_indices(indices, inputs)
@@ -149,8 +160,8 @@ def _process_batch(inputs: torch.Tensor, add_padding: bool,
         _check_batch_size_length(indices, offset)
         batched_data = inputs[slice(*indices)]
 
-    batched_data = torch.from_numpy(batched_data) if isinstance(
-        batched_data, np.ndarray) else batched_data
+    #batched_data = torch.from_numpy(batched_data) if isinstance(
+    #    batched_data, np.ndarray) else batched_data
     return batched_data
 
 
@@ -486,12 +497,11 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         return output
 
     @torch.no_grad()
-    def transform(
-            self,
-            inputs: torch.Tensor,
-            pad_before_transform: bool = True,  #TODO: what should be the default?
-            session_id: Optional[int] = None,
-            batch_size: Optional[int] = None) -> torch.Tensor:
+    def transform(self,
+                  inputs: torch.Tensor,
+                  pad_before_transform: bool = True,
+                  session_id: Optional[int] = None,
+                  batch_size: Optional[int] = None) -> torch.Tensor:
         """Compute the embedding.
 
         This function by default only applies the ``forward`` function
@@ -500,13 +510,14 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Args:
             inputs: The input signal
             pad_before_transform: If ``False``, no padding is applied to the input sequence.
-            and the output sequence will be smaller than the input sequence due to the
-            receptive field of the model. If the input sequence is ``n`` steps long,
-            and a model with receptive field ``m`` is used, the output sequence would
-            only be ``n-m+1`` steps long.
+                and the output sequence will be smaller than the input sequence due to the
+                receptive field of the model. If the input sequence is ``n`` steps long,
+                and a model with receptive field ``m`` is used, the output sequence would
+                only be ``n-m+1`` steps long.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
+            batch_size: If not None, batched inference will be applied.
 
         Returns:
             The output embedding.
