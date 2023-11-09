@@ -56,6 +56,7 @@ def _inference_transform(model, inputs):
     #TODO: I am not sure what is the best way with dealing with the types and
     # device when using batched inference. This works for now.
     inputs = inputs.type(torch.FloatTensor).to(next(model.parameters()).device)
+
     if isinstance(model, cebra.models.ConvolutionalModelMixin):
         # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
         inputs = inputs.transpose(1, 0).unsqueeze(0)
@@ -110,8 +111,6 @@ def _process_batch(inputs: torch.Tensor, add_padding: bool,
 
     def _check_batch_size_length(indices_batch, offset):
         batch_size_lenght = indices_batch[1] - indices_batch[0]
-        print("batch_size ll", add_padding, indices, batch_size_lenght,
-              len(offset))
         if batch_size_lenght <= len(offset):
             raise ValueError(
                 f"The batch has length {batch_size_lenght} which "
@@ -489,10 +488,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                    pad_before_transform) -> torch.Tensor:
 
         if pad_before_transform:
-            inputs = np.pad(inputs, ((offset.left, offset.right - 1), (0, 0)),
-                            mode="edge")
-            inputs = torch.from_numpy(inputs)
-
+            inputs = F.pad(inputs.T, (offset.left, offset.right - 1),
+                           'replicate').T
         output = _inference_transform(model, inputs)
         return output
 
