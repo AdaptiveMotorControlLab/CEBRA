@@ -1233,10 +1233,13 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
         sklearn_utils_validation.check_is_fitted(self, "n_features_")
         # Input validation
+        #TODO: if inputs are in cuda, then it throws an error, deal with this.
         X = sklearn_utils.check_input_array(X, min_samples=len(self.offset_))
         input_dtype = X.dtype
-        #print(type(X))
-        #print(X.dtype)
+
+        if isinstance(X, np.ndarray):
+            X = torch.from_numpy(X)
+            # TODO: which type and device should be put there?
 
         with torch.no_grad():
             output = self.solver_.transform(
