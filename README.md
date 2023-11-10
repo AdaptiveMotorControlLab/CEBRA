@@ -45,5 +45,6 @@ It can jointly use behavioral and neural data in a hypothesis- or discovery-driv
   [Learnable latent embeddings for joint behavioral and neural analysis.](https://arxiv.org/abs/2204.00673)
   Steffen Schneider*, Jin Hwa Lee* and Mackenzie Weygandt Mathis
 
- # License
+# License
+
 -  CEBRA is released for academic use only (please read the license file). If this license is not appropriate for your application, please contact Prof. Mackenzie W. Mathis (mackenzie@post.harvard.edu) for a commercial use license.

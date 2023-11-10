@@ -9,7 +9,22 @@
 # Please see LICENSE.md for the full license document:
 # https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
 #
-"""A simple API for loading various data formats used with CEBRA."""
+"""A simple API for loading various data formats used with CEBRA.
+
+Availability of different data formats depends on the installed
+dependencies. If a dependency is not installed, an attempt to load
+a file of that format will throw an error with further installation
+instructions.
+
+Currently available formats:
+
+- HDF5 via ``h5py``
+- Pickle files via ``pickle``
+- Joblib files via ``joblib``
+- Various dataframe formats via ``pandas``.
+- Matlab files via ``scipy.io.loadmat``
+- DeepLabCut (single animal) files via ``deeplabcut``
+"""
 
 import abc
 import pathlib

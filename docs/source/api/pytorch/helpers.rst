@@ -21,14 +21,6 @@ Registry
    :show-inheritance:
 
 
-Plots
------
-
-.. automodule:: cebra.integrations.matplotlib
-   :show-inheritance:
-   :members:
-
-
 Grid-Search
 -----------
 
