@@ -1349,13 +1349,13 @@ gets initialized which also allows the `prior` to be directly parametrized.
         file="auxiliary_behavior_data.h5", key="auxiliary_variables", columns=["discrete"],
     )
     
-    # 1. Define Cebra Dataset
+    # 1. Define a CEBRA-ready dataset
     input_data = cebra.data.TensorDataset(
         torch.from_numpy(neural_data).type(torch.FloatTensor),
         discrete=torch.from_numpy(np.array(discrete_label[:, 0])).type(torch.LongTensor),
     ).to(device)
     
-    # 2. Define Cebra Model
+    # 2. Define a CEBRA model
     neural_model = cebra.models.init(
         name="offset10-model",
         num_neurons=input_data.input_dimension,
@@ -1365,7 +1365,7 @@ gets initialized which also allows the `prior` to be directly parametrized.
     
     input_data.configure_for(neural_model)
     
-    # 3. Define Loss Function Criterion and Optimizer
+    # 3. Define the Loss Function Criterion and Optimizer
     crit = cebra.models.criterions.LearnableCosineInfoNCE(
         temperature=0.001,
         min_temperature=0.0001
@@ -1377,7 +1377,7 @@ gets initialized which also allows the `prior` to be directly parametrized.
         weight_decay=0,
     )
     
-    # 4. Initialize Cebra Model
+    # 4. Initialize the CEBRA model
     solver = cebra.solver.init(
         name="single-session",
         model=neural_model,
