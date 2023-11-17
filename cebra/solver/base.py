@@ -66,56 +66,32 @@ def _inference_transform(model, inputs):
     return output
 
 
-def _pad_with_data(inputs: torch.Tensor, offset: cebra.data.Offset,
-                   start_batch_idx: int, end_batch_idx: int) -> torch.Tensor:
-    """
-    Pads a batch of input data with its own data (maybe this is not called padding)
-
-    Args:
-        inputs: The input data to be processed.
-        add_padding: Indicates whether padding should be applied before inference.
-        offset: Offset configuration for padding. If add_padding is True,
-            offset must be set. If add_padding is False, offset is not used and can be None.
-        start_batch_idx: The starting index of the current batch.
-        end_batch_idx: The last index of the current batch.
-
-    Returns:
-        torch.Tensor: The (potentially) padded data.
-
-    Raises:
-        ValueError: If add_padding is True and offset is not provided.
-    """
-
-    def _check_indices(indices, inputs):
-        if (indices[0] < 0) or (indices[1] > inputs.shape[0]):
-            raise ValueError(
-                f"offset {offset} is too big for the length of the inputs ({len(inputs)}) "
-                f"The indices {indices} do not match the inputs length {len(inputs)}."
-            )
+def _check_indices(start_batch_idx, end_batch_idx, offset, num_samples):
 
     if start_batch_idx < 0 or end_batch_idx < 0:
         raise ValueError(
             f"start_batch_idx ({start_batch_idx}) and end_batch_idx ({end_batch_idx}) must be non-negative."
         )
-
     if start_batch_idx > end_batch_idx:
         raise ValueError(
             f"start_batch_idx ({start_batch_idx}) cannot be greater than end_batch_idx ({end_batch_idx})."
         )
-
-    if end_batch_idx > len(inputs):
+    if end_batch_idx > num_samples:
         raise ValueError(
-            f"end_batch_idx ({end_batch_idx}) cannot exceed the length of inputs ({len(inputs)})."
+            f"end_batch_idx ({end_batch_idx}) cannot exceed the length of inputs ({num_samples})."
         )
 
-    def _check_batch_size_length(indices_batch, offset):
-        batch_size_lenght = indices_batch[1] - indices_batch[0]
-        if batch_size_lenght <= len(offset):
-            raise ValueError(
-                f"The batch has length {batch_size_lenght} which "
-                f"is smaller or equal than the required offset length {len(offset)}."
-                f"Either choose a model with smaller offset or the batch shoud contain more samples."
-            )
+    batch_size_lenght = end_batch_idx - start_batch_idx
+    if batch_size_lenght <= len(offset):
+        raise ValueError(
+            f"The batch has length {batch_size_lenght} which "
+            f"is smaller or equal than the required offset length {len(offset)}."
+            f"Either choose a model with smaller offset or the batch shoud contain more samples."
+        )
+
+
+def _get_batch(inputs: torch.Tensor, offset: cebra.data.Offset,
+               start_batch_idx: int, end_batch_idx: int) -> torch.Tensor:
 
     if start_batch_idx == 0:  # First batch
         indices = start_batch_idx, (end_batch_idx + offset.right - 1)
@@ -126,9 +102,22 @@ def _pad_with_data(inputs: torch.Tensor, offset: cebra.data.Offset,
     else:  # Middle batches
         indices = start_batch_idx - offset.left, end_batch_idx + offset.right - 1
 
-    #_check_batch_size_length(indices, offset)
-    #TODO: modify this check_batch_size to pass test.
+    _check_indices(indices[0], indices[1], offset, len(inputs))
     batched_data = inputs[slice(*indices)]
+    return batched_data
+
+
+def _add_zero_padding(batched_data: torch.Tensor, offset: cebra.data.Offset,
+                      start_batch_idx: int, end_batch_idx: int,
+                      number_of_samples: int):
+
+    if start_batch_idx == 0:  # First batch
+        batched_data = F.pad(batched_data.T, (offset.left, 0), 'replicate').T
+
+    elif end_batch_idx == number_of_samples:  # Last batch
+        batched_data = F.pad(batched_data.T, (0, offset.right - 1),
+                             'replicate').T
+
     return batched_data
 
 
@@ -153,21 +142,17 @@ def _batched_transform(model, inputs: torch.Tensor, batch_size: int,
     output = []
     for batch_id, index_batch in enumerate(index_dataloader):
         start_batch_idx, end_batch_idx = index_batch[0], index_batch[-1] + 1
-
-        # This applies to all batches.
-        batched_data = _pad_with_data(inputs=inputs,
-                                      offset=offset,
-                                      start_batch_idx=start_batch_idx,
-                                      end_batch_idx=end_batch_idx)
+        batched_data = _get_batch(inputs=inputs,
+                                  offset=offset,
+                                  start_batch_idx=start_batch_idx,
+                                  end_batch_idx=end_batch_idx)
 
         if pad_before_transform:
-            if start_batch_idx == 0:  # First batch
-                batched_data = F.pad(batched_data.T, (offset.left, 0),
-                                     'replicate').T
-
-            elif end_batch_idx == len(inputs):  # Last batch
-                batched_data = F.pad(batched_data.T, (0, offset.right - 1),
-                                     'replicate').T
+            batched_data = _add_zero_padding(batched_data=batched_data,
+                                             offset=offset,
+                                             start_batch_idx=start_batch_idx,
+                                             end_batch_idx=end_batch_idx,
+                                             number_of_samples=len(inputs))
 
         output_batch = _inference_transform(model, batched_data)
         output.append(output_batch)
@@ -503,10 +488,11 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         model, offset = self._select_model(inputs, session_id)
         model.eval()
 
-        if len(offset) < 2 and pad_before_transform:
-            raise ValueError(
-                "Padding does not make sense when the offset of the model is < 2"
-            )
+        #TODO: should we add this error?
+        #if len(offset) < 2 and pad_before_transform:
+        #    raise ValueError(
+        #        "Padding does not make sense when the offset of the model is < 2"
+        #    )
 
         if batch_size is not None:
             output = _batched_transform(

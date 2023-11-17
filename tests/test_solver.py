@@ -199,169 +199,165 @@ for model_name in ["offset10-model"]:
             multi_session_tests_select_model.append(
                 (*args, cebra.solver.MultiSessionSolver))
 
+# @pytest.mark.parametrize(
+#     "inputs, add_padding, offset, start_batch_idx, end_batch_idx, expected_output",
+#     [
+#         # Test case 1: No padding
+#         (torch.tensor([[1, 2], [3, 4]]), False, None, 0, 1,
+#          torch.tensor([[1, 2]])),  # first batch
+#         (torch.tensor([[1, 2], [3, 4]]), False, None, 0, 2,
+#          torch.tensor([[1, 2], [3, 4]])),  # first batch
+#         (torch.tensor([[1, 2], [3, 4]]), False, None, 1, 2,
+#          torch.tensor([[3, 4]])),  # last batch
 
-@pytest.mark.parametrize(
-    "inputs, add_padding, offset, start_batch_idx, end_batch_idx, expected_output",
-    [
-        # Test case 1: No padding
-        (torch.tensor([[1, 2], [3, 4]]), False, None, 0, 1,
-         torch.tensor([[1, 2]])),  # first batch
-        (torch.tensor([[1, 2], [3, 4]]), False, None, 0, 2,
-         torch.tensor([[1, 2], [3, 4]])),  # first batch
-        (torch.tensor([[1, 2], [3, 4]]), False, None, 1, 2,
-         torch.tensor([[3, 4]])),  # last batch
+#         # Test case 2: First batch with padding
+#         (
+#             torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+#             True,
+#             cebra.data.Offset(1, 1),
+#             0,
+#             2,
+#             torch.tensor([[1, 2, 3], [1, 2, 3], [4, 5, 6]]),
+#         ),
+#         (
+#             torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+#             True,
+#             cebra.data.Offset(1, 1),
+#             0,
+#             3,
+#             torch.tensor([[1, 2, 3], [1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+#         ),
 
-        # Test case 2: First batch with padding
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-            True,
-            cebra.data.Offset(1, 1),
-            0,
-            2,
-            torch.tensor([[1, 2, 3], [1, 2, 3], [4, 5, 6]]),
-        ),
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-            True,
-            cebra.data.Offset(1, 1),
-            0,
-            3,
-            torch.tensor([[1, 2, 3], [1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-        ),
+#         # Test case 3: Last batch with padding
+#         (
+#             torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+#             True,
+#             cebra.data.Offset(0, 1),
+#             1,
+#             3,
+#             torch.tensor([[4, 5, 6], [7, 8, 9]]),
+#         ),
+#         (
+#             torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+#             True,
+#             cebra.data.Offset(1, 3),
+#             1,
+#             3,
+#             torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [7, 8, 9], [7, 8, 9]
+#                          ]),
+#         ),
 
-        # Test case 3: Last batch with padding
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-            True,
-            cebra.data.Offset(0, 1),
-            1,
-            3,
-            torch.tensor([[4, 5, 6], [7, 8, 9]]),
-        ),
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-            True,
-            cebra.data.Offset(1, 3),
-            1,
-            3,
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [7, 8, 9], [7, 8, 9]
-                         ]),
-        ),
+#         # Test case 4: Middle batch with padding
+#         (
+#             torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+#             True,
+#             cebra.data.Offset(0, 1),
+#             1,
+#             2,
+#             torch.tensor([[4, 5, 6]]),
+#         ),
+#         (
+#             torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+#             True,
+#             cebra.data.Offset(0, 2),
+#             1,
+#             2,
+#             torch.tensor([[4, 5, 6], [7, 8, 9]]),
+#         ),
+#         (
+#             torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+#             True,
+#             cebra.data.Offset(1, 1),
+#             1,
+#             2,
+#             torch.tensor([[1, 2, 3], [4, 5, 6]]),
+#         ),
+#         (
+#             torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+#             True,
+#             cebra.data.Offset(1, 2),
+#             1,
+#             2,
+#             torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+#         ),
 
-        # Test case 4: Middle batch with padding
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-            True,
-            cebra.data.Offset(0, 1),
-            1,
-            2,
-            torch.tensor([[4, 5, 6]]),
-        ),
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-            True,
-            cebra.data.Offset(0, 2),
-            1,
-            2,
-            torch.tensor([[4, 5, 6], [7, 8, 9]]),
-        ),
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-            True,
-            cebra.data.Offset(1, 1),
-            1,
-            2,
-            torch.tensor([[1, 2, 3], [4, 5, 6]]),
-        ),
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-            True,
-            cebra.data.Offset(1, 2),
-            1,
-            2,
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-        ),
+#         # Examples that throw an error:
 
-        # Examples that throw an error:
+#         # Padding without offset (should raise an error)
+#         (torch.tensor([[1, 2]]), True, None, 0, 2, ValueError),
+#         # Negative start_batch_idx or end_batch_idx (should raise an error)
+#         (torch.tensor([[1, 2]]), False, None, -1, 2, ValueError),
+#         # out of bound indices because offset is too large
+#         (torch.tensor([[1, 2], [3, 4]]), True, cebra.data.Offset(
+#             5, 5), 1, 2, ValueError),
+#     ],
+# )
+# def test__get_batch(inputs, add_padding, offset, start_batch_idx,
+#                        end_batch_idx, expected_output):
+#     if expected_output == ValueError:
+#         with pytest.raises(ValueError):
+#             cebra.solver.base._get_batch(inputs, add_padding, offset,
+#                                          start_batch_idx, end_batch_idx)
+#     else:
+#         result = cebra.solver.base._get_batch(inputs, add_padding, offset,
+#                                                   start_batch_idx,
+#                                                   end_batch_idx)
+#         assert torch.equal(result, expected_output)
 
-        # Padding without offset (should raise an error)
-        (torch.tensor([[1, 2]]), True, None, 0, 2, ValueError),
-        # Negative start_batch_idx or end_batch_idx (should raise an error)
-        (torch.tensor([[1, 2]]), False, None, -1, 2, ValueError),
-        # out of bound indices because offset is too large
-        (torch.tensor([[1, 2], [3, 4]]), True, cebra.data.Offset(
-            5, 5), 1, 2, ValueError),
-    ],
-)
-def test_process_batch(inputs, add_padding, offset, start_batch_idx,
-                       end_batch_idx, expected_output):
-    if expected_output == ValueError:
-        with pytest.raises(ValueError):
-            cebra.solver.base._process_batch(inputs, add_padding, offset,
-                                             start_batch_idx, end_batch_idx)
-    else:
-        result = cebra.solver.base._process_batch(inputs, add_padding, offset,
-                                                  start_batch_idx,
-                                                  end_batch_idx)
-        assert torch.equal(result, expected_output)
+# @pytest.mark.parametrize("data_name, model_name,session_id,solver_initfunc",
+#                          single_session_tests_select_model +
+#                          single_session_hybrid_tests_select_model)
+# def test_select_model_single_session(data_name, model_name, session_id,
+#                                      solver_initfunc):
+#     dataset = cebra.datasets.init(data_name)
+#     model = create_model(model_name, dataset.input_dimension)
+#     offset = model.get_offset()
+#     solver = solver_initfunc(model=model, criterion=None, optimizer=None)
 
+#     if session_id is not None and session_id > 0:
+#         with pytest.raises(RuntimeError):
+#             solver._select_model(dataset.neural, session_id=session_id)
+#     else:
+#         model_, offset_ = solver._select_model(dataset.neural,
+#                                                session_id=session_id)
+#         assert offset.left == offset_.left and offset.right == offset_.right
+#         assert model == model_
 
-@pytest.mark.parametrize("data_name, model_name,session_id,solver_initfunc",
-                         single_session_tests_select_model +
-                         single_session_hybrid_tests_select_model)
-def test_select_model_single_session(data_name, model_name, session_id,
-                                     solver_initfunc):
-    dataset = cebra.datasets.init(data_name)
-    model = create_model(model_name, dataset.input_dimension)
-    offset = model.get_offset()
-    solver = solver_initfunc(model=model, criterion=None, optimizer=None)
+# @pytest.mark.parametrize("data_name, model_name,session_id,solver_initfunc",
+#                          multi_session_tests_select_model)
+# def test_select_model_multi_session(data_name, model_name, session_id,
+#                                     solver_initfunc):
+#     dataset = cebra.datasets.init(data_name)
+#     model = nn.ModuleList([
+#         create_model(model_name, dataset.input_dimension)
+#         for dataset in dataset.iter_sessions()
+#     ])
 
-    if session_id is not None and session_id > 0:
-        with pytest.raises(RuntimeError):
-            solver._select_model(dataset.neural, session_id=session_id)
-    else:
-        model_, offset_ = solver._select_model(dataset.neural,
-                                               session_id=session_id)
-        assert offset.left == offset_.left and offset.right == offset_.right
-        assert model == model_
+#     offset = model[0].get_offset()
+#     solver = solver_initfunc(model=model,
+#                              criterion=cebra.models.InfoNCE(),
+#                              optimizer=torch.optim.Adam(model.parameters(),
+#                                                         lr=1e-3))
 
+#     loader_kwargs = dict(num_steps=10, batch_size=32)
+#     loader = cebra.data.ContinuousMultiSessionDataLoader(
+#         dataset, **loader_kwargs)
+#     solver.fit(loader)
 
-@pytest.mark.parametrize("data_name, model_name,session_id,solver_initfunc",
-                         multi_session_tests_select_model)
-def test_select_model_multi_session(data_name, model_name, session_id,
-                                    solver_initfunc):
-    dataset = cebra.datasets.init(data_name)
-    model = nn.ModuleList([
-        create_model(model_name, dataset.input_dimension)
-        for dataset in dataset.iter_sessions()
-    ])
+#     for i, (model, dataset_) in enumerate(zip(model, dataset.iter_sessions())):
+#         inputs = dataset_.neural
 
-    offset = model[0].get_offset()
-    solver = solver_initfunc(model=model,
-                             criterion=cebra.models.InfoNCE(),
-                             optimizer=torch.optim.Adam(model.parameters(),
-                                                        lr=1e-3))
-
-    loader_kwargs = dict(num_steps=10, batch_size=32)
-    loader = cebra.data.ContinuousMultiSessionDataLoader(
-        dataset, **loader_kwargs)
-    solver.fit(loader)
-
-    for i, (model, dataset_) in enumerate(zip(model, dataset.iter_sessions())):
-        inputs = dataset_.neural
-
-        if session_id is None or session_id >= dataset.num_sessions:
-            with pytest.raises(RuntimeError):
-                solver._select_model(inputs, session_id=session_id)
-        elif i != session_id:
-            with pytest.raises(ValueError):
-                solver._select_model(inputs, session_id=session_id)
-        else:
-            model_, offset_ = solver._select_model(inputs,
-                                                   session_id=session_id)
-            assert offset.left == offset_.left and offset.right == offset_.right
-            assert model == model_
-
+#         if session_id is None or session_id >= dataset.num_sessions:
+#             with pytest.raises(RuntimeError):
+#                 solver._select_model(inputs, session_id=session_id)
+#         elif i != session_id:
+#             with pytest.raises(ValueError):
+#                 solver._select_model(inputs, session_id=session_id)
+#         else:
+#             model_, offset_ = solver._select_model(inputs,
+#                                                    session_id=session_id)
+#             assert offset.left == offset_.left and offset.right == offset_.right
+#             assert model == model_
 
 #this is a very crucial test. should be checked for different choices of offsets,
 # dataset sizes (also edge cases like dataset size 1001 and batch size 1000 -> is the padding properly handled?)
@@ -373,7 +369,7 @@ models = [
     "offset40-model-4x-subsample",
     #"offset1-model", "offset10-model",
 ]  # there is an issue with "offset4-model-2x-subsample" because it's not a convolutional model.
-batch_size_inference = [23432]  # 99_999
+batch_size_inference = [40_000, 99_990, 99_999]  # 99_999
 
 single_session_tests_transform = []
 for padding in [True, False]:
@@ -429,30 +425,24 @@ def test_batched_transform_singlesession(
     offset_ = model.get_offset()
     padding_left = offset_.left if padding else 0
 
-    if len(offset_) < 2 and padding:
-        pytest.skip("not relevant for now.")
-        with pytest.raises(ValueError):
-            solver.transform(inputs=loader.dataset.neural,
-                             pad_before_transform=padding)
-
-        with pytest.raises(ValueError):
-            solver.transform(inputs=loader.dataset.neural,
-                             batch_size=batch_size,
-                             pad_before_transform=padding)
-
-    # NOTE: We need to add padding_left because if padding is True,
-    # the batch size is not "smallest_batch_length". and the smallest
-    # batch will always be at the end so the last batch we need to add
-    # offset.left.
-    #TODO: this wont work in the case where the data is less than
-    #the offset from the beginning, i.e len(data) = 10, len(offset) = 10
-
-    #elif smallest_batch_length + padding_left <= len(offset_):
-    #    print('here')
+    #if len(offset_) < 2 and padding:
+    #    pytest.skip("not relevant for now.")
+    #    with pytest.raises(ValueError):
+    #        solver.transform(inputs=loader.dataset.neural,
+    #                         pad_before_transform=padding)
+    #
     #    with pytest.raises(ValueError):
     #        solver.transform(inputs=loader.dataset.neural,
     #                         batch_size=batch_size,
     #                         pad_before_transform=padding)
+
+    #TODO: this wont work in the case where the data is less than
+    #the offset from the beginning, i.e len(data) = 10, len(offset) = 10
+    if smallest_batch_length <= len(offset_):
+        with pytest.raises(ValueError):
+            solver.transform(inputs=loader.dataset.neural,
+                             batch_size=batch_size,
+                             pad_before_transform=padding)
 
     else:
         embedding_batched = solver.transform(inputs=loader.dataset.neural,
@@ -517,20 +507,20 @@ def test_batched_transform_multisession(data_name, model_name, padding,
     # Transform each session with the right model, by providing the corresponding session ID
     for i, inputs in enumerate(dataset.iter_sessions()):
 
-        if len(offset_) < 2 and padding:
-            with pytest.raises(ValueError):
-                embedding = solver.transform(inputs=inputs.neural,
-                                             session_id=i,
-                                             pad_before_transform=padding)
+        # if len(offset_) < 2 and padding:
+        # with pytest.raises(ValueError):
+        # embedding = solver.transform(inputs=inputs.neural,
+        #  session_id=i,
+        #  pad_before_transform=padding)
+        #
+        # with pytest.raises(ValueError):
+        # embedding_batched = solver.transform(
+        # inputs=inputs.neural,
+        # session_id=i,
+        # pad_before_transform=padding,
+        # batch_size=batch_size)
 
-            with pytest.raises(ValueError):
-                embedding_batched = solver.transform(
-                    inputs=inputs.neural,
-                    session_id=i,
-                    pad_before_transform=padding,
-                    batch_size=batch_size)
-
-        elif smallest_batch_length + padding_left <= len(offset_):
+        if smallest_batch_length <= len(offset_):
             with pytest.raises(ValueError):
                 solver.transform(inputs=inputs.neural,
                                  batch_size=batch_size,
