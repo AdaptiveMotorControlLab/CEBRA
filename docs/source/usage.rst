@@ -1367,8 +1367,7 @@ gets initialized which also allows the `prior` to be directly parametrized.
     
     # 3. Define the Loss Function Criterion and Optimizer
     crit = cebra.models.criterions.LearnableCosineInfoNCE(
-        temperature=0.001,
-        min_temperature=0.0001
+        temperature=1,
     ).to(device)
     
     opt = torch.optim.Adam(
