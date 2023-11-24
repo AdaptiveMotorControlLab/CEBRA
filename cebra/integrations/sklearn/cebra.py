@@ -1235,7 +1235,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
         # Input validation
         #TODO: if inputs are in cuda, then it throws an error, deal with this.
         X = sklearn_utils.check_input_array(X, min_samples=len(self.offset_))
-        input_dtype = X.dtype
+        #input_dtype = X.dtype
 
         if isinstance(X, np.ndarray):
             X = torch.from_numpy(X)
@@ -1248,10 +1248,11 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 session_id=session_id,
                 batch_size=batch_size)
 
-        if input_dtype == "float64":
-            return output.astype(input_dtype)
+        #TODO: check if this is safe.
+        return output.numpy(force=True)
 
-        return output
+        #if input_dtype == "float64":
+        #    return output.astype(input_dtype)
 
     def fit_transform(
         self,
