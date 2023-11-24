@@ -1287,7 +1287,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
 
         # Input validation
         X = sklearn_utils.check_input_array(X, min_samples=len(self.offset_))
-        input_dtype = X.dtype
+        #input_dtype = X.dtype
 
         with torch.no_grad():
             model.eval()
@@ -1305,10 +1305,11 @@ class CEBRA(TransformerMixin, BaseEstimator):
                 # Standard evaluation, (T, C, dt)
                 output = model(X).cpu().numpy()
 
-        if input_dtype == "float64":
-            return output.astype(input_dtype)
+        #TODO: check if this is safe.
+        return output.numpy(force=True)
 
-        return output
+        #if input_dtype == "float64":
+        #    return output.astype(input_dtype)
 
     def fit_transform(
         self,
