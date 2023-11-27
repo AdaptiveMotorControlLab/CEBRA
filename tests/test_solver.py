@@ -425,8 +425,6 @@ def test_batched_transform_singlesession(
     offset_ = model.get_offset()
     padding_left = offset_.left if padding else 0
 
-    #TODO: this wont work in the case where the data is less than
-    #the offset from the beginning, i.e len(data) = 10, len(offset) = 10
     if smallest_batch_length <= len(offset_):
         with pytest.raises(ValueError):
             solver.transform(inputs=loader.dataset.neural,
@@ -477,11 +475,9 @@ def test_batched_transform_multisession(data_name, model_name, padding,
 
     smallest_batch_length = n_samples - batch_size
     offset_ = model[0].get_offset()
-    #print("here!", smallest_batch_length, len(offset_))
     padding_left = offset_.left if padding else 0
     for d in dataset._datasets:
         d.offset = offset_
-    #dataset._datasets[0].offset = cebra.data.Offset(0, 1)
     loader_kwargs = dict(num_steps=10, batch_size=32)
     loader = loader_initfunc(dataset, **loader_kwargs)
 
