@@ -1200,18 +1200,12 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
     def transform(self,
                   X: Union[npt.NDArray, torch.Tensor],
-                  pad_before_transform: bool = True,
                   batch_size: Optional[int] = None,
                   session_id: Optional[int] = None) -> npt.NDArray:
         """Transform an input sequence and return the embedding.
 
         Args:
             X: A numpy array or torch tensor of size ``time x dimension``.
-            pad_before_transform: If ``False``, no padding is applied to the input sequence.
-                and the output sequence will be smaller than the input sequence due to the
-                receptive field of the model. If the input sequence is ``n`` steps long,
-                and a model with receptive field ``m`` is used, the output sequence would
-                only be ``n-m+1`` steps long.
             batch_size:
             session_id: The session ID, an :py:class:`int` between 0 and :py:attr:`num_sessions` for
                 multisession, set to ``None`` for single session.
@@ -1244,7 +1238,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
         with torch.no_grad():
             output = self.solver_.transform(
                 inputs=X,
-                pad_before_transform=pad_before_transform,
+                pad_before_transform=self.pad_before_transform,
                 session_id=session_id,
                 batch_size=batch_size)
 
