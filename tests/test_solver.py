@@ -425,17 +425,6 @@ def test_batched_transform_singlesession(
     offset_ = model.get_offset()
     padding_left = offset_.left if padding else 0
 
-    #if len(offset_) < 2 and padding:
-    #    pytest.skip("not relevant for now.")
-    #    with pytest.raises(ValueError):
-    #        solver.transform(inputs=loader.dataset.neural,
-    #                         pad_before_transform=padding)
-    #
-    #    with pytest.raises(ValueError):
-    #        solver.transform(inputs=loader.dataset.neural,
-    #                         batch_size=batch_size,
-    #                         pad_before_transform=padding)
-
     #TODO: this wont work in the case where the data is less than
     #the offset from the beginning, i.e len(data) = 10, len(offset) = 10
     if smallest_batch_length <= len(offset_):
@@ -506,19 +495,6 @@ def test_batched_transform_multisession(data_name, model_name, padding,
 
     # Transform each session with the right model, by providing the corresponding session ID
     for i, inputs in enumerate(dataset.iter_sessions()):
-
-        # if len(offset_) < 2 and padding:
-        # with pytest.raises(ValueError):
-        # embedding = solver.transform(inputs=inputs.neural,
-        #  session_id=i,
-        #  pad_before_transform=padding)
-        #
-        # with pytest.raises(ValueError):
-        # embedding_batched = solver.transform(
-        # inputs=inputs.neural,
-        # session_id=i,
-        # pad_before_transform=padding,
-        # batch_size=batch_size)
 
         if smallest_batch_length <= len(offset_):
             with pytest.raises(ValueError):
