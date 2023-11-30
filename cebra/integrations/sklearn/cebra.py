@@ -1161,14 +1161,18 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
             >>> import cebra
             >>> import numpy as np
+            >>> import tempfile
+            >>> from pathlib import Path
+            >>> tmp_file = Path(tempfile.gettempdir(), 'cebra.pt')
             >>> dataset =  np.random.uniform(0, 1, (1000, 20))
             >>> dataset2 =  np.random.uniform(0, 1, (1000, 40))
             >>> cebra_model = cebra.CEBRA(max_iterations=10)
             >>> cebra_model.fit(dataset)
             CEBRA(max_iterations=10)
-            >>> cebra_model.save('/tmp/foo.pt')
+            >>> cebra_model.save(tmp_file)
             >>> cebra_model.fit(dataset2, adapt=True)
             CEBRA(max_iterations=10)
+            >>> tmp_file.unlink()
         """
         if adapt and sklearn_utils.check_fitted(self):
             self._adapt_fit(X,
@@ -1332,11 +1336,15 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
             >>> import cebra
             >>> import numpy as np
+            >>> import tempfile
+            >>> from pathlib import Path
+            >>> tmp_file = Path(tempfile.gettempdir(), 'test.jl')
             >>> dataset =  np.random.uniform(0, 1, (1000, 30))
             >>> cebra_model = cebra.CEBRA(max_iterations=10)
             >>> cebra_model.fit(dataset)
             CEBRA(max_iterations=10)
-            >>> cebra_model.save('/tmp/foo.pt')
+            >>> cebra_model.save(tmp_file)
+            >>> tmp_file.unlink()
 
         """
         if sklearn_utils.check_fitted(self):
@@ -1394,10 +1402,18 @@ class CEBRA(BaseEstimator, TransformerMixin):
         Example:
 
             >>> import cebra
-            >>> import numpy as np
+            >>> import numpy as np        
+            >>> import tempfile
+            >>> from pathlib import Path
+            >>> tmp_file = Path(tempfile.gettempdir(), 'cebra.pt')
             >>> dataset =  np.random.uniform(0, 1, (1000, 20))
-            >>> loaded_model = cebra.CEBRA.load('/tmp/foo.pt')
+            >>> cebra_model = cebra.CEBRA(max_iterations=10)
+            >>> cebra_model.fit(dataset)
+            CEBRA(max_iterations=10)
+            >>> cebra_model.save(tmp_file)
+            >>> loaded_model = cebra.CEBRA.load(tmp_file)
             >>> embedding = loaded_model.transform(dataset)
+            >>> tmp_file.unlink()
 
         """
 
