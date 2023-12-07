@@ -17,10 +17,9 @@ channels:
     - pytorch
     - defaults
 dependencies:
-    - python<3.10
+    - python
     - pip
     - pytorch
     - jupyter
-    - nb_conda
     - pip:
         - cebra
