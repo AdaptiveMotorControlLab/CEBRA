@@ -21,7 +21,7 @@
 # source ~/miniconda/bin/activate
 # conda init zsh
 
-name: piVAE_m1
+name: cebra_paper_m1
 channels:
     - apple
     - pytorch-lts

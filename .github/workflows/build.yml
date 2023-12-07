@@ -26,6 +26,9 @@ jobs:
           - os: windows-latest
             torch-version: 2.0.0
             python-version: "3.10"
+          - os: ubuntu-latest
+            torch-version: 2.1.1
+            python-version: "3.11"
           #- os: macos-latest
           #  torch-version: 2.0.0
           #  python-version: "3.10"
