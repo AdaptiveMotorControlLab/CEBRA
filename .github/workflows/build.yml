@@ -14,7 +14,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.8", "3.10", "3.12"]
+        python-version: ["3.8", "3.10"]
         # We aim to support the versions on pytorch.org
         # as well as selected previous versions on
         # https://pytorch.org/get-started/previous-versions/
@@ -26,6 +26,9 @@ jobs:
           - os: windows-latest
             torch-version: 2.0.0
             python-version: "3.10"
+          - os: ubuntu-latest
+            torch-version: 2.0.0
+            python-version: "3.12"
           #- os: macos-latest
           #  torch-version: 2.0.0
           #  python-version: "3.10"
