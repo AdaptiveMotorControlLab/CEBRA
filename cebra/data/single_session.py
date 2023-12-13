@@ -272,8 +272,8 @@ class MixedDataLoader(cebra_data.Loader):
     When using the discrete variable, the prior distribution can either be uniform 
     (discrete_sampling_prior = "uniform") or empirical (discrete_sampling_prior = "empirical").
 
-    Based on the selection of those parameters, the :py:class:`cebra.distributions.MixedTimeDeltaDistribution`,
-    :py:class:`cebra.distributions.DiscreteEmpirical`, or :py:class:`cebra.distributions.DiscreteUniform`
+    Based on the selection of those parameters, the :py:class:`cebra.distributions.mixed.MixedTimeDeltaDistribution`,
+    :py:class:`cebra.distributions.discrete.DiscreteEmpirical`, or :py:class:`cebra.distributions.discrete.DiscreteUniform`
     distributions are used for sampling.  
 
     Args:
