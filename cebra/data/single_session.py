@@ -265,9 +265,16 @@ class MixedDataLoader(cebra_data.Loader):
 
     Sampling can be configured in different modes:
 
-    1. Positive pairs always share their discrete variable.
+    1. Positive pairs always share their discrete variable (positive_sampling = "discrete_variable").
     2. Positive pairs are drawn only based on their conditional,
-       not discrete variable.
+       not discrete variable (positive_sampling = "conditional").
+    
+    When using the discrete variable, the prior distribution can either be uniform 
+    (discrete_sampling_prior = "uniform") or empirical (discrete_sampling_prior = "empirical").
+
+    Based on the selection of those parameters, the :py:class:`cebra.distributions.MixedTimeDeltaDistribution`,
+    :py:class:`cebra.distributions.DiscreteEmpirical`, or :py:class:`cebra.distributions.DiscreteUniform`
+    distributions are used for sampling.  
 
     Args:
         conditional (str): The conditional variable for sampling positive pairs. :py:attr:`cebra.CEBRA.conditional`
