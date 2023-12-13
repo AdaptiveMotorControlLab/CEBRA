@@ -282,8 +282,20 @@ class MixedDataLoader(cebra_data.Loader):
     discrete_sampling_prior: str = dataclasses.field(default="uniform")
 
     @property
+    def dindex(self):
+        warnings.warn("dindex is deprecated. Use discrete_index instead.",
+                      DeprecationWarning)
+        return self.dataset.discrete_index
+
+    @property
     def discrete_index(self):
         return self.dataset.discrete_index
+
+    @property
+    def cindex(self):
+        warnings.warn("cindex is deprecated. Use continuous_index instead.",
+                      DeprecationWarning)
+        return self.dataset.continuous_index
 
     @property
     def continuous_index(self):
