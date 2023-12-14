@@ -676,6 +676,48 @@ def test_sklearn_adapt(model_architecture, device):
 
 
 @_util.parametrize_slow(
+    arg_names="model_architecture,device",
+    fast_arguments=list(
+        itertools.islice(
+            itertools.product(
+                cebra_sklearn_cebra.CEBRA.supported_model_architectures(),
+                _DEVICES),
+            2,
+        )),
+    slow_arguments=list(
+        itertools.product(
+            cebra_sklearn_cebra.CEBRA.supported_model_architectures(),
+            _DEVICES)),
+)
+def test_sklearn_adapt_multisession(model_architecture, device):
+    num_hidden_units = 32
+    cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture=model_architecture,
+        time_offsets=10,
+        learning_rate=3e-4,
+        max_iterations=5,
+        max_adapt_iterations=1,
+        device=device,
+        output_dimension=4,
+        num_hidden_units=num_hidden_units,
+        batch_size=42,
+        verbose=True,
+    )
+    
+    # example dataset
+    Xs = [np.random.uniform(0, 1, (1000, 50)) for i in range(3)]
+    ys = [np.random.uniform(0, 1, (1000, 5)) for i in range(3)]
+    
+    X_new = np.random.uniform(0, 1, (1000, 50))
+    y_new = np.random.uniform(0, 1, (1000, 5))
+    
+    cebra_model.fit(Xs, ys)
+    
+    with pytest.raises(NotImplementedError, match=".*multisession.*"):
+        cebra_model.fit(X_new, y_new, adapt=True)
+    
+
+@_util.parametrize_slow(
     arg_names="model_architecture,device,pad_before_transform",
     fast_arguments=list(
         itertools.islice(
