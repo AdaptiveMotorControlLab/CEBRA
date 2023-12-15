@@ -935,7 +935,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
         dataset, is_multisession = self._prepare_data(X, y)
 
-        if is_multisession:
+        if is_multisession or isinstance(self.model_, nn.ModuleList):
             raise NotImplementedError(
                 "The adapt option with a multisession training is not handled. Please use adapt=True for single-trained estimators only."
             )
