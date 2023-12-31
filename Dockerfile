@@ -42,7 +42,7 @@ RUN make dist
 FROM cebra-base
 
 # install the cebra wheel
-ENV WHEEL=cebra-0.3.1-py2.py3-none-any.whl
+ENV WHEEL=cebra-0.4.0-py2.py3-none-any.whl
 WORKDIR /build
 COPY --from=wheel /build/dist/${WHEEL} .
 RUN pip install --no-cache-dir ${WHEEL}'[dev,integrations,datasets]'
