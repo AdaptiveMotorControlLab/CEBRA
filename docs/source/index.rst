@@ -54,9 +54,10 @@ possibility to compute CEBRA embeddings on DeepLabCut_ outputs directly.
 Licensing
 ---------
 
-© All rights reserved. ECOLE POLYTECHNIQUE FÉDÉRALE DE LAUSANNE, Switzerland, Laboratory of Prof. Mackenzie W. Mathis (UPMWMATHIS) and original authors: Steffen Schneider, Jin H Lee, Mackenzie W Mathis. 2023.
-It is made available for non-commercial research use only. It comes without any warranty or guarantee.
-Please see the full license file on Github_, and if it is not suitable to your project, please email_ Mackenzie Mathis for a commercial license.
+Since version 0.4.0, CEBRA is open source software under an Apache 2.0 license.
+Prior versions 0.1.0 to 0.3.1 were released for academic use only.
+
+Please see the full license file on Github_ for further information.
 
 
 Contributing
