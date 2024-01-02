@@ -1,7 +1,7 @@
 # Maintainer: Steffen Schneider <stes@hey.com>
 pkgname=python-cebra
 _pkgname=cebra
-pkgver=v0.4.0rc1
+pkgver=0.3.1
 pkgrel=1
 pkgdesc="Consistent Embeddings of high-dimensional Recordings using Auxiliary variables"
 url="https://cebra.ai"
