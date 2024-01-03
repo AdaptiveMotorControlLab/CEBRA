@@ -113,7 +113,7 @@ class _EmbeddingInteractivePlot(_EmbeddingPlot):
         col = kwargs.get("col", None)
         row = kwargs.get("row", None)
         showlegend = kwargs.get("showlegend", False)
-        template = kwargs.get(template, "plotly_white")
+        template = kwargs.get("template", plotly_white)
 
         if col is None or row is None:
             self.axis.add_trace(data[0])
