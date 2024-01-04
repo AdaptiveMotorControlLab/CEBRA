@@ -102,7 +102,7 @@ class _EmbeddingInteractivePlot(_EmbeddingPlot):
         data = []
 
         if not discrete and showlegend:
-            raise ValueError("Cannot show legend with continious labels.")
+            raise ValueError("Cannot show legend with continuous labels.")
 
         idx1, idx2, idx3 = self.idx_order
 
