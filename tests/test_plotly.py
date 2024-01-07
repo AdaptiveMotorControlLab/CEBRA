@@ -84,3 +84,38 @@ def test_plot_embedding(output_dimension, idx_order):
 
     fig_subplots.data = []
     fig_subplots.layout = {}
+
+
+def test_discrete_with_legend():
+    embedding = np.random.uniform(0, 1, (1000, 3))
+    labels = np.random.randint(0, 10, (1000,))
+
+    fig = cebra_plotly.plot_embedding_interactive(embedding,
+                                                  labels,
+                                                  discrete=True,
+                                                  showlegend=True)
+
+    assert len(fig._data_objs) == np.unique(labels).shape[0]
+    assert isinstance(fig, go.Figure)
+
+
+def test_continuous_no_legend():
+    embedding = np.random.uniform(0, 1, (1000, 3))
+    labels = np.random.uniform(0, 1, (1000,))
+
+    fig = cebra_plotly.plot_embedding_interactive(embedding, labels)
+
+    assert len(fig._data_objs) == 1
+
+    assert isinstance(fig, go.Figure)
+
+
+def test_continuous_with_legend_raises_error():
+    embedding = np.random.uniform(0, 1, (1000, 3))
+    labels = np.random.uniform(0, 1, (1000,))
+
+    with pytest.raises(ValueError):
+        cebra_plotly.plot_embedding_interactive(embedding,
+                                                labels,
+                                                discrete=False,
+                                                showlegend=True)
