@@ -259,10 +259,10 @@ def _reference_infonce(pos_dist, neg_dist):
 
 
 def test_similiarities():
-
-    ref = torch.randn(10, 3)
-    pos = torch.randn(10, 3)
-    neg = torch.randn(12, 3)
+    rng = torch.Generator().manual_seed(42)
+    ref = torch.randn(10, 3, generator = rng)
+    pos = torch.randn(10, 3, generator = rng)
+    neg = torch.randn(12, 3, generator = rng)
 
     pos_dist, neg_dist = _reference_dot_similarity(ref, pos, neg)
     pos_dist_2, neg_dist_2 = cebra_criterions.dot_similarity(ref, pos, neg)
