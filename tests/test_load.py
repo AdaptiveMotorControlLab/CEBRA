@@ -1,16 +1,28 @@
 #
-# (c) All rights reserved. ECOLE POLYTECHNIQUE FÉDÉRALE DE LAUSANNE,
-# Switzerland, Laboratory of Prof. Mackenzie W. Mathis (UPMWMATHIS) and
-# original authors: Steffen Schneider, Jin H Lee, Mackenzie W Mathis. 2023.
-#
+# CEBRA: Consistent EmBeddings of high-dimensional Recordings using Auxiliary variables
+# © Mackenzie W. Mathis & Steffen Schneider (v0.4.0+)
 # Source code:
 # https://github.com/AdaptiveMotorControlLab/CEBRA
 #
 # Please see LICENSE.md for the full license document:
-# https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
+# https://github.com/AdaptiveMotorControlLab/CEBRA/blob/main/LICENSE.md
 #
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+import itertools
 import pathlib
 import pickle
+import platform
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -24,8 +36,6 @@ import pandas as pd
 import pytest
 import scipy.io
 import torch
-import itertools
-import platform
 
 import cebra.data.load as cebra_load
 
@@ -54,14 +64,13 @@ def register(*file_endings, requires=()):
         # TODO: test loading for file without extension
         # __test_functions.append(f)
         # with all possible extensions
-        __test_functions.extend([
-            (lambda filename, dtype: f(filename + "." + file_ending, dtype=dtype), file_ending)
-            for file_ending in file_endings
-        ])
+        __test_functions.extend([(lambda filename, dtype: f(
+            filename + "." + file_ending, dtype=dtype), file_ending)
+                                 for file_ending in file_endings])
         if len(requires) > 0:
             __test_functions_module_not_found.extend([
-                (requires, lambda filename: filename + "." + file_ending,
-                 lambda filename, dtype: f(filename + "." + file_ending, dtype=dtype))
+                (requires, lambda filename: filename + "." + file_ending, lambda
+                 filename, dtype: f(filename + "." + file_ending, dtype=dtype))
                 for file_ending in file_endings
             ])
         return f
@@ -771,20 +780,23 @@ def generate_mat_new_no_array(filename, dtype):
 
 test_functions = list(itertools.product(__test_functions, [np.int32, np.int64]))
 test_functions = [(*t, x) for t, x in test_functions]
-@pytest.mark.parametrize("save_data,file_ending,dtype", test_functions) 
+
+
+@pytest.mark.parametrize("save_data,file_ending,dtype", test_functions)
 def test_load(save_data, file_ending, dtype):
     with tempfile.NamedTemporaryFile() as tf:
         filename = tf.name  # name, without extension
-    
+
     if file_ending in ("csv", "xls", "xlsx", "xlsm"):
         if dtype == np.int32:
-            pytest.skip("Skipping test. For CSV, XLS, XLSX, and XLM file formats, "
-                        "the integer loading data type is always int64, regardless of the "
-                        "data type it was saved with. This can lead to compatibility issues, "
-                        "especially on Windows. To ensure accurate testing, we only perform "
-                        "tests with int64 data type for these formats, and we skip the test "
-                        "cases involving int32.")
-    
+            pytest.skip(
+                "Skipping test. For CSV, XLS, XLSX, and XLM file formats, "
+                "the integer loading data type is always int64, regardless of the "
+                "data type it was saved with. This can lead to compatibility issues, "
+                "especially on Windows. To ensure accurate testing, we only perform "
+                "tests with int64 data type for these formats, and we skip the test "
+                "cases involving int32.")
+
     # create data, save it, load it
     saved_array, loaded_array = save_data(filename, dtype=dtype)
 
@@ -803,8 +815,13 @@ def test_load_error(save_data):
         save_data(filename)
 
 
-test_functions_module_not_found = list(itertools.product(__test_functions_module_not_found, [np.int32, np.int64]))
-test_functions_module_not_found = [(*t, x) for t, x in test_functions_module_not_found]
+test_functions_module_not_found = list(
+    itertools.product(__test_functions_module_not_found, [np.int32, np.int64]))
+test_functions_module_not_found = [
+    (*t, x) for t, x in test_functions_module_not_found
+]
+
+
 @pytest.mark.parametrize("module_names,get_path,save_data,dtype",
                          test_functions_module_not_found)
 def test_module_not_installed(module_names, get_path, save_data, dtype):

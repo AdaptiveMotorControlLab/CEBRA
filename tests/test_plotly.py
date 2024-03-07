@@ -1,13 +1,23 @@
 #
-# (c) All rights reserved. ECOLE POLYTECHNIQUE FÉDÉRALE DE LAUSANNE,
-# Switzerland, Laboratory of Prof. Mackenzie W. Mathis (UPMWMATHIS) and
-# original authors: Steffen Schneider, Jin H Lee, Mackenzie W Mathis. 2023.
-#
+# CEBRA: Consistent EmBeddings of high-dimensional Recordings using Auxiliary variables
+# © Mackenzie W. Mathis & Steffen Schneider (v0.4.0+)
 # Source code:
 # https://github.com/AdaptiveMotorControlLab/CEBRA
 #
 # Please see LICENSE.md for the full license document:
-# https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
+# https://github.com/AdaptiveMotorControlLab/CEBRA/blob/main/LICENSE.md
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 import matplotlib
 import numpy as np
@@ -74,3 +84,38 @@ def test_plot_embedding(output_dimension, idx_order):
 
     fig_subplots.data = []
     fig_subplots.layout = {}
+
+
+def test_discrete_with_legend():
+    embedding = np.random.uniform(0, 1, (1000, 3))
+    labels = np.random.randint(0, 10, (1000,))
+
+    fig = cebra_plotly.plot_embedding_interactive(embedding,
+                                                  labels,
+                                                  discrete=True,
+                                                  showlegend=True)
+
+    assert len(fig._data_objs) == np.unique(labels).shape[0]
+    assert isinstance(fig, go.Figure)
+
+
+def test_continuous_no_legend():
+    embedding = np.random.uniform(0, 1, (1000, 3))
+    labels = np.random.uniform(0, 1, (1000,))
+
+    fig = cebra_plotly.plot_embedding_interactive(embedding, labels)
+
+    assert len(fig._data_objs) == 1
+
+    assert isinstance(fig, go.Figure)
+
+
+def test_continuous_with_legend_raises_error():
+    embedding = np.random.uniform(0, 1, (1000, 3))
+    labels = np.random.uniform(0, 1, (1000,))
+
+    with pytest.raises(ValueError):
+        cebra_plotly.plot_embedding_interactive(embedding,
+                                                labels,
+                                                discrete=False,
+                                                showlegend=True)

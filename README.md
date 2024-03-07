@@ -18,7 +18,7 @@
 [![Downloads](https://static.pepy.tech/badge/cebra)](https://pepy.tech/project/cebra)
 [![Downloads](https://static.pepy.tech/badge/cebra/month)](https://pepy.tech/project/cebra)
 [![PyPI version](https://badge.fury.io/py/cebra.svg)](https://badge.fury.io/py/cebra)
-![License: Non-Commercial](https://img.shields.io/badge/License-Non--commercial-lightgrey)
+![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-red)
 [![Twitter Follow](https://img.shields.io/twitter/follow/CEBRAAI.svg?label=CEBRAai&style=social)](https://twitter.com/CEBRAAI)
 
 
@@ -47,4 +47,5 @@ It can jointly use behavioral and neural data in a hypothesis- or discovery-driv
 
 # License
 
--  CEBRA is released for academic use only (please read the license file). If this license is not appropriate for your application, please contact Prof. Mackenzie W. Mathis (mackenzie@post.harvard.edu) for a commercial use license.
+- Since version 0.4.0, CEBRA is open source software under an Apache 2.0 license.
+- Prior versions 0.1.0 to 0.3.1 were released for academic use only (please read the license file).

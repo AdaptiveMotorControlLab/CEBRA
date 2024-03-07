@@ -1,13 +1,23 @@
 #
-# (c) All rights reserved. ECOLE POLYTECHNIQUE FÉDÉRALE DE LAUSANNE,
-# Switzerland, Laboratory of Prof. Mackenzie W. Mathis (UPMWMATHIS) and
-# original authors: Steffen Schneider, Jin H Lee, Mackenzie W Mathis. 2023.
-#
+# CEBRA: Consistent EmBeddings of high-dimensional Recordings using Auxiliary variables
+# © Mackenzie W. Mathis & Steffen Schneider (v0.4.0+)
 # Source code:
 # https://github.com/AdaptiveMotorControlLab/CEBRA
 #
 # Please see LICENSE.md for the full license document:
-# https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
+# https://github.com/AdaptiveMotorControlLab/CEBRA/blob/main/LICENSE.md
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 import numpy as np
 import pytest
@@ -249,10 +259,10 @@ def _reference_infonce(pos_dist, neg_dist):
 
 
 def test_similiarities():
-
-    ref = torch.randn(10, 3)
-    pos = torch.randn(10, 3)
-    neg = torch.randn(12, 3)
+    rng = torch.Generator().manual_seed(42)
+    ref = torch.randn(10, 3, generator = rng)
+    pos = torch.randn(10, 3, generator = rng)
+    neg = torch.randn(12, 3, generator = rng)
 
     pos_dist, neg_dist = _reference_dot_similarity(ref, pos, neg)
     pos_dist_2, neg_dist_2 = cebra_criterions.dot_similarity(ref, pos, neg)

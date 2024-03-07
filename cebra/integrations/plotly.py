@@ -1,13 +1,23 @@
 #
-# (c) All rights reserved. ECOLE POLYTECHNIQUE FÉDÉRALE DE LAUSANNE,
-# Switzerland, Laboratory of Prof. Mackenzie W. Mathis (UPMWMATHIS) and
-# original authors: Steffen Schneider, Jin H Lee, Mackenzie W Mathis. 2023.
-#
+# CEBRA: Consistent EmBeddings of high-dimensional Recordings using Auxiliary variables
+# © Mackenzie W. Mathis & Steffen Schneider (v0.4.0+)
 # Source code:
 # https://github.com/AdaptiveMotorControlLab/CEBRA
 #
 # Please see LICENSE.md for the full license document:
-# https://github.com/AdaptiveMotorControlLab/CEBRA/LICENSE.md
+# https://github.com/AdaptiveMotorControlLab/CEBRA/blob/main/LICENSE.md
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 #
 """Plotly interface to CEBRA."""
 from typing import Optional, Tuple, Union
@@ -84,33 +94,55 @@ class _EmbeddingInteractivePlot(_EmbeddingPlot):
         Returns:
             The axis :py:meth:`plotly.graph_objs._figure.Figure` of the plot.
         """
-
-        idx1, idx2, idx3 = self.idx_order
-        data = [
-            plotly.graph_objects.Scatter3d(
-                x=self.embedding[:, idx1],
-                y=self.embedding[:, idx2],
-                z=self.embedding[:, idx3],
-                mode="markers",
-                marker=dict(
-                    size=self.markersize,
-                    opacity=self.alpha,
-                    color=self.embedding_labels,
-                    colorscale=self.colorscale,
-                ),
-            )
-        ]
+        showlegend = kwargs.get("showlegend", False)
+        discrete = kwargs.get("discrete", False)
         col = kwargs.get("col", None)
         row = kwargs.get("row", None)
+        template = kwargs.get("template", "plotly_white")
+        data = []
 
-        if col is None or row is None:
-            self.axis.add_trace(data[0])
+        if not discrete and showlegend:
+            raise ValueError("Cannot show legend with continuous labels.")
+
+        idx1, idx2, idx3 = self.idx_order
+
+        if discrete:
+            unique_labels = np.unique(self.embedding_labels)
         else:
-            self.axis.add_trace(data[0], row=row, col=col)
+            unique_labels = [self.embedding_labels]
+
+        for label in unique_labels:
+            if discrete:
+                filtered_idx = [
+                    i for i, x in enumerate(self.embedding_labels) if x == label
+                ]
+            else:
+                filtered_idx = np.arange(self.embedding.shape[0])
+            data.append(
+                plotly.graph_objects.Scatter3d(x=self.embedding[filtered_idx,
+                                                                idx1],
+                                               y=self.embedding[filtered_idx,
+                                                                idx2],
+                                               z=self.embedding[filtered_idx,
+                                                                idx3],
+                                               mode="markers",
+                                               marker=dict(
+                                                   size=self.markersize,
+                                                   opacity=self.alpha,
+                                                   color=label,
+                                                   colorscale=self.colorscale,
+                                               ),
+                                               name=str(label)))
+
+        for trace in data:
+            if col is None or row is None:
+                self.axis.add_trace(trace)
+            else:
+                self.axis.add_trace(trace, row=row, col=col)
 
         self.axis.update_layout(
-            template="plotly_white",
-            showlegend=False,
+            template=template,
+            showlegend=showlegend,
             title=self.title,
         )
 
@@ -156,8 +188,17 @@ def plot_embedding_interactive(
         title: The title on top of the embedding.
         figsize: Figure width and height in inches.
         dpi: Figure resolution.
-        kwargs: Optional arguments to customize the plots. See :py:class:`plotly.graph_objects.Scatter` documentation for more
-            details on which arguments to use.
+        kwargs: Optional arguments to customize the plots. This dictionary includes the following optional arguments:
+            -- showlegend: Whether to show the legend or not.
+            -- discrete: Whether the labels are discrete or not.
+            -- col: The column of the subplot to plot the embedding on.
+            -- row: The row of the subplot to plot the embedding on.
+            -- template: The template to use for the plot.
+
+            Note: showlegend can be True only if discrete is True.
+
+            See :py:class:`plotly.graph_objects.Scatter` documentation for more
+                details on which arguments to use.
 
     Returns:
         The plotly figure.
