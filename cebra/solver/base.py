@@ -111,12 +111,18 @@ def _add_zero_padding(batched_data: torch.Tensor, offset: cebra.data.Offset,
                       start_batch_idx: int, end_batch_idx: int,
                       number_of_samples: int):
 
+    reversed_dims = torch.arange(batched_data.ndim - 1, -1, -1)
+    
     if start_batch_idx == 0:  # First batch
-        batched_data = F.pad(batched_data.T, (offset.left, 0), 'replicate').T
+        batched_data = F.pad(batched_data.permute(*reversed_dims), 
+                                     (offset.left, 0), 'replicate').permute(*reversed_dims)
+        #batched_data = F.pad(batched_data.T, (offset.left, 0), 'replicate').T
 
     elif end_batch_idx == number_of_samples:  # Last batch
-        batched_data = F.pad(batched_data.T, (0, offset.right - 1),
-                             'replicate').T
+        batched_data = F.pad(batched_data.permute(*reversed_dims), 
+                                (0, offset.right - 1), 'replicate').permute(*reversed_dims)
+        #batched_data = F.pad(batched_data.T, (0, offset.right - 1), 'replicate').T
+
 
     return batched_data
 
