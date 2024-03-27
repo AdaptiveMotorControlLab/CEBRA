@@ -267,6 +267,51 @@ def test_multisession_cont_loader():
     assert dummy_prediction.shape == (3, 32, 6)
     _mix(dummy_prediction, batch[0].index)
 
+def test_multisession_disc_loader():
+    data = cebra.datasets.MultiDiscrete(nums_neural=[3, 4, 5],
+                                          num_timepoints=100)
+    loader = cebra.data.DiscreteMultiSessionDataLoader(
+        data,
+        num_steps=10,
+        batch_size=32,
+    )
+
+    # Check the sampler
+    assert hasattr(loader, "sampler")
+    ref_idx = loader.sampler.sample_prior(1000)
+    assert len(ref_idx) == 3  # num_sessions
+
+    # Check sample points are in session length range
+    for session in range(3):
+        assert ref_idx[session].max() < loader.sampler.session_lengths[session]
+    pos_idx, idx, idx_rev = loader.sampler.sample_conditional(ref_idx)
+
+    assert pos_idx is not None
+    assert idx is not None
+    assert idx_rev is not None
+
+    batch = next(iter(loader))
+
+    def _mix(array, idx):
+        shape = array.shape
+        n, m = shape[:2]
+        mixed = array.reshape(n * m, -1)[idx]
+        print(mixed.shape, array.shape, idx.shape)
+        return mixed.reshape(shape)
+
+    def _process(batch, feature_dim=1):
+        """Given list_i[(N,d_i)] batch, return (#session, N, feature_dim) tensor"""
+        return torch.stack(
+            [b.reference.flatten(1).mean(dim=1, keepdims=True) for b in batch],
+            dim=0).repeat(1, 1, feature_dim)
+
+    assert batch[0].reference.shape == (32, 3, 10)
+    assert batch[1].reference.shape == (32, 4, 10)
+    assert batch[2].reference.shape == (32, 5, 10)
+
+    dummy_prediction = _process(batch, feature_dim=6)
+    assert dummy_prediction.shape == (3, 32, 6)
+    _mix(dummy_prediction, batch[0].index)
 
 @parametrize_device
 @pytest.mark.parametrize(
@@ -293,3 +338,4 @@ def test_multisession_loader(data_name, loader_initfunc, device):
         _check_attributes(batch, is_list=True)
         for session_batch in batch:
             assert len(session_batch.positive) == 32
+
