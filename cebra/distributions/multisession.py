@@ -264,9 +264,8 @@ class DiscreteMultisessionSampler(cebra_distr.PriorDistribution,
                           cebra_distr.ConditionalDistribution):
     """Discrete multi-session sampling.
 
-    Align embeddings across multiple sessions, using a discrete
-    index. The transitions between index samples are computed across
-    all sessions.
+    Discrete indices don't need to be aligned. Positive pairs are found
+    by matching the discrete index in randomly assigned sessions.
 
     After data processing, the dimensionality of the returned features
     matches. The resulting embeddings can be concatenated, and shuffling
@@ -343,9 +342,8 @@ class DiscreteMultisessionSampler(cebra_distr.PriorDistribution,
             Positive indices (1st return value), which will be grouped by
             session and *not* match the reference indices.
             In addition, a mapping will be returned to apply the same shuffle operation
-            that was applied to assign a query to a session along session/batch dimension
-            to the reference indices (2nd return value), or reverse the shuffle operation
-            (3rd return value).
+            that was applied to assign reference samples to a session along session/batch dimension
+            (2nd return value), or reverse the shuffle operation (3rd return value).
             Returned shapes are ``(session, batch), (session, batch), (session, batch)``.
 
         TODO:
@@ -358,15 +356,18 @@ class DiscreteMultisessionSampler(cebra_distr.PriorDistribution,
         s = idx.shape[:2]
         idx_all = (idx + self.lengths[:, None]).flatten()
 
+        # get discrete indices
         query = self.all_data[idx_all]
 
-        # shuffle operation to assign each query to a session
+        # shuffle operation to assign each index to a session
         idx = np.random.permutation(len(query))
 
         # TODO this part fails in Pytorch
+        # apply shuffle
         query = query[idx.reshape(s)]
         query = torch.from_numpy(query).to(_device)
 
+        # sample conditional for each assigned session
         pos_idx = torch.zeros(shape, device=_device).long()
         for i in range(self.num_sessions):
             pos_idx[i]  = self.index[i].sample_conditional(query[i])
