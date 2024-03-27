@@ -136,7 +136,7 @@ class MultiSessionLoader(cebra_data.Loader):
         ref_idx = torch.from_numpy(ref_idx)
         neg_idx = torch.from_numpy(neg_idx)
         pos_idx = torch.from_numpy(pos_idx)
-
+        
         return BatchIndex(
             reference=ref_idx,
             positive=pos_idx,
@@ -160,7 +160,16 @@ class ContinuousMultiSessionDataLoader(MultiSessionLoader):
 
 @dataclasses.dataclass
 class DiscreteMultiSessionDataLoader(MultiSessionLoader):
-    pass
+    """Contrastive learning conditioned on a discrete behavior variable."""
+
+    # Overwrite sampler with the discrete implementation
+    # Generalize MultisessionSampler to avoid doing this?
+    def __post_init__(self):
+        self.sampler = cebra_distr.DiscreteMultisessionSampler(self.dataset)
+
+    @property
+    def index(self):
+        return self.dataset.discrete_index
 
 
 @dataclasses.dataclass
