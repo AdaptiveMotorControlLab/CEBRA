@@ -367,7 +367,31 @@ def test_sklearn(model_architecture, device):
     embedding = cebra_model.transform(X)
     assert isinstance(embedding, np.ndarray)
 
-    # multi-session behavior contrastive
+    # multi-session discrete behavior contrastive
+    cebra_model.fit([X, X_s2], [y_d, y_d_s2])
+    assert cebra_model.num_sessions == 2
+
+    embedding = cebra_model.transform(X, session_id=0)
+    assert isinstance(embedding, np.ndarray)
+    embedding = cebra_model.transform(torch.Tensor(X), session_id=0)
+    assert isinstance(embedding, np.ndarray)
+    assert embedding.shape == (X.shape[0], output_dimension)
+    embedding = cebra_model.transform(X_s2, session_id=1)
+    assert isinstance(embedding, np.ndarray)
+    assert embedding.shape == (X_s2.shape[0], output_dimension)
+
+    with pytest.raises(ValueError, match="shape"):
+        embedding = cebra_model.transform(X_s2, session_id=0)
+    with pytest.raises(ValueError, match="shape"):
+        embedding = cebra_model.transform(X, session_id=1)
+    with pytest.raises(RuntimeError, match="No.*session_id"):
+        embedding = cebra_model.transform(X)
+    with pytest.raises(RuntimeError, match="Invalid.*session_id"):
+        embedding = cebra_model.transform(X, session_id=2)
+    with pytest.raises(RuntimeError, match="Invalid.*session_id"):
+        embedding = cebra_model.transform(X, session_id=-1)
+
+    # multi-session continuous behavior contrastive
     cebra_model.fit([X, X_s2], [y_c1, y_c1_s2])
     assert cebra_model.num_sessions == 2
 
@@ -397,7 +421,32 @@ def test_sklearn(model_architecture, device):
         [torch.Tensor(y_c1), torch.Tensor(y_c1_s2)],
     )
 
-    # multi-session behavior contrastive, more than two sessions
+    # multi-session discrete behavior contrastive, more than two sessions
+    cebra_model.fit([X, X_s2, X], [y_d, y_d_s2, y_d])
+    assert cebra_model.num_sessions == 3
+
+    embedding = cebra_model.transform(X, session_id=0)
+    assert isinstance(embedding, np.ndarray)
+    assert embedding.shape == (X.shape[0], output_dimension)
+    embedding = cebra_model.transform(X_s2, session_id=1)
+    assert isinstance(embedding, np.ndarray)
+    assert embedding.shape == (X_s2.shape[0], output_dimension)
+    embedding = cebra_model.transform(X, session_id=2)
+    assert isinstance(embedding, np.ndarray)
+    assert embedding.shape == (X.shape[0], output_dimension)
+
+    with pytest.raises(ValueError, match="shape"):
+        embedding = cebra_model.transform(X_s2, session_id=0)
+    with pytest.raises(ValueError, match="shape"):
+        embedding = cebra_model.transform(X_s2, session_id=2)
+    with pytest.raises(ValueError, match="shape"):
+        embedding = cebra_model.transform(X, session_id=1)
+    with pytest.raises(RuntimeError, match="No.*session_id"):
+        embedding = cebra_model.transform(X)
+    with pytest.raises(RuntimeError, match="Invalid.*session_id"):
+        embedding = cebra_model.transform(X, session_id=3)
+
+    # multi-session continuous behavior contrastive, more than two sessions
     cebra_model.fit([X, X_s2, X], [y_c1, y_c1_s2, y_c1])
     assert cebra_model.num_sessions == 3
 
@@ -432,8 +481,6 @@ def test_sklearn(model_architecture, device):
         cebra_model.fit([X, X, X_s2], [y_c1, y_c2])
     with pytest.raises(ValueError, match="Invalid.*sessions"):
         cebra_model.fit([X, X_s2], [y_c1, y_c1, y_c2])
-    with pytest.raises(NotImplementedError, match="discrete"):
-        cebra_model.fit([X, X_s2], [y_d, y_d_s2])
     with pytest.raises(ValueError, match="Invalid.*samples"):
         cebra_model.fit([X, X_s2], [y_c1_s2, y_c1_s2])
 
