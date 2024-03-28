@@ -153,9 +153,7 @@ def _init_loader(
 
         # Discrete behavior contrastive training is selected with the default dataloader
         if not is_cont and is_disc:
-            kwargs = dict(
-                **shared_kwargs,
-            )
+            kwargs = dict(**shared_kwargs,)
             if is_full:
                 if is_hybrid:
                     raise_not_implemented_error = True

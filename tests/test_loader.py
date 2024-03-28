@@ -267,9 +267,10 @@ def test_multisession_cont_loader():
     assert dummy_prediction.shape == (3, 32, 6)
     _mix(dummy_prediction, batch[0].index)
 
+
 def test_multisession_disc_loader():
     data = cebra.datasets.MultiDiscrete(nums_neural=[3, 4, 5],
-                                          num_timepoints=100)
+                                        num_timepoints=100)
     loader = cebra.data.DiscreteMultiSessionDataLoader(
         data,
         num_steps=10,
@@ -313,15 +314,13 @@ def test_multisession_disc_loader():
     assert dummy_prediction.shape == (3, 32, 6)
     _mix(dummy_prediction, batch[0].index)
 
+
 @parametrize_device
 @pytest.mark.parametrize(
     "data_name, loader_initfunc",
-    [
-        ('demo-discrete-multisession', 
-         cebra.data.DiscreteMultiSessionDataLoader),
-        ("demo-continuous-multisession",
-         cebra.data.ContinuousMultiSessionDataLoader)
-    ],
+    [('demo-discrete-multisession', cebra.data.DiscreteMultiSessionDataLoader),
+     ("demo-continuous-multisession",
+      cebra.data.ContinuousMultiSessionDataLoader)],
 )
 def test_multisession_loader(data_name, loader_initfunc, device):
     # TODO change number of timepoints across the sessions
@@ -339,4 +338,3 @@ def test_multisession_loader(data_name, loader_initfunc, device):
         _check_attributes(batch, is_list=True)
         for session_batch in batch:
             assert len(session_batch.positive) == 32
-

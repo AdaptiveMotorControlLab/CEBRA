@@ -171,6 +171,7 @@ def test_init_loader(is_cont, is_disc, is_full, is_multi, is_hybrid):
             neural = torch.zeros((50, 10), dtype=torch.float)
             continuous_index = torch.zeros((50, 10), dtype=torch.float)
     elif is_multi and is_disc:
+
         class __Dataset(cebra.datasets.MultiDiscrete):
             neural = torch.zeros((50, 10), dtype=torch.float)
             discrete_index = torch.zeros((50,), dtype=torch.int)

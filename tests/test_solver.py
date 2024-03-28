@@ -46,10 +46,10 @@ for args in [("demo-continuous", cebra.data.HybridDataLoader)]:
         (*args, cebra.solver.SingleSessionHybridSolver))
 
 multi_session_tests = []
-for args in [
-    ("demo-continuous-multisession", cebra.data.ContinuousMultiSessionDataLoader),
-    ("demo-discrete-multisession", cebra.data.DiscreteMultiSessionDataLoader)
-]:
+for args in [("demo-continuous-multisession",
+              cebra.data.ContinuousMultiSessionDataLoader),
+             ("demo-discrete-multisession",
+              cebra.data.DiscreteMultiSessionDataLoader)]:
     multi_session_tests.append((*args, cebra.solver.MultiSessionSolver))
     # multi_session_tests.append((*args, cebra.solver.MultiSessionAuxVariableSolver))
 
@@ -168,6 +168,7 @@ def test_multi_session(data_name, loader_initfunc, solver_initfunc):
     assert isinstance(log, dict)
 
     solver.fit(loader)
+
 
 @pytest.mark.parametrize("data_name, loader_initfunc, solver_initfunc",
                          multi_session_tests)

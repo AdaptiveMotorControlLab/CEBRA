@@ -118,14 +118,15 @@ class MultiDiscrete(cebra.data.DatasetCollection):
     """Demo dataset for testing."""
 
     def __init__(
-            self, 
-            nums_neural=[3, 4, 5],
-            num_timepoints=_DEFAULT_NUM_TIMEPOINTS,
-            ):
+        self,
+        nums_neural=[3, 4, 5],
+        num_timepoints=_DEFAULT_NUM_TIMEPOINTS,
+    ):
         super().__init__(*[
             DemoDatasetDiscrete(num_timepoints, num_neural)
             for num_neural in nums_neural
         ])
+
 
 @register("demo-continuous-multisession")
 class MultiContinuous(cebra.data.DatasetCollection):

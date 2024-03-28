@@ -136,7 +136,7 @@ class MultiSessionLoader(cebra_data.Loader):
         ref_idx = torch.from_numpy(ref_idx)
         neg_idx = torch.from_numpy(neg_idx)
         pos_idx = torch.from_numpy(pos_idx)
-        
+
         return BatchIndex(
             reference=ref_idx,
             positive=pos_idx,

@@ -297,6 +297,7 @@ def test_multi_session_time_contrastive(time_offset):
     assert (idx.flatten()[rev_idx.flatten()].all() == np.arange(
         len(rev_idx.flatten())).all())
 
+
 def test_multi_session_discrete():
     dataset = cebra_datasets.init("demo-discrete-multisession")
     sampler = cebra_distr.DiscreteMultisessionSampler(dataset)
@@ -312,12 +313,15 @@ def test_multi_session_discrete():
     # NOTE(celia): test the private function ``_inverse_idx()``, with idx arrays flat
     assert (idx.flatten()[rev_idx.flatten()].all() == np.arange(
         len(rev_idx.flatten())).all())
-    
+
     # Check positive samples' labels match reference samples' labels
-    sample_labels = sampler.all_data[(sample + sampler.lengths[:, None]).flatten()]
+    sample_labels = sampler.all_data[(sample +
+                                      sampler.lengths[:, None]).flatten()]
     sample_labels = sample_labels[idx.reshape(sample.shape[:2])].flatten()
-    positive_labels = sampler.all_data[(positive + sampler.lengths[:, None]).flatten()]
+    positive_labels = sampler.all_data[(positive +
+                                        sampler.lengths[:, None]).flatten()]
     assert (sample_labels == positive_labels).all()
+
 
 class OldDeltaDistribution(cebra_distr_base.JointDistribution,
                            cebra_distr_base.HasGenerator):

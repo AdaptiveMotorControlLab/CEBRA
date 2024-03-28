@@ -260,8 +260,9 @@ class MultisessionSampler(cebra_distr.PriorDistribution,
             pos_samples[i] = self.data[i][pos_idx[i]]
         return pos_samples
 
+
 class DiscreteMultisessionSampler(cebra_distr.PriorDistribution,
-                          cebra_distr.ConditionalDistribution):
+                                  cebra_distr.ConditionalDistribution):
     """Discrete multi-session sampling.
 
     Discrete indices don't need to be aligned. Positive pairs are found
@@ -370,9 +371,9 @@ class DiscreteMultisessionSampler(cebra_distr.PriorDistribution,
         # sample conditional for each assigned session
         pos_idx = torch.zeros(shape, device=_device).long()
         for i in range(self.num_sessions):
-            pos_idx[i]  = self.index[i].sample_conditional(query[i])
+            pos_idx[i] = self.index[i].sample_conditional(query[i])
         pos_idx = pos_idx.cpu().numpy()
-        
+
         # reverse indices to recover the ref/pos samples matching
         idx_rev = _invert_index(idx)
         return pos_idx, idx, idx_rev

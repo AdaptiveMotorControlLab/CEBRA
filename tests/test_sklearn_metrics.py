@@ -324,7 +324,6 @@ def test_sklearn_datasets_consistency():
             dataset_ids=["achilles", "buddy"],
             between="datasets",
         )
-    
 
 
 def test_sklearn_runs_consistency():
