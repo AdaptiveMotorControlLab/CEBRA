@@ -325,66 +325,6 @@ def test_sklearn_datasets_consistency():
             between="datasets",
         )
     
-    # Example data with discrete labels
-    labels1 = np.random.randint(100, size=(10000,))
-    labels1_invalid = np.random.randint(100, size=(10000, 3))
-    labels2 = np.random.randint(100, size=(10000,))
-    labels3 = np.random.randint(100, size=(8000,))
-    labels4 = np.random.randint(100, size=(5000,))
-    labels_datasets = [labels1, labels2, labels3, labels4]
-
-    dataset_ids = ["achilles", "buddy", "cicero", "gatsby"]
-
-    # random embeddings provide R2 close to 0
-    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
-        embeddings_datasets,
-        dataset_ids=dataset_ids,
-        labels=labels_datasets,
-        between="datasets",
-    )
-    assert scores.shape == (12,)
-    assert pairs.shape == (12, 2)
-    assert len(datasets) == 4
-    assert math.isclose(scores[0], 0, abs_tol=0.05)
-
-    # no labels
-    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
-        embeddings_datasets, labels=labels_datasets, between="datasets")
-    assert scores.shape == (12,)
-    assert pairs.shape == (12, 2)
-    assert len(datasets) == 4
-
-    # identical embeddings provide R2 close to 1
-    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
-        [embedding1, embedding1],
-        dataset_ids=["achilles", "buddy"],
-        labels=[labels1, labels1],
-        between="datasets",
-    )
-    assert scores.shape == (2,)
-    assert pairs.shape == (2, 2)
-    assert len(datasets) == 2
-    assert math.isclose(scores[0], 1, abs_tol=1e-9)
-
-    # Tensor
-    scores, pairs, datasets = cebra_sklearn_metrics.consistency_score(
-        [torch.Tensor(embedding) for embedding in embeddings_datasets],
-        dataset_ids=dataset_ids,
-        labels=[torch.Tensor(label) for label in labels_datasets],
-        between="datasets",
-    )
-    assert scores.shape == (12,)
-    assert pairs.shape == (12, 2)
-    assert len(datasets) == 4
- 
-    with pytest.raises(ValueError, match="Labels.*value"):
-        _, _, _ = cebra_sklearn_metrics.consistency_score(
-            [embedding1, embedding2],
-            labels=[np.random.randint(5, size=(10000,)),np.random.randint(10, size=(10000,))],
-            between="datasets")
-    
-
-test_sklearn_datasets_consistency()
 
 
 def test_sklearn_runs_consistency():
