@@ -47,11 +47,11 @@ for args in [("demo-continuous", cebra.data.HybridDataLoader)]:
 
 multi_session_tests = []
 for args in [("demo-continuous-multisession",
-              cebra.data.ContinuousMultiSessionDataLoader)]:
+              cebra.data.ContinuousMultiSessionDataLoader),
+             ("demo-discrete-multisession",
+              cebra.data.DiscreteMultiSessionDataLoader)]:
     multi_session_tests.append((*args, cebra.solver.MultiSessionSolver))
     # multi_session_tests.append((*args, cebra.solver.MultiSessionAuxVariableSolver))
-
-print(single_session_tests)
 
 
 def _get_loader(data_name, loader_initfunc):
@@ -156,6 +156,33 @@ def test_multi_session(data_name, loader_initfunc, solver_initfunc):
     solver = solver_initfunc(model=model,
                              criterion=criterion,
                              optimizer=optimizer)
+
+    batch = next(iter(loader))
+    for session_id, dataset in enumerate(loader.dataset.iter_sessions()):
+        assert batch[session_id].reference.shape == (32,
+                                                     dataset.input_dimension,
+                                                     10)
+        assert batch[session_id].index is not None
+
+    log = solver.step(batch)
+    assert isinstance(log, dict)
+
+    solver.fit(loader)
+
+
+@pytest.mark.parametrize("data_name, loader_initfunc, solver_initfunc",
+                         multi_session_tests)
+def test_multi_session(data_name, loader_initfunc, solver_initfunc):
+    loader = _get_loader(data_name, loader_initfunc)
+    criterion = cebra.models.InfoNCE()
+    model = nn.ModuleList(
+        [_make_model(dataset) for dataset in loader.dataset.iter_sessions()])
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+    solver = solver_initfunc(model=model,
+                             criterion=criterion,
+                             optimizer=optimizer,
+                             tqdm_on=True)
 
     batch = next(iter(loader))
     for session_id, dataset in enumerate(loader.dataset.iter_sessions()):
