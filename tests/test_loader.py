@@ -317,7 +317,8 @@ def test_multisession_disc_loader():
 @pytest.mark.parametrize(
     "data_name, loader_initfunc",
     [
-        # ('demo-discrete-multisession', cebra.data.DiscreteMultiSessionDataLoader),
+        ('demo-discrete-multisession', 
+         cebra.data.DiscreteMultiSessionDataLoader),
         ("demo-continuous-multisession",
          cebra.data.ContinuousMultiSessionDataLoader)
     ],

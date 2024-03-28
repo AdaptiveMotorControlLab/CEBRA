@@ -112,6 +112,7 @@ def test_sklearn_dataset():
     # multisession
     num_sessions = 3
 
+    # continuous
     sessions = []
     for i in range(num_sessions):
         sessions.append(cebra_sklearn_dataset.SklearnDataset(X, (yc,)))
@@ -126,11 +127,15 @@ def test_sklearn_dataset():
     with pytest.raises(ValueError):
         cebra_data.datasets.DatasetCollection(sessions)
 
+    # discrete
     sessions = []
     for i in range(num_sessions):
         sessions.append(cebra_sklearn_dataset.SklearnDataset(X, (yd,)))
-    with pytest.raises(NotImplementedError):
-        cebra_data.datasets.DatasetCollection(*sessions)
+    data = cebra_data.datasets.DatasetCollection(*sessions)
+    assert data.num_sessions == num_sessions
+    for i in range(num_sessions):
+        assert data.get_input_dimension(i) == X.shape[1]
+        assert len(data.get_session(i)) == len(X)
 
 
 @pytest.mark.parametrize("int_type", [np.uint8, np.int8, np.int32])
@@ -160,13 +165,15 @@ def test_sklearn_dataset_type_index(int_type, float_type):
     slow_arguments=list(itertools.product(*[[False, True]] * 5)),
 )
 def test_init_loader(is_cont, is_disc, is_full, is_multi, is_hybrid):
-    if is_multi:
+    if is_multi and is_cont:
         # TODO(celia): change to a MultiDemoDataset class when discrete/mixed index implemented
         class __Dataset(cebra.datasets.MultiContinuous):
             neural = torch.zeros((50, 10), dtype=torch.float)
             continuous_index = torch.zeros((50, 10), dtype=torch.float)
+    elif is_multi and is_disc:
+        class __Dataset(cebra.datasets.MultiDiscrete):
+            neural = torch.zeros((50, 10), dtype=torch.float)
             discrete_index = torch.zeros((50,), dtype=torch.int)
-
     else:
 
         class __Dataset(cebra.datasets.DemoDataset):
