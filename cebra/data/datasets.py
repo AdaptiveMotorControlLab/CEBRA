@@ -75,20 +75,16 @@ class TensorDataset(cebra_data.SingleSessionDataset):
         offset: int = 1,
     ):
         super().__init__(device=device)
-        self.neural = self._to_tensor(
-            neural, check_dtype=[torch.float, torch.float64, torch.float32]).float()
-        #NOTE(celia): for now check_dtype contains torch.long as discrete labels can be 
-        # considered as continuous for multisession implementation.
-        self.continuous = self._to_tensor(
-            continuous, check_dtype=[torch.float32, torch.float64]).float()
-        self.discrete = self._to_tensor(discrete, check_dtype=[torch.long])
+        self.neural = self._to_tensor(neural, check_dtype="float").float()
+        self.continuous = self._to_tensor(continuous, check_dtype="float").float()
+        self.discrete = self._to_tensor(discrete, check_dtype="integer")
         if self.continuous is None and self.discrete is None:
             raise ValueError(
                 "You have to pass at least one of the arguments 'continuous' or 'discrete'."
             )
         self.offset = offset
 
-    def _to_tensor(self, array, check_dtype: list = None):
+    def _to_tensor(self, array, check_dtype: str = None):
         """Convert :py:func:`numpy.array` to :py:class:`torch.Tensor` if necessary and check the dtype.
 
         Args:
@@ -104,7 +100,9 @@ class TensorDataset(cebra_data.SingleSessionDataset):
         if isinstance(array, np.ndarray):
             array = torch.from_numpy(array)
         if check_dtype is not None:
-            if not array.dtype in check_dtype:
+            if (check_dtype == "integer" and not cebra.helper._is_integer(array)
+                ) or (check_dtype == "float" and not cebra.helper._is_floating(array)
+                ) or (check_dtype == "float_integer" and not cebra.helper._is_floating_or_integer(array)):
                 raise TypeError(f"{array.dtype} instead of {check_dtype}.")
         return array
 
