@@ -111,8 +111,6 @@ class DemoDatasetMixed(DemoDataset):
         return self.dindex
 
 
-# TODO(stes) remove this from the demo datasets until multi-session training
-# with discrete indices is implemented in the sklearn API.
 @register("demo-discrete-multisession")
 class MultiDiscrete(cebra.data.DatasetCollection):
     """Demo dataset for testing."""
