@@ -295,3 +295,83 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
 
     def _iter_property(self, attr):
         return (getattr(data, attr) for data in self.iter_sessions())
+
+
+class DatasetxCEBRA(cebra.io.HasDevice):
+
+    def __init__(
+        self,
+        neural: Union[torch.Tensor, npt.NDArray],
+        device="cpu",
+        **labels,
+    ):
+        super().__init__(device)
+        self.neural = neural
+        self.labels = labels
+
+    @property
+    def input_dimension(self) -> int:
+        return self.neural.shape[1]
+
+    def __len__(self):
+        return len(self.neural)
+
+    def configure_for(self, model: "cebra.models.Model"):
+        """Configure the dataset offset for the provided model.
+
+        Call this function before indexing the dataset. This sets the
+        :py:attr:`offset` attribute of the dataset.
+
+        Args:
+            model: The model to configure the dataset for.
+        """
+        self.offset = model.get_offset()
+
+    def expand_index(self, index: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            index: A one-dimensional tensor of type long containing indices
+                to select from the dataset.
+
+        Returns:
+            An expanded index of shape ``(len(index), len(self.offset))`` where
+            the elements will be
+            ``expanded_index[i,j] = index[i] + j - self.offset.left`` for all ``j``
+            in ``range(0, len(self.offset))``.
+
+        Note:
+            Requires the :py:attr:`offset` to be set.
+        """
+        offset = torch.arange(-self.offset.left,
+                              self.offset.right,
+                              device=index.device)
+
+        index = torch.clamp(index, self.offset.left,
+                            len(self) - self.offset.right)
+
+        return index[:, None] + offset[None, :]
+
+    def __getitem__(self, index):
+        index = self.expand_index(index)
+        return self.neural[index].transpose(2, 1)
+
+    def load_batch_supervised(self, index: Batch,
+                              labels_supervised) -> torch.tensor:
+        assert index.negative == index.positive == None
+        labels = [
+            self.labels[label].to(self.device) for label in labels_supervised
+        ]
+
+        return Batch(
+            reference=self[index.reference],
+            positive=[label[index.reference] for label in labels],
+            negative=None,
+        )
+
+    def load_batch_contrastive(self, index: BatchIndex) -> Batch:
+        assert isinstance(index.positive, list)
+        return Batch(
+            reference=self[index.reference],
+            positive=[self[idx] for idx in index.positive],
+            negative=self[index.negative],
+        )

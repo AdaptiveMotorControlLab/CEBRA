@@ -21,6 +21,7 @@
 #
 """Utility functions for solvers and their training loops."""
 
+import logging
 from collections.abc import Iterable
 from typing import Dict
 
@@ -29,7 +30,7 @@ import tqdm
 
 
 def _description(stats: Dict[str, float]):
-    stats_str = [f"{key}: {value: .4f}" for key, value in stats.items()]
+    stats_str = [f"{key}: {value:.3f}" for key, value in stats.items()]
     return " ".join(stats_str)
 
 
@@ -73,7 +74,9 @@ class ProgressBar:
     "Log and display values during training."
 
     loader: Iterable
-    log_format: str
+    logger: logging.Logger = None
+    log_format: str = None
+    log_frequency: int = None
 
     _valid_formats = ["tqdm", "off"]
 
@@ -94,6 +97,15 @@ class ProgressBar:
             self.iterator = tqdm.tqdm(self.iterator)
         for num_batch, batch in enumerate(self.iterator):
             yield num_batch, batch
+            self._log_message(num_batch, self.iterator.stats)
+        self._log_message(num_batch, self.iterator.stats)
+
+    def _log_message(self, num_steps, stats):
+        if self.logger is None:
+            return
+        if num_steps % self.log_frequency != 0:
+            return
+        self.logger.info(f"Train: Step {num_steps} {_description(stats)}")
 
     def set_description(self, stats: Dict[str, float]):
         """Update the progress bar description.
@@ -106,3 +118,5 @@ class ProgressBar:
         """
         if self.use_tqdm:
             self.iterator.set_description(_description(stats))
+
+        self.iterator.stats = stats

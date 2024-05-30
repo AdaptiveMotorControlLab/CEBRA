@@ -97,3 +97,25 @@ class _MeanAndConv(nn.Module):
         connect = self.layer(inp)
         downsampled = F.interpolate(inp, scale_factor=1 / self.downsample)
         return torch.cat([connect, downsampled[..., :connect.size(-1)]], dim=1)
+
+
+class _SkipLinear(nn.Module):
+    """Add a skip connection to a linear module
+    Args:
+        module (torch.nn.Module): Module to add to the bottleneck
+    """
+
+    def __init__(self, module):
+        super().__init__()
+        self.module = module
+        assert isinstance(self.module, nn.Linear)
+        padding_size = self.module.out_features - self.module.in_features
+        self.padding_size = padding_size
+
+    def forward(self, inp: torch.Tensor) -> torch.Tensor:
+        """Compute forward pass through the skip connection.
+        """
+        inp_padded = F.pad(inp, (0, self.padding_size),
+                           mode='constant',
+                           value=0)
+        return inp_padded + self.module(inp)

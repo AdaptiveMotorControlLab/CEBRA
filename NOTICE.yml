@@ -35,3 +35,34 @@
     - 'tests/**/*.py'
     - 'docs/**/*.py'
     - 'conda/**/*.yml'
+
+- header: |
+    Regularized contrastive learning implementation.
+
+    Not licensed yet. Distribution for review.
+    Code will be open-sourced upon publication.
+
+  include:
+    - 'cebra/solver/multiobjective.py'
+    - 'cebra/solver/regularized.py'
+    - 'cebra/solver/metrics.py'
+    - 'cebra/models/multiobjective.py'
+    - 'cebra/models/multi_criterions.py'
+    - 'cebra/data/multiobjective.py'
+    - 'cebra/attribution/*.py'
+    - 'tests/test_multiobjective.py'
+
+- header: |
+    Copyright (c) Facebook, Inc. and its affiliates.
+
+    This source code is licensed under the MIT license found in the
+    LICENSE file in the root directory of this source tree.
+
+    PyTorch implementation of Jacobian regularization described in [1].
+
+    [1] Judy Hoffman, Daniel A. Roberts, and Sho Yaida,
+        "Robust Learning with Jacobian Regularization," 2019.
+        [arxiv:1908.02729](https://arxiv.org/abs/1908.02729)
+
+  include:
+    - 'cebra/models/jacobian_regularizer.py'

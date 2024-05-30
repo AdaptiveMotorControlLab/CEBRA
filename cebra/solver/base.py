@@ -31,10 +31,13 @@ implement larger changes to the training loop.
 """
 
 import abc
+import logging
 import os
-from typing import Callable, Dict, List, Literal, Optional
+import time
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import literate_dataclasses as dataclasses
+import numpy as np
 import torch
 
 import cebra
@@ -70,6 +73,10 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     optimizer: torch.optim.Optimizer
     history: List = dataclasses.field(default_factory=list)
     decode_history: List = dataclasses.field(default_factory=list)
+    metadata: Dict = dataclasses.field(default_factory=lambda: ({
+        "timestamp": None,
+        "batches_seen": None,
+    }))
     log: Dict = dataclasses.field(default_factory=lambda: ({
         "pos": [],
         "neg": [],
@@ -77,6 +84,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         "temperature": []
     }))
     tqdm_on: bool = True
+
+    #metrics: MetricCollection = None
 
     def __post_init__(self):
         cebra.io.HasDevice.__init__(self)
@@ -97,6 +106,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             "loss": torch.tensor(self.history),
             "decode": self.decode_history,
             "criterion": self.criterion.state_dict(),
+            "metadata": self.metadata,
             "version": cebra.__version__,
             "log": self.log,
         }
@@ -137,6 +147,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             self.decode_history = _get("decode")
         if _contains("log"):
             self.log = _get("log")
+        if _contains("metadata"):
+            self.metadata = _get("metadata")
 
     @property
     def num_parameters(self) -> int:
@@ -151,23 +163,26 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         for parameter in self.criterion.parameters():
             yield parameter
 
-    def _get_loader(self, loader):
-        return ProgressBar(
-            loader,
-            "tqdm" if self.tqdm_on else "off",
-        )
+    def _get_loader(self, loader, **kwargs):
+        return ProgressBar(loader=loader,
+                           log_format="tqdm" if self.tqdm_on else "off",
+                           **kwargs)
 
-    def fit(
-        self,
-        loader: cebra.data.Loader,
-        valid_loader: cebra.data.Loader = None,
-        *,
-        save_frequency: int = None,
-        valid_frequency: int = None,
-        decode: bool = False,
-        logdir: str = None,
-        save_hook: Callable[[int, "Solver"], None] = None,
-    ):
+    def _update_metadata(self, num_steps):
+        self.metadata["timestamp"] = time.time()
+        self.metadata["batches_seen"] = num_steps
+
+    def fit(self,
+            loader: cebra.data.Loader,
+            valid_loader: cebra.data.Loader = None,
+            *,
+            save_frequency: int = None,
+            valid_frequency: int = None,
+            log_frequency: int = None,
+            decode: bool = False,
+            logdir: str = None,
+            save_hook: Callable[[int, "Solver"], None] = None,
+            logger: logging.Logger = None):
         """Train model for the specified number of steps.
 
         Args:
@@ -177,9 +192,11 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             save_frequency: If not `None`, the frequency for automatically saving model checkpoints
                 to `logdir`.
             valid_frequency: The frequency for running validation on the ``valid_loader`` instance.
+            log_frequency: TODO
             logdir:  The logging directory for writing model checkpoints. The checkpoints
                 can be read again using the `solver.load` function, or manually via loading the
                 state dict.
+            logger: TODO
 
         TODO:
             * Refine the API here. Drop the validation entirely, and implement this via a hook?
@@ -187,10 +204,15 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         self.to(loader.device)
 
+        iterator = self._get_loader(loader,
+                                    logger=logger,
+                                    log_frequency=log_frequency)
+
         iterator = self._get_loader(loader)
         self.model.train()
         for num_steps, batch in iterator:
             stats = self.step(batch)
+            self._update_metadata(num_steps)
             iterator.set_description(stats)
 
             if save_frequency is None:
@@ -452,7 +474,8 @@ class MultiobjectiveSolver(Solver):
         loss.backward()
         self.optimizer.step()
         self.history.append(loss.item())
-        return dict(
+
+        stats = dict(
             behavior_pos=behavior_align.item(),
             behavior_neg=behavior_uniform.item(),
             behavior_total=behavior_loss.item(),
@@ -460,3 +483,7 @@ class MultiobjectiveSolver(Solver):
             time_neg=time_uniform.item(),
             time_total=time_loss.item(),
         )
+
+        for key, value in stats.items():
+            self.log[key].append(value)
+        return stats
