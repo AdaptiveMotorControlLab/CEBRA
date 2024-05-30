@@ -222,9 +222,9 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
         else:
             self._cindex = None
         if discrete:
-            raise NotImplementedError(
-                "Multisession implementation does not support discrete index yet."
-            )
+            self._dindex = torch.cat(list(
+                self._iter_property("discrete_index")),
+                                     dim=0)
         else:
             self._dindex = None
 
