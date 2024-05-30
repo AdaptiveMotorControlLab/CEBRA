@@ -153,6 +153,7 @@ def _init_loader(
 
         # Discrete behavior contrastive training is selected with the default dataloader
         if not is_cont and is_disc:
+            kwargs = dict(**shared_kwargs,)
             if is_full:
                 if is_hybrid:
                     raise_not_implemented_error = True
@@ -162,7 +163,10 @@ def _init_loader(
                 if is_hybrid:
                     raise_not_implemented_error = True
                 else:
-                    raise_not_implemented_error = True
+                    return (
+                        cebra.data.DiscreteMultiSessionDataLoader(**kwargs),
+                        "multi-session",
+                    )
 
         # Mixed behavior contrastive training is selected with the default dataloader
         if is_cont and is_disc:
@@ -1030,7 +1034,6 @@ class CEBRA(BaseEstimator, TransformerMixin):
             if callback is None:
                 raise ValueError(
                     "callback_frequency requires to specify a callback.")
-
         model.train()
 
         solver.fit(

@@ -160,7 +160,16 @@ class ContinuousMultiSessionDataLoader(MultiSessionLoader):
 
 @dataclasses.dataclass
 class DiscreteMultiSessionDataLoader(MultiSessionLoader):
-    pass
+    """Contrastive learning conditioned on a discrete behavior variable."""
+
+    # Overwrite sampler with the discrete implementation
+    # Generalize MultisessionSampler to avoid doing this?
+    def __post_init__(self):
+        self.sampler = cebra_distr.DiscreteMultisessionSampler(self.dataset)
+
+    @property
+    def index(self):
+        return self.dataset.discrete_index
 
 
 @dataclasses.dataclass

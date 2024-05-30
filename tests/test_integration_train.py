@@ -35,6 +35,11 @@ import cebra.helper
 import cebra.models
 import cebra.solver
 
+if torch.cuda.is_available():
+    _DEVICE = "cuda"
+else:
+    _DEVICE = "cpu"
+
 
 def _init_single_session_solver(loader, args):
     """Train a single session CEBRA model."""
@@ -77,6 +82,7 @@ def _list_data_loaders():
         cebra.data.HybridDataLoader,
         cebra.data.FullDataLoader,
         cebra.data.ContinuousMultiSessionDataLoader,
+        cebra.data.DiscreteMultiSessionDataLoader,
     ]
     # TODO limit this to the valid combinations---however this
     # requires to adapt the dataset API slightly; it is currently
@@ -95,7 +101,7 @@ def _list_data_loaders():
 @pytest.mark.requires_dataset
 @pytest.mark.parametrize("dataset_name, loader_type", _list_data_loaders())
 def test_train(dataset_name, loader_type):
-    args = cebra.config.Config(num_steps=1, device="cuda").as_namespace()
+    args = cebra.config.Config(num_steps=1, device=_DEVICE).as_namespace()
 
     dataset = cebra.datasets.init(dataset_name)
     if loader_type not in cebra_data_helper.get_loader_options(dataset):

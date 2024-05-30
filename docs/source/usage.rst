@@ -12,7 +12,7 @@ Firstly, why use CEBRA?
 
 CEBRA is primarily designed for producing robust, consistent extractions of latent factors from time-series data. It supports three modes, and is a self-supervised representation learning algorithm that uses our modified contrastive learning approach designed for multi-modal time-series data. In short, it is a type of non-linear dimensionality reduction, like `tSNE <https://www.jmlr.org/papers/v9/vandermaaten08a.html>`_ and `UMAP <https://arxiv.org/abs/1802.03426>`_. We show in our original paper that it outperforms tSNE and UMAP at producing closer-to-ground-truth latents and is more consistent.
 
-That being said, CEBRA can be used on non-time-series data and it does not strictly require multi-modal data. In general, we recommend considering using CEBRA for measuring changes in consistency across conditions (brain areas, cells, animals), for hypothesis-guided decoding, and for toplogical exploration of the resulting embedding spaces. It can also be used for visualization and considering dynamics within the embedding space. For examples of how CEBRA can be used to map space, decode natural movies, and make hypotheses for neural coding of sensorimotor systems, see our paper (Schneider, Lee, Mathis, 2023).
+That being said, CEBRA can be used on non-time-series data and it does not strictly require multi-modal data. In general, we recommend considering using CEBRA for measuring changes in consistency across conditions (brain areas, cells, animals), for hypothesis-guided decoding, and for topological exploration of the resulting embedding spaces. It can also be used for visualization and considering dynamics within the embedding space. For examples of how CEBRA can be used to map space, decode natural movies, and make hypotheses for neural coding of sensorimotor systems, see our paper (Schneider, Lee, Mathis, 2023).
 
 The CEBRA workflow
 ------------------
@@ -419,10 +419,10 @@ We can now fit the model in different modes.
 
 .. rubric:: Multi-session training
 
-For multi-sesson training, lists of data are provided instead of a single dataset and eventual corresponding auxiliary variables.
+For multi-session training, lists of data are provided instead of a single dataset and eventual corresponding auxiliary variables.
 
 .. warning::
-    For now, multi-session training can only handle a **unique set of continuous labels**. All other combinations will raise an error.
+    For now, multi-session training can only handle a **unique set of continuous labels** or a **unique discrete label**. All other combinations will raise an error. For the continuous case we provide the following example:
 
 
 .. testcode::
@@ -449,6 +449,29 @@ Once you defined your CEBRA model, you can run:
 
     multi_cebra_model.fit([neural_session1, neural_session2], [continuous_label1, continuous_label2])
 
+
+Similarly, for the discrete case a discrete label can be provided and the CEBRA model will use the discrete multisession mode:
+
+.. testcode::
+
+    timesteps1 = 5000
+    timesteps2 = 3000
+    neurons1 = 50
+    neurons2 = 30
+    out_dim = 8
+
+    neural_session1 = np.random.normal(0,1,(timesteps1, neurons1))
+    neural_session2 = np.random.normal(0,1,(timesteps2, neurons2))
+    discrete_label1 = np.random.randint(0,10,(timesteps1, ))
+    discrete_label2 = np.random.randint(0,10,(timesteps2, ))
+
+    multi_cebra_model = cebra.CEBRA(batch_size=512,
+                                    output_dimension=out_dim,
+                                    max_iterations=10,
+                                    max_adapt_iterations=10)
+
+
+    multi_cebra_model.fit([neural_session1, neural_session2], [discrete_label1, discrete_label2])
 
 .. admonition:: See API docs
     :class: dropdown
