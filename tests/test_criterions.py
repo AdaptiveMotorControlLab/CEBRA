@@ -310,6 +310,9 @@ def test_infonce(seed):
 def test_infonce_gradients(seed):
     pos_dist, neg_dist = _sample_dist_matrices(seed)
 
+    # TODO(stes): This test seems to fail due to some recent software
+    # updates; root cause not identified. Remove this comment once
+    # fixed. (for i = 0, 1)
     for i in range(3):
         pos_dist_ = pos_dist.clone()
         neg_dist_ = neg_dist.clone()
