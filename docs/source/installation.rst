@@ -54,7 +54,7 @@ we outline different options below.
 
         .. code:: bash
 
-            $ conda create -n cebra python==3.9
+            $ conda create -n cebra python==3.12
             $ conda activate cebra
             $ conda install -c conda-forge pytables==3.8.0
 
