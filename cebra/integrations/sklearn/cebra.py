@@ -791,33 +791,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
     def _select_model(self, X: Union[npt.NDArray, torch.Tensor],
                       session_id: int):
-        # Choose the model and get its corresponding offset
-        if self.num_sessions is not None:  # multisession implementation
-            if session_id is None:
-                raise RuntimeError(
-                    "No session_id provided: multisession model requires a session_id to choose the model corresponding to your data shape."
-                )
-            if session_id >= self.num_sessions or session_id < 0:
-                raise RuntimeError(
-                    f"Invalid session_id {session_id}: session_id for the current multisession model must be between 0 and {self.num_sessions-1}."
-                )
-            if self.n_features_[session_id] != X.shape[1]:
-                raise ValueError(
-                    f"Invalid input shape: model for session {session_id} requires an input of shape"
-                    f"(n_samples, {self.n_features_[session_id]}), got (n_samples, {X.shape[1]})."
-                )
-
-            model = self.model_[session_id]
-            model.to(self.device_)
-        else:  # single session
-            if session_id is not None and session_id > 0:
-                raise RuntimeError(
-                    f"Invalid session_id {session_id}: single session models only takes an optional null session_id."
-                )
-            model = self.model_
-
-        offset = model.get_offset()
-        return model, offset
+        return self.solver_._select_model(X, session_id=session_id)
 
     def _check_labels_types(self, y: tuple, session_id: Optional[int] = None):
         """Check that the input labels are compatible with the labels used to fit the model.
@@ -1224,16 +1198,16 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> embedding = cebra_model.transform(dataset)
 
         """
-
+        self.solver_._check_is_session_id_valid(session_id=session_id)
         sklearn_utils_validation.check_is_fitted(self, "n_features_")
-        # Input validation
-        #TODO: if inputs are in cuda, then it throws an error, deal with this.
+
+        if torch.is_tensor(X) and X.device.type == "cuda":
+            X = X.detach().cpu()
+
         X = sklearn_utils.check_input_array(X, min_samples=len(self.offset_))
-        #input_dtype = X.dtype
 
         if isinstance(X, np.ndarray):
             X = torch.from_numpy(X)
-            # TODO: which type and device should be put there?
 
         with torch.no_grad():
             output = self.solver_.transform(
@@ -1242,11 +1216,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 session_id=session_id,
                 batch_size=batch_size)
 
-        #TODO: check if this is safe.
-        return output.numpy(force=True)
-
-        #if input_dtype == "float64":
-        #    return output.astype(input_dtype)
+        return output.detach().cpu().numpy()
 
     def fit_transform(
         self,

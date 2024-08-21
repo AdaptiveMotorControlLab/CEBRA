@@ -32,7 +32,8 @@ implement larger changes to the training loop.
 
 import abc
 import os
-from typing import Callable, Dict, Iterable, List, Literal, Optional, Union
+from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
+                    Union)
 
 import literate_dataclasses as dataclasses
 import numpy as np
@@ -51,9 +52,111 @@ from cebra.solver.util import Meter
 from cebra.solver.util import ProgressBar
 
 
-def _inference_transform(model, inputs):
+def _check_indices(batch_start_idx: int, batch_end_idx: int,
+                   offset: cebra.data.Offset, num_samples: int):
+    """Check that indexes in a batch are in a correct range.
+    
+    First and last index must be positive integers, smaller than the total length of inputs 
+    in the dataset, the first index must be smaller than the last and the batch size cannot 
+    be smaller than the offset of the model.
 
-    #TODO: I am not sure what is the best way with dealing with the types and
+    Args:
+        batch_start_idx: Index of the first sample in the batch.
+        batch_end_idx: Index of the first sample in the batch.
+        offset: Model offset.
+        num_samples: Total number of samples in the input.
+    """
+
+    if batch_start_idx < 0 or batch_end_idx < 0:
+        raise ValueError(
+            f"batch_start_idx ({batch_start_idx}) and batch_end_idx ({batch_end_idx}) must be positive integers."
+        )
+    if batch_start_idx > batch_end_idx:
+        raise ValueError(
+            f"batch_start_idx ({batch_start_idx}) cannot be greater than batch_end_idx ({batch_end_idx})."
+        )
+    if batch_end_idx > num_samples:
+        raise ValueError(
+            f"batch_end_idx ({batch_end_idx}) cannot exceed the length of inputs ({num_samples})."
+        )
+
+    batch_size_lenght = batch_end_idx - batch_start_idx
+    if batch_size_lenght <= len(offset):
+        raise ValueError(
+            f"The batch has length {batch_size_lenght} which "
+            f"is smaller or equal than the required offset length {len(offset)}."
+            f"Either choose a model with smaller offset or the batch shoud contain more samples."
+        )
+
+
+def _get_batch(inputs: torch.Tensor, offset: cebra.data.Offset,
+               batch_start_idx: int, batch_end_idx: int) -> torch.Tensor:
+    """Get a batch of samples between the `batch_start_idx` and `batch_end_idx`.
+
+    Args:
+        inputs: Input data.
+        offset: Model offset.
+        batch_start_idx: Index of the first sample in the batch.
+        batch_end_idx: Index of the first sample in the batch.
+
+    Returns:
+        The batch.
+    """
+
+    if batch_start_idx == 0:  # First batch
+        indices = batch_start_idx, (batch_end_idx + offset.right - 1)
+    elif batch_end_idx == len(inputs):  # Last batch
+        indices = (batch_start_idx - offset.left), batch_end_idx
+    else:
+        indices = batch_start_idx - offset.left, batch_end_idx + offset.right - 1
+
+    _check_indices(indices[0], indices[1], offset, len(inputs))
+    batched_data = inputs[slice(*indices)]
+    return batched_data
+
+
+def _add_batched_zero_padding(batched_data: torch.Tensor,
+                              offset: cebra.data.Offset, batch_start_idx: int,
+                              batch_end_idx: int,
+                              num_samples: int) -> torch.Tensor:
+    """Add zero padding to the input data before inference.
+
+    Args:
+        batched_data: Data to apply the inference on.
+        offset (cebra.data.Offset): _description_
+        batch_start_idx: Index of the first sample in the batch.
+        batch_end_idx: Index of the first sample in the batch.
+        num_samples (int): Total number of samples in the data. 
+
+    Returns:
+        The padded batch.
+    """
+    reversed_dims = torch.arange(batched_data.ndim - 1, -1, -1)
+
+    if batch_start_idx == 0:  # First batch
+        batched_data = F.pad(batched_data.permute(*reversed_dims),
+                             (offset.left, 0),
+                             'replicate').permute(*reversed_dims)
+    elif batch_end_idx == num_samples:  # Last batch
+        batched_data = F.pad(batched_data.permute(*reversed_dims),
+                             (0, offset.right - 1),
+                             'replicate').permute(*reversed_dims)
+
+    return batched_data
+
+
+def _inference_transform(model: cebra.models.Model,
+                         inputs: torch.Tensor) -> torch.Tensor:
+    """Compute the embedding on the inputs using the model provided.
+
+    Args:
+        model: Model to use for inference.
+        inputs: Data.
+
+    Returns:
+        The embedding.
+    """
+    #TODO(rodrigo): I am not sure what is the best way with dealing with the types and
     # device when using batched inference. This works for now.
     inputs = inputs.type(torch.FloatTensor).to(next(model.parameters()).device)
 
@@ -66,70 +169,44 @@ def _inference_transform(model, inputs):
     return output
 
 
-def _check_indices(start_batch_idx, end_batch_idx, offset, num_samples):
+def _transform(
+    model: cebra.models.Model,
+    inputs: torch.Tensor,
+    pad_before_transform: bool,
+    offset: cebra.data.Offset,
+) -> torch.Tensor:
+    """Compute the embedding.
 
-    if start_batch_idx < 0 or end_batch_idx < 0:
-        raise ValueError(
-            f"start_batch_idx ({start_batch_idx}) and end_batch_idx ({end_batch_idx}) must be non-negative."
-        )
-    if start_batch_idx > end_batch_idx:
-        raise ValueError(
-            f"start_batch_idx ({start_batch_idx}) cannot be greater than end_batch_idx ({end_batch_idx})."
-        )
-    if end_batch_idx > num_samples:
-        raise ValueError(
-            f"end_batch_idx ({end_batch_idx}) cannot exceed the length of inputs ({num_samples})."
-        )
+    Args:
+        model: The model to use for inference.
+        inputs: Input data.
+        pad_before_transform: If True, the input data is zero padded before inference.
+        offset: Model offset.
 
-    batch_size_lenght = end_batch_idx - start_batch_idx
-    if batch_size_lenght <= len(offset):
-        raise ValueError(
-            f"The batch has length {batch_size_lenght} which "
-            f"is smaller or equal than the required offset length {len(offset)}."
-            f"Either choose a model with smaller offset or the batch shoud contain more samples."
-        )
-
-
-def _get_batch(inputs: torch.Tensor, offset: cebra.data.Offset,
-               start_batch_idx: int, end_batch_idx: int) -> torch.Tensor:
-
-    if start_batch_idx == 0:  # First batch
-        indices = start_batch_idx, (end_batch_idx + offset.right - 1)
-
-    elif end_batch_idx == len(inputs):  # Last batch
-        indices = (start_batch_idx - offset.left), end_batch_idx
-
-    else:  # Middle batches
-        indices = start_batch_idx - offset.left, end_batch_idx + offset.right - 1
-
-    _check_indices(indices[0], indices[1], offset, len(inputs))
-    batched_data = inputs[slice(*indices)]
-    return batched_data
+    Returns:
+        The embedding.
+    """
+    if pad_before_transform:
+        inputs = F.pad(inputs.T, (offset.left, offset.right - 1), 'replicate').T
+    output = _inference_transform(model, inputs)
+    return output
 
 
-def _add_zero_padding(batched_data: torch.Tensor, offset: cebra.data.Offset,
-                      start_batch_idx: int, end_batch_idx: int,
-                      number_of_samples: int):
-
-    reversed_dims = torch.arange(batched_data.ndim - 1, -1, -1)
-    
-    if start_batch_idx == 0:  # First batch
-        batched_data = F.pad(batched_data.permute(*reversed_dims), 
-                                     (offset.left, 0), 'replicate').permute(*reversed_dims)
-        #batched_data = F.pad(batched_data.T, (offset.left, 0), 'replicate').T
-
-    elif end_batch_idx == number_of_samples:  # Last batch
-        batched_data = F.pad(batched_data.permute(*reversed_dims), 
-                                (0, offset.right - 1), 'replicate').permute(*reversed_dims)
-        #batched_data = F.pad(batched_data.T, (0, offset.right - 1), 'replicate').T
-
-
-    return batched_data
-
-
-def _batched_transform(model, inputs: torch.Tensor, batch_size: int,
-                       pad_before_transform: bool,
+def _batched_transform(model: cebra.models.Model, inputs: torch.Tensor,
+                       batch_size: int, pad_before_transform: bool,
                        offset: cebra.data.Offset) -> torch.Tensor:
+    """Compute the embedding on batched inputs.
+
+    Args:
+        model: The model to use for inference.
+        inputs: Input data.
+        batch_size: Integer corresponding to the batch size.
+        pad_before_transform: If True, the input data is zero padded before inference.
+        offset: Model offset.
+
+    Returns:
+        The embedding.
+    """
 
     class IndexDataset(Dataset):
 
@@ -146,19 +223,20 @@ def _batched_transform(model, inputs: torch.Tensor, batch_size: int,
     index_dataloader = DataLoader(index_dataset, batch_size=batch_size)
 
     output = []
-    for batch_id, index_batch in enumerate(index_dataloader):
-        start_batch_idx, end_batch_idx = index_batch[0], index_batch[-1] + 1
+    for index_batch in index_dataloader:
+        batch_start_idx, batch_end_idx = index_batch[0], index_batch[-1] + 1
         batched_data = _get_batch(inputs=inputs,
                                   offset=offset,
-                                  start_batch_idx=start_batch_idx,
-                                  end_batch_idx=end_batch_idx)
+                                  batch_start_idx=batch_start_idx,
+                                  batch_end_idx=batch_end_idx)
 
         if pad_before_transform:
-            batched_data = _add_zero_padding(batched_data=batched_data,
-                                             offset=offset,
-                                             start_batch_idx=start_batch_idx,
-                                             end_batch_idx=end_batch_idx,
-                                             number_of_samples=len(inputs))
+            batched_data = _add_batched_zero_padding(
+                batched_data=batched_data,
+                offset=offset,
+                batch_start_idx=batch_start_idx,
+                batch_end_idx=batch_end_idx,
+                num_samples=len(inputs))
 
         output_batch = _inference_transform(model, batched_data)
         output.append(output_batch)
@@ -265,19 +343,19 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """Total number of parameters in the encoder and criterion."""
         return sum(p.numel() for p in self.parameters())
 
-    def parameters(self):
-        """Iterate over all parameters."""
-        for parameter in self.model.parameters():
-            yield parameter
-
-        for parameter in self.criterion.parameters():
-            yield parameter
+    @abc.abstractmethod
+    def parameters(self, session_id: Optional[int] = None):
+        raise NotImplementedError
 
     def _get_loader(self, loader):
         return ProgressBar(
             loader,
             "tqdm" if self.tqdm_on else "off",
         )
+
+    @abc.abstractmethod
+    def _set_fitted_params(self, loader: cebra.data.Loader):
+        raise NotImplementedError
 
     def fit(
         self,
@@ -306,14 +384,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         TODO:
             * Refine the API here. Drop the validation entirely, and implement this via a hook?
         """
-
-        self.num_sessions = loader.dataset.num_sessions if hasattr(
-            loader.dataset, "num_sessions") else None
-        self.n_features = ([
-            loader.dataset.get_input_dimension(session_id)
-            for session_id in range(loader.dataset.num_sessions)
-        ] if self.num_sessions is not None else loader.dataset.input_dimension)
-
         self.to(loader.device)
 
         iterator = self._get_loader(loader)
@@ -340,6 +410,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 if save_hook is not None:
                     save_hook(num_steps, self)
                 self.save(logdir, f"checkpoint_{num_steps:#07d}.pth")
+
+        self._set_fitted_params(loader)
 
     def step(self, batch: cebra.data.Batch) -> dict:
         """Perform a single gradient update.
@@ -377,8 +449,9 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Args:
             loader: Data loader, which is an iterator over `cebra.data.Batch` instances.
                 Each batch contains reference, positive and negative input samples.
-            session_id: The session ID, an integer between 0 and the number of sessions in the
-                multisession model, set to None for single session.
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
 
         Returns:
             Loss averaged over iterations on data batch.
@@ -412,56 +485,43 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         )
         return decode_metric
 
-    def _select_model(self, inputs: torch.Tensor, session_id: int):
-        #NOTE: In the torch API the inputs will be a torch tensor. Then in the
-        # sklearn API we will convert it to numpy array.
-        """ Select the right model based on the type of solver we have."""
+    @abc.abstractmethod
+    def _check_is_inputs_valid(self, inputs: torch.Tensor, session_id: int):
+        """Check that the inputs can be infered using the selected model.
+        
+        Note: This method checks that the number of neurons in the input is
+        similar to the input dimension to the selected model.
+        
+        Args: 
+            inputs: Data to infer using the selected model.
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+        """
+        raise NotImplementedError
 
-        if self.num_sessions is not None:  # multisession implementation
-            if session_id is None:
-                raise RuntimeError(
-                    "No session_id provided: multisession model requires a session_id to choose the model corresponding to your data shape."
-                )
-            if session_id >= self.num_sessions or session_id < 0:
-                raise RuntimeError(
-                    f"Invalid session_id {session_id}: session_id for the current multisession model must be between 0 and {self.num_sessions-1}."
-                )
-            if self.n_features[session_id] != inputs.shape[1]:
-                raise ValueError(
-                    f"Invalid input shape: model for session {session_id} requires an input of shape"
-                    f"(n_samples, {self.n_features[session_id]}), got (n_samples, {inputs.shape[1]})."
-                )
+    @abc.abstractmethod
+    def _check_is_session_id_valid(self, session_id: Optional[int] = None):
+        raise NotImplementedError
 
-            model = self.model[session_id]
+    @abc.abstractmethod
+    def _select_model(
+        self, inputs: Union[torch.Tensor,
+                            List[torch.Tensor]], session_id: Optional[int]
+    ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
+               cebra.data.datatypes.Offset]:
+        """ Select the model based on the input dimension and session ID.
+        
+        Args: 
+            inputs: Data to infer using the selected model.
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
 
-        else:  # single session
-            if session_id is not None and session_id > 0:
-                raise RuntimeError(
-                    f"Invalid session_id {session_id}: single session models only takes an optional null session_id."
-                )
-
-            if isinstance(
-                    self,
-                    cebra.solver.single_session.SingleSessionHybridSolver):
-                # NOTE: This is different from the sklearn API implementation. The issue is that here the
-                # model is a cebra.models.MultiObjective instance, and therefore to do inference I need
-                # to get the module inside this model.
-                model = self.model.module
-            else:
-                model = self.model
-
-        offset = model.get_offset()
-        return model, offset
-
-    @torch.no_grad()
-    def _transform(self, model, inputs, offset,
-                   pad_before_transform) -> torch.Tensor:
-
-        if pad_before_transform:
-            inputs = F.pad(inputs.T, (offset.left, offset.right - 1),
-                           'replicate').T
-        output = _inference_transform(model, inputs)
-        return output
+        Returns: 
+            The model (first returns) and the offset of the model (second returns).
+        """
+        raise NotImplementedError
 
     @torch.no_grad()
     def transform(self,
@@ -489,17 +549,16 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Returns:
             The output embedding.
         """
-        #TODO: add check like sklearn?
-        # #sklearn_utils_validation.check_is_fitted(self, "n_features_")
+        if not hasattr(self, "n_features"):
+            raise ValueError(
+                f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
+                "appropriate arguments before using this estimator.")
         model, offset = self._select_model(inputs, session_id)
+
+        if len(offset) < 2 and pad_before_transform:
+            pad_before_transform = False
+
         model.eval()
-
-        #TODO: should we add this error?
-        #if len(offset) < 2 and pad_before_transform:
-        #    raise ValueError(
-        #        "Padding does not make sense when the offset of the model is < 2"
-        #    )
-
         if batch_size is not None:
             output = _batched_transform(
                 model=model,
@@ -508,12 +567,11 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 batch_size=batch_size,
                 pad_before_transform=pad_before_transform,
             )
-
         else:
-            output = self._transform(model=model,
-                                     inputs=inputs,
-                                     offset=offset,
-                                     pad_before_transform=pad_before_transform)
+            output = _transform(model=model,
+                                inputs=inputs,
+                                offset=offset,
+                                pad_before_transform=pad_before_transform)
 
         return output
 
@@ -539,6 +597,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """Load the experiment from its checkpoint file.
 
         Args:
+            logdir: Log directory.
             filename (str): Checkpoint name for loading the experiment.
         """
 
@@ -548,6 +607,12 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             return
         checkpoint = torch.load(savepath, map_location=self.device)
         self.load_state_dict(checkpoint, strict=True)
+
+        if hasattr(self.model, "n_features"):
+            n_features = self.model.n_features
+            self.n_features = ([
+                session_n_features for session_n_features in n_features
+            ] if isinstance(n_features, list) else n_features)
 
     def save(self, logdir, filename="checkpoint_last.pth"):
         """Save the model and optimizer params.

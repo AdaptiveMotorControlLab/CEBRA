@@ -83,7 +83,8 @@ def infonce_loss(
             f"got {len(y[0])} sessions.")
 
     model, _ = cebra_model._select_model(
-        X, session_id)  # check session_id validity and corresponding model
+        X, session_id=session_id
+    )  # check session_id validity and corresponding model
     cebra_model._check_labels_types(y, session_id=session_id)
 
     dataset, is_multisession = cebra_model._prepare_data(X, y)  # single session

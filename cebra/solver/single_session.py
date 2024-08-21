@@ -21,11 +21,8 @@
 #
 """Single session solvers embed a single pair of time series."""
 
-import abc
 import copy
-import os
-from collections.abc import Iterable
-from typing import List
+from typing import List, Optional, Tuple, Union
 
 import literate_dataclasses as dataclasses
 import torch
@@ -42,10 +39,71 @@ class SingleSessionSolver(abc_.Solver):
     """Single session training with a symmetric encoder.
 
     This solver assumes that reference, positive and negative samples
-    are processed by the same features encoder.
+    are processed by the same features encoder and that a single session
+    is provided to that encoder.
     """
 
     _variant_name = "single-session"
+
+    def parameters(self, session_id: Optional[int] = None):
+        """Iterate over all parameters."""
+        self._check_is_session_id_valid(session_id=session_id)
+        for parameter in self.model.parameters():
+            yield parameter
+
+        for parameter in self.criterion.parameters():
+            yield parameter
+
+    def _set_fitted_params(self, loader: cebra.data.Loader):
+        self.num_sessions = None
+        self.n_features = loader.dataset.input_dimension
+
+    def _check_is_inputs_valid(self, inputs: torch.Tensor, session_id: int):
+        """Check that the inputs can be infered using the selected model.
+        
+        Note: This method checks that the number of neurons in the input is
+        similar to the input dimension to the selected model.
+        
+        Args: 
+            inputs: Data to infer using the selected model.
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+        """
+        if self.n_features != inputs.shape[1]:
+            raise ValueError(
+                f"Invalid input shape: model for session {session_id} requires an input of shape"
+                f"(n_samples, {self.n_features}), got (n_samples, {inputs.shape[1]})."
+            )
+
+    def _check_is_session_id_valid(self, session_id: Optional[int] = None):
+        if session_id is not None and session_id > 0:
+            raise RuntimeError(
+                f"Invalid session_id {session_id}: single session models only takes an optional null session_id."
+            )
+
+    def _select_model(
+        self, inputs: Union[torch.Tensor,
+                            List[torch.Tensor]], session_id: Optional[int]
+    ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
+               cebra.data.datatypes.Offset]:
+        """ Select the model based on the input dimension and session ID.
+        
+        Args: 
+            inputs: Data to infer using the selected model.
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Returns: 
+            The model (first returns) and the offset of the model (second returns).
+        """
+        self._check_is_inputs_valid(inputs, session_id=session_id)
+        self._check_is_session_id_valid(session_id=session_id)
+
+        model = self.model
+        offset = model.get_offset()
+        return model, offset
 
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
         """Given a batch of input examples, computes the feature representation/embedding.
@@ -94,7 +152,7 @@ class SingleSessionSolver(abc_.Solver):
 
 @register("single-session-aux")
 @dataclasses.dataclass
-class SingleSessionAuxVariableSolver(abc_.Solver):
+class SingleSessionAuxVariableSolver(SingleSessionSolver):
     """Single session training for reference and positive/negative samples.
 
     This solver processes reference samples with a model different from
@@ -131,7 +189,7 @@ class SingleSessionAuxVariableSolver(abc_.Solver):
 
 @register("single-session-hybrid")
 @dataclasses.dataclass
-class SingleSessionHybridSolver(abc_.MultiobjectiveSolver):
+class SingleSessionHybridSolver(abc_.MultiobjectiveSolver, SingleSessionSolver):
     """Single session training, contrasting neural data against behavior."""
 
     _variant_name = "single-session-hybrid"
@@ -148,6 +206,29 @@ class SingleSessionHybridSolver(abc_.MultiobjectiveSolver):
         return cebra.data.Batch(behavior_ref, behavior_pos,
                                 behavior_neg), cebra.data.Batch(
                                     time_ref, time_pos, time_neg)
+
+    def _select_model(
+        self, inputs: Union[torch.Tensor,
+                            List[torch.Tensor]], session_id: Optional[int]
+    ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
+               cebra.data.datatypes.Offset]:
+        """ Select the model based on the input dimension and session ID.
+        
+        Args: 
+            inputs: Data to infer using the selected model.
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Returns: 
+            The model (first returns) and the offset of the model (second returns).
+        """
+        self._check_is_inputs_valid(inputs, session_id=session_id)
+        self._check_is_session_id_valid(session_id=session_id)
+
+        model = self.model.module
+        offset = model.get_offset()
+        return model, offset
 
 
 @register("single-session-full")
