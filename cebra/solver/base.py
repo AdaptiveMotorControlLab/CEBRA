@@ -451,6 +451,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 if logdir is not None:
                     self.save(logdir, f"checkpoint_{num_steps:#07d}.pth")
 
+        self._set_fitted_params(loader)
+
     def step(self, batch: cebra.data.Batch) -> dict:
         """Perform a single gradient update.
 
@@ -610,10 +612,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         if len(offset) < 2 and pad_before_transform:
             pad_before_transform = False
-            
-        if batch_size is not None and batch_size < 1:
-            raise ValueError(
-                f"Batch size should be at least 1, got {batch_size}")
 
         model.eval()
         if batch_size is not None:
@@ -664,6 +662,12 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             return
         checkpoint = torch.load(savepath, map_location=self.device)
         self.load_state_dict(checkpoint, strict=True)
+
+        if hasattr(self.model, "n_features"):
+            n_features = self.model.n_features
+            self.n_features = ([
+                session_n_features for session_n_features in n_features
+            ] if isinstance(n_features, list) else n_features)
 
     def save(self, logdir, filename="checkpoint_last.pth"):
         """Save the model and optimizer params.
