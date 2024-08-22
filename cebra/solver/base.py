@@ -296,7 +296,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             the model was trained with.
         """
 
-        return {
+        state_dict = {
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
             "loss": torch.tensor(self.history),
@@ -305,6 +305,13 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             "version": cebra.__version__,
             "log": self.log,
         }
+
+        if hasattr(self, "n_features"):
+            state_dict["n_features"] = self.n_features
+        if hasattr(self, "num_sessions"):
+            state_dict["num_sessions"] = self.num_sessions
+
+        return state_dict
 
     def load_state_dict(self, state_dict: dict, strict: bool = True):
         """Update the solver state with the given state_dict.
@@ -342,6 +349,12 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             self.decode_history = _get("decode")
         if _contains("log"):
             self.log = _get("log")
+
+        # Not defined if the model was saved before being fitted.
+        if "n_features" in state_dict:
+            self.n_features = _get("n_features")
+        if "num_sessions" in state_dict:
+            self.num_sessions = _get("num_sessions")
 
     @property
     def num_parameters(self) -> int:
@@ -632,11 +645,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             return
         checkpoint = torch.load(savepath, map_location=self.device)
         self.load_state_dict(checkpoint, strict=True)
-
-        n_features = self.n_features
-        self.n_features = ([
-            session_n_features for session_n_features in n_features
-        ] if isinstance(n_features, list) else n_features)
 
     def save(self, logdir, filename="checkpoint.pth"):
         """Save the model and optimizer params.
