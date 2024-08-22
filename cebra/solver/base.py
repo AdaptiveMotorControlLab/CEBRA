@@ -668,13 +668,12 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         checkpoint = torch.load(savepath, map_location=self.device)
         self.load_state_dict(checkpoint, strict=True)
 
-        if hasattr(self.model, "n_features"):
-            n_features = self.model.n_features
-            self.n_features = ([
-                session_n_features for session_n_features in n_features
-            ] if isinstance(n_features, list) else n_features)
+        n_features = self.n_features
+        self.n_features = ([
+            session_n_features for session_n_features in n_features
+        ] if isinstance(n_features, list) else n_features)
 
-    def save(self, logdir, filename="checkpoint_last.pth"):
+    def save(self, logdir, filename="checkpoint.pth"):
         """Save the model and optimizer params.
 
         Args:

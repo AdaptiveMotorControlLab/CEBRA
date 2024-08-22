@@ -20,6 +20,7 @@
 # limitations under the License.
 #
 import copy
+import itertools
 import tempfile
 
 import numpy as np
@@ -188,6 +189,12 @@ def test_single_session(data_name, loader_initfunc, model_architecture,
 
     for param in solver.parameters():
         assert isinstance(param, torch.Tensor)
+
+    fitted_solver = copy.deepcopy(solver)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        solver.save(temp_dir)
+        solver.load(temp_dir)
+    _assert_equal(fitted_solver, solver)
 
 
     embedding = solver.transform(X)
@@ -379,6 +386,12 @@ def test_multi_session(data_name, loader_initfunc, model_architecture,
     with pytest.raises(RuntimeError, match="No.*session_id"):
         for param in solver.parameters():
             assert isinstance(param, torch.Tensor)
+
+    fitted_solver = copy.deepcopy(solver)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        solver.save(temp_dir)
+        solver.load(temp_dir)
+    _assert_equal(fitted_solver, solver)
 
 
 @pytest.mark.parametrize(
