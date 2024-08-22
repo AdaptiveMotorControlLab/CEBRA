@@ -1417,6 +1417,11 @@ class CEBRA(BaseEstimator, TransformerMixin):
         else:
             cebra_ = _check_type_checkpoint(checkpoint)
 
+        n_features = cebra_.n_features_
+        cebra_.solver_.n_features = ([
+            session_n_features for session_n_features in n_features
+        ] if isinstance(n_features, list) else n_features)
+
         return cebra_
 
     def to(self, device: Union[str, torch.device]):

@@ -19,7 +19,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import copy
 import itertools
+import tempfile
 
 import numpy as np
 import pytest
@@ -91,6 +93,48 @@ def _make_model(dataset, model_architecture="offset10-model"):
 #     )
 
 
+def _assert_same_state_dict(first, second):
+    assert first.keys() == second.keys()
+    for key in first:
+        if isinstance(first[key], torch.Tensor):
+            assert torch.allclose(first[key], second[key]), key
+        elif isinstance(first[key], dict):
+            _assert_same_state_dict(first[key], second[key]), key
+        else:
+            assert first[key] == second[key]
+
+
+def check_if_fit(model):
+    """Check if a model was already fit.
+
+    Args:
+        model: The model to check.
+
+    Returns:
+        True if the model was already fit.
+    """
+    return hasattr(model, "n_features_")
+
+
+def _assert_equal(original_solver, loaded_solver):
+    for k in original_solver.model.state_dict():
+        assert original_solver.model.state_dict()[k].all(
+        ) == loaded_solver.model.state_dict()[k].all()
+    assert check_if_fit(loaded_solver) == check_if_fit(original_solver)
+
+    if check_if_fit(loaded_solver):
+        _assert_same_state_dict(original_solver.state_dict_,
+                                loaded_solver.state_dict_)
+        X = np.random.normal(0, 1, (100, 1))
+
+        if loaded_solver.num_sessions is not None:
+            assert np.allclose(loaded_solver.transform(X, session_id=0),
+                               original_solver.transform(X, session_id=0))
+        else:
+            assert np.allclose(loaded_solver.transform(X),
+                               original_solver.transform(X))
+
+
 @pytest.mark.parametrize(
     "data_name, loader_initfunc, model_architecture, solver_initfunc",
     single_session_tests)
@@ -143,6 +187,12 @@ def test_single_session(data_name, loader_initfunc, model_architecture,
 
     for param in solver.parameters():
         assert isinstance(param, torch.Tensor)
+
+    fitted_solver = copy.deepcopy(solver)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        solver.save(temp_dir)
+        solver.load(temp_dir)
+    _assert_equal(fitted_solver, solver)
 
 
 @pytest.mark.parametrize(
@@ -225,6 +275,12 @@ def test_single_session_hybrid(data_name, loader_initfunc, model_architecture,
     for param in solver.parameters():
         assert isinstance(param, torch.Tensor)
 
+    fitted_solver = copy.deepcopy(solver)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        solver.save(temp_dir)
+        solver.load(temp_dir)
+    _assert_equal(fitted_solver, solver)
+
 
 @pytest.mark.parametrize(
     "data_name, loader_initfunc, model_architecture, solver_initfunc",
@@ -301,6 +357,12 @@ def test_multi_session(data_name, loader_initfunc, model_architecture,
     with pytest.raises(RuntimeError, match="No.*session_id"):
         for param in solver.parameters():
             assert isinstance(param, torch.Tensor)
+
+    fitted_solver = copy.deepcopy(solver)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        solver.save(temp_dir)
+        solver.load(temp_dir)
+    _assert_equal(fitted_solver, solver)
 
 
 @pytest.mark.parametrize(
