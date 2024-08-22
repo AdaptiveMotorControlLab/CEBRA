@@ -776,8 +776,6 @@ class CEBRA(BaseEstimator, TransformerMixin):
                             f"receptive fields/offsets larger than 1 via the sklearn API. "
                             f"Please use a different model, or revert to the pytorch "
                             f"API for training.")
-
-                d.configure_for(model[n])
         else:
             if not isinstance(model, cebra.models.ConvolutionalModelMixin):
                 if len(model.get_offset()) > 1:
@@ -787,7 +785,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
                         f"Please use a different model, or revert to the pytorch "
                         f"API for training.")
 
-            dataset.configure_for(model)
+        dataset.configure_for(model)
 
     def _select_model(self, X: Union[npt.NDArray, torch.Tensor],
                       session_id: int):

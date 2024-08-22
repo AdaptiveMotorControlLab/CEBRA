@@ -111,6 +111,18 @@ class MultiSessionDataset(cebra_data.Dataset):
         for session in self.iter_sessions():
             session.configure_for(model)
 
+    def configure_for(self, model: "cebra.models.Model"):
+        """Configure the dataset offset for the provided model.
+
+        Call this function before indexing the dataset. This sets the
+        :py:attr:`offset` attribute of the dataset.
+
+        Args:
+            model: The model to configure the dataset for.
+        """
+        for i, session in enumerate(self.iter_sessions()):
+            session.configure_for(model[i])
+
 
 @dataclasses.dataclass
 class MultiSessionLoader(cebra_data.Loader):
@@ -120,8 +132,6 @@ class MultiSessionLoader(cebra_data.Loader):
     Note that if samples within different sessions share the same feature
     dimension, it is better to use a :py:class:`cebra.data.single_session.MixedDataLoader`.
     """
-
-    time_offset: int = dataclasses.field(default=10)
 
     def __post_init__(self):
         super().__post_init__()
@@ -151,7 +161,6 @@ class ContinuousMultiSessionDataLoader(MultiSessionLoader):
     """Contrastive learning conditioned on a continuous behavior variable."""
 
     conditional: str = "time_delta"
-    time_offset: int = dataclasses.field(default=10)
 
     @property
     def index(self):

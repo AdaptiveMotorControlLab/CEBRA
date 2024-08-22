@@ -37,6 +37,7 @@ from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
 
 import literate_dataclasses as dataclasses
 import numpy as np
+import numpy.typing as npt
 import torch
 import torch.nn.functional as F
 import tqdm
@@ -89,32 +90,6 @@ def _check_indices(batch_start_idx: int, batch_end_idx: int,
         )
 
 
-def _get_batch(inputs: torch.Tensor, offset: cebra.data.Offset,
-               batch_start_idx: int, batch_end_idx: int) -> torch.Tensor:
-    """Get a batch of samples between the `batch_start_idx` and `batch_end_idx`.
-
-    Args:
-        inputs: Input data.
-        offset: Model offset.
-        batch_start_idx: Index of the first sample in the batch.
-        batch_end_idx: Index of the first sample in the batch.
-
-    Returns:
-        The batch.
-    """
-
-    if batch_start_idx == 0:  # First batch
-        indices = batch_start_idx, (batch_end_idx + offset.right - 1)
-    elif batch_end_idx == len(inputs):  # Last batch
-        indices = (batch_start_idx - offset.left), batch_end_idx
-    else:
-        indices = batch_start_idx - offset.left, batch_end_idx + offset.right - 1
-
-    _check_indices(indices[0], indices[1], offset, len(inputs))
-    batched_data = inputs[slice(*indices)]
-    return batched_data
-
-
 def _add_batched_zero_padding(batched_data: torch.Tensor,
                               offset: cebra.data.Offset, batch_start_idx: int,
                               batch_end_idx: int,
@@ -145,6 +120,45 @@ def _add_batched_zero_padding(batched_data: torch.Tensor,
     return batched_data
 
 
+def _get_batch(inputs: torch.Tensor, offset: Optional[cebra.data.Offset],
+               batch_start_idx: int, batch_end_idx: int,
+               pad_before_transform: bool) -> torch.Tensor:
+    """Get a batch of samples between the `batch_start_idx` and `batch_end_idx`.
+
+    Args:
+        inputs: Input data.
+        offset: Model offset.
+        batch_start_idx: Index of the first sample in the batch.
+        batch_end_idx: Index of the first sample in the batch.
+        pad_before_transform: If True zero-pad the batched data.
+
+    Returns:
+        The batch.
+    """
+    if offset is None:
+        raise ValueError(f"offset cannot be null.")
+
+    if batch_start_idx == 0:  # First batch
+        indices = batch_start_idx, (batch_end_idx + offset.right - 1)
+    elif batch_end_idx == len(inputs):  # Last batch
+        indices = (batch_start_idx - offset.left), batch_end_idx
+    else:
+        indices = batch_start_idx - offset.left, batch_end_idx + offset.right - 1
+
+    _check_indices(indices[0], indices[1], offset, len(inputs))
+    batched_data = inputs[slice(*indices)]
+
+    if pad_before_transform:
+        batched_data = _add_batched_zero_padding(
+            batched_data=batched_data,
+            offset=offset,
+            batch_start_idx=batch_start_idx,
+            batch_end_idx=batch_end_idx,
+            num_samples=len(inputs))
+
+    return batched_data
+
+
 def _inference_transform(model: cebra.models.Model,
                          inputs: torch.Tensor) -> torch.Tensor:
     """Compute the embedding on the inputs using the model provided.
@@ -156,9 +170,7 @@ def _inference_transform(model: cebra.models.Model,
     Returns:
         The embedding.
     """
-    #TODO(rodrigo): I am not sure what is the best way with dealing with the types and
-    # device when using batched inference. This works for now.
-    inputs = inputs.type(torch.FloatTensor).to(next(model.parameters()).device)
+    inputs = inputs.float().to(next(model.parameters()).device)
 
     if isinstance(model, cebra.models.ConvolutionalModelMixin):
         # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
@@ -228,15 +240,8 @@ def _batched_transform(model: cebra.models.Model, inputs: torch.Tensor,
         batched_data = _get_batch(inputs=inputs,
                                   offset=offset,
                                   batch_start_idx=batch_start_idx,
-                                  batch_end_idx=batch_end_idx)
-
-        if pad_before_transform:
-            batched_data = _add_batched_zero_padding(
-                batched_data=batched_data,
-                offset=offset,
-                batch_start_idx=batch_start_idx,
-                batch_end_idx=batch_end_idx,
-                num_samples=len(inputs))
+                                  batch_end_idx=batch_end_idx,
+                                  pad_before_transform=pad_before_transform)
 
         output_batch = _inference_transform(model, batched_data)
         output.append(output_batch)
@@ -549,6 +554,15 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Returns:
             The output embedding.
         """
+        if isinstance(inputs, list):
+            raise NotImplementedError(
+                "Inputs to transform() should be the data for a single session."
+            )
+
+        elif not isinstance(inputs, torch.Tensor):
+            raise ValueError(
+                f"Inputs should be a torch.Tensor, not {type(inputs)}.")
+
         if not hasattr(self, "n_features"):
             raise ValueError(
                 f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "

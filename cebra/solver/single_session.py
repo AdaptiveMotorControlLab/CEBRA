@@ -227,7 +227,10 @@ class SingleSessionHybridSolver(abc_.MultiobjectiveSolver, SingleSessionSolver):
         self._check_is_session_id_valid(session_id=session_id)
 
         model = self.model.module
-        offset = model.get_offset()
+        if hasattr(model, 'get_offset'):
+            offset = model.get_offset()
+        else:
+            offset = None
         return model, offset
 
 
