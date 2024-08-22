@@ -38,6 +38,7 @@ from typing import Callable, Dict, Iterable, List, Literal, Optional, Union
 import literate_dataclasses as dataclasses
 import numpy.typing as npt
 import numpy as np
+import numpy.typing as npt
 import torch
 import torch.nn.functional as F
 import tqdm
@@ -569,8 +570,12 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         raise NotImplementedError
 
     @property
-    def is_fitted(self):
-        return hasattr(self, "n_features")
+    def _check_is_fitted(self):
+        #NOTE(celia): instead of hasattr(model, "n_features_"), double check this!
+        if not (hasattr(self, "history") and len(self.history) > 0):
+            raise ValueError(
+                f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
+                "appropriate arguments before using this estimator.")
 
     @torch.no_grad()
     def transform(self,

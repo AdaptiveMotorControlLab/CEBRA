@@ -116,6 +116,18 @@ class MultiSessionDataset(cebra_data.Dataset):
         for i, session in enumerate(self.iter_sessions()):
             session.configure_for(model[i])
 
+    def configure_for(self, model: "cebra.models.Model"):
+        """Configure the dataset offset for the provided model.
+
+        Call this function before indexing the dataset. This sets the
+        :py:attr:`offset` attribute of the dataset.
+
+        Args:
+            model: The model to configure the dataset for.
+        """
+        for i, session in enumerate(self.iter_sessions()):
+            session.configure_for(model[i])
+
 
 @dataclasses.dataclass
 class MultiSessionLoader(cebra_data.Loader):
