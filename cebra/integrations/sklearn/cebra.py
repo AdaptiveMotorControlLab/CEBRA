@@ -1196,8 +1196,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> embedding = cebra_model.transform(dataset)
 
         """
-        self.solver_._check_is_session_id_valid(session_id=session_id)
         sklearn_utils_validation.check_is_fitted(self, "n_features_")
+        self.solver_._check_is_session_id_valid(session_id=session_id)
 
         if torch.is_tensor(X) and X.device.type == "cuda":
             X = X.detach().cpu()
