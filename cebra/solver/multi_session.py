@@ -126,6 +126,17 @@ class MultiSessionSolver(abc_.Solver):
         )
 
     def _set_fitted_params(self, loader: cebra.data.Loader):
+        """Set parameters once the solver is fitted.
+        
+        In multi session solver, the number of session is set to the number of
+        sessions in the dataset of the loader and the number of
+        features is set as a list corresponding to the number of neurons in 
+        each dataset.
+
+        Args:
+            loader: Loader used to fit the solver.
+        """
+
         self.num_sessions = loader.dataset.num_sessions
         self.n_features = [
             loader.dataset.get_input_dimension(session_id)
@@ -152,6 +163,14 @@ class MultiSessionSolver(abc_.Solver):
             )
 
     def _check_is_session_id_valid(self, session_id: Optional[int]):
+        """Check that the session ID provided is valid for the solver instance.
+        
+        The session ID must be non-null and between 0 and the number session in the dataset.
+        
+        Args: 
+            session_id: The session ID to check.
+        """
+
         if session_id is None:
             raise RuntimeError(
                 "No session_id provided: multisession model requires a session_id to choose the model corresponding to your data shape."

@@ -55,6 +55,14 @@ class SingleSessionSolver(abc_.Solver):
             yield parameter
 
     def _set_fitted_params(self, loader: cebra.data.Loader):
+        """Set parameters once the solver is fitted.
+        
+        In single session solver, the number of session is set to None and the number of
+        features is set to the number of neurons in the dataset.
+
+        Args:
+            loader: Loader used to fit the solver.
+        """
         self.num_sessions = None
         self.n_features = loader.dataset.input_dimension
 
@@ -77,6 +85,14 @@ class SingleSessionSolver(abc_.Solver):
             )
 
     def _check_is_session_id_valid(self, session_id: Optional[int] = None):
+        """Check that the session ID provided is valid for the solver instance.
+        
+        The session ID must be null or equal to 0.
+        
+        Args: 
+            session_id: The session ID to check.
+        """
+
         if session_id is not None and session_id > 0:
             raise RuntimeError(
                 f"Invalid session_id {session_id}: single session models only takes an optional null session_id."

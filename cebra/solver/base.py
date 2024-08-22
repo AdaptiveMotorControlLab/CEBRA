@@ -360,6 +360,12 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
     @abc.abstractmethod
     def _set_fitted_params(self, loader: cebra.data.Loader):
+        """Set parameters once the solver is fitted.
+
+        Args:
+            loader: Loader used to fit the solver.
+        """
+
         raise NotImplementedError
 
     def fit(
@@ -507,6 +513,11 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
     @abc.abstractmethod
     def _check_is_session_id_valid(self, session_id: Optional[int] = None):
+        """Check that the session ID provided is valid for the solver instance.
+        
+        Args: 
+            session_id: The session ID to check.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -530,7 +541,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
     @torch.no_grad()
     def transform(self,
-                  inputs: torch.Tensor,
+                  inputs: Union[torch.Tensor, List[torch.Tensor], npt.NDArray],
                   pad_before_transform: bool = True,
                   session_id: Optional[int] = None,
                   batch_size: Optional[int] = None) -> torch.Tensor:
