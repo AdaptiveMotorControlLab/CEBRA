@@ -25,8 +25,6 @@ from collections.abc import Iterable
 from typing import Dict
 
 import literate_dataclasses as dataclasses
-import numpy as np
-import torch
 import tqdm
 
 
