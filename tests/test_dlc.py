@@ -41,8 +41,7 @@ ANNOTATED_DLC_URL = "https://cebra.fra1.digitaloceanspaces.com/CollectedData_Mac
 # https://github.com/DeepLabCut/UnitTestData/raw/main/data.zip")
 # which is replaced here due to rate limitations we observed in the past.
 MULTISESSION_PRED_DLC_URL = (
-    "https://cebra.fra1.digitaloceanspaces.com/data.zip"
-)
+    "https://cebra.fra1.digitaloceanspaces.com/data.zip")
 
 MULTISESSION_PRED_KEYPOINTS = ["head", "tail"]
 ANNOTATED_KEYPOINTS = ["Hand", "Tongue"]
