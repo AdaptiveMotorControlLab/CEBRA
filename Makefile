@@ -24,6 +24,9 @@ test: clean_test
 doctest: clean_test
 	python -m pytest --ff --doctest-modules -vvv ./docs/source/usage.rst
 
+docker:
+	./tools/build_docker.sh
+
 test_parallel: clean_test
 	python -m pytest -n auto --ff -m "not requires_dataset"  tests
 
@@ -98,4 +101,7 @@ report: check_docker format .coverage .pylint
 	cat .pylint
 	coverage report
 
-.PHONY: dist build archlinux clean_test test doctest test_parallel test_parallel_debug test_all test_fast test_debug test_benchmark interrogate docs docs-touch docs-strict serve_docs serve_page format codespell check_for_binary
+.PHONY: dist build docker archlinux clean_test test doctest test_parallel \
+	test_parallel_debug test_all test_fast test_debug test_benchmark \
+	interrogate docs docs-touch docs-strict serve_docs serve_page \
+	format codespell check_for_binary

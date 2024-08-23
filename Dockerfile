@@ -1,15 +1,13 @@
 ## EXPERIMENT BASE CONTAINER
-FROM nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04 AS cebra-base
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04 AS cebra-base
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -y \
 	&& apt-get install --no-install-recommends -yy git python3 python3-pip python-is-python3 \
 	&& rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir torch==2.0.0+cu117 \
-	--index-url https://download.pytorch.org/whl/cu117
-RUN pip install --no-cache-dir --pre 'cebra[dev,datasets,integrations]' \
-	&& pip uninstall -y cebra
+RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu124
+RUN pip install --upgrade pip
 
 
 ## GIT repository
