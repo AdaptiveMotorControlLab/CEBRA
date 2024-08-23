@@ -35,13 +35,13 @@ from cebra import load_data
 # /Reaching-Mackenzie-2018-08-30/labeled-data/reachingvideo1
 # /CollectedData_Mackenzie.h5?raw=true
 # which is replaced here due to rate limitations we observed in the past.
-ANNOTATED_DLC_URL = "https://figshare.com/ndownloader/files/42303564?private_link=b917317bfab725e0b207"
+ANNOTATED_DLC_URL = "https://cebra.fra1.digitaloceanspaces.com/CollectedData_Mackenzie.h5"
 
 # NOTE(stes): The original data URL is
 # https://github.com/DeepLabCut/UnitTestData/raw/main/data.zip")
 # which is replaced here due to rate limitations we observed in the past.
 MULTISESSION_PRED_DLC_URL = (
-    "https://figshare.com/ndownloader/files/42303561?private_link=b917317bfab725e0b207"
+    "https://cebra.fra1.digitaloceanspaces.com/data.zip"
 )
 
 MULTISESSION_PRED_KEYPOINTS = ["head", "tail"]
