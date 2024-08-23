@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build, test and push cebra container.
 
-set -xe
+set -e
 
 if [[ -z $(git status --porcelain) ]]; then
   TAG=$(git rev-parse --short HEAD)
@@ -16,17 +16,12 @@ echo Building $DOCKERNAME
 
 #docker login <your registry>
 
-if [[ "$1" -ne "dev" ]]; then
-  docker build \
-  	--build-arg UID=$(id -u) \
-  	--build-arg GID=$(id -g) \
-  	--build-arg GIT_HASH=$(git rev-parse HEAD) \
-         	-t $DOCKERNAME .
-  docker tag $DOCKERNAME $LATEST
-  extra_kwargs=()
-else
-  extra_kwargs=( -v .:/local-dev -w /local-dev )
-fi
+docker build \
+--build-arg UID=$(id -u) \
+--build-arg GID=$(id -g) \
+--build-arg GIT_HASH=$(git rev-parse HEAD) \
+	-t $DOCKERNAME .
+docker tag $DOCKERNAME $LATEST
 
 docker run \
   --gpus 2 \
