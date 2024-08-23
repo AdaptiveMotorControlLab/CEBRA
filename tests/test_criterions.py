@@ -347,7 +347,7 @@ def test_infonce_gradients(seed, case):
         if grad[1] is not None:
             assert torch.allclose(grad[1], torch.zeros_like(grad[1]))
     if case == 2:
-        if grad[0] is None:
+        if grad[0] is not None:
             assert torch.allclose(grad[0], torch.zeros_like(grad[0]))
         assert grad[1] is not None
         assert torch.allclose(grad_ref[1], grad[1])
