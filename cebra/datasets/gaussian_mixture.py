@@ -19,6 +19,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import pathlib
 from typing import Tuple
 
 import joblib as jl
@@ -51,7 +52,8 @@ class ContinuousGaussianMixtureDataset(cebra.data.SingleSessionDataset):
         super().__init__()
         self.noise = noise
         data = jl.load(
-            get_datapath(f"synthetic/continuous_label_{self.noise}.jl"))
+            pathlib.Path(_DEFAULT_DATADIR) / "synthetic" /
+            f"continuous_label_{self.noise}.jl")
         self.latent = data["z"]
         self.index = torch.from_numpy(data["u"]).float()
         self.neural = torch.from_numpy(data["x"]).float()

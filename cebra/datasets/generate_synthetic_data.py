@@ -25,7 +25,7 @@ References:
     Adapted from pi-VAE: https://github.com/zhd96/pi-vae/blob/main/code/pi_vae.py
 """
 import argparse
-import os
+import pathlib
 import sys
 
 import joblib as jl
@@ -245,5 +245,5 @@ if __name__ == "__main__":
             "lam": lam_true,
             "x": x
         },
-        os.path.join(args.save_path, f"continuous_label_{args.noise}.jl"),
+        pathlib.Path(args.save_path) / f"continuous_label_{args.noise}.jl",
     )

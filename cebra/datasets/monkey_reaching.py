@@ -29,8 +29,9 @@ References:
 """
 
 import hashlib
-import os
+import pathlib
 import pickle as pk
+from typing import Union
 
 import joblib as jl
 import numpy as np
@@ -41,10 +42,11 @@ import cebra.data
 from cebra.datasets import get_datapath
 from cebra.datasets import register
 
+_DEFAULT_DATADIR = get_datapath()
+
 
 def _load_data(
-    path: str = get_datapath(
-        "s1_reaching/sub-Han_desc-train_behavior+ecephys.nwb"),
+    path: Union[str, pathlib.Path] = None,
     session: str = "active",
     split: str = "train",
 ):
@@ -60,6 +62,13 @@ def _load_data(
         split: The split to load among 'train', 'valid', 'test' and 'all'.
 
     """
+
+    if path is None:
+        path = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "s1_reaching" / "sub-Han_desc-train_behavior+ecephys.nwb"
+    else:
+        path = pathlib.Path(path)
 
     try:
         from nlb_tools.nwb_interface import NWBDataset
@@ -259,7 +268,7 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
         )
 
         self.data = jl.load(
-            os.path.join(self.path, f"{self.load_session}_all.jl"))
+            pathlib.Path(self.path) / f"{self.load_session}_all.jl")
         self._post_load()
 
     def split(self, split):
@@ -285,7 +294,7 @@ class Area2BumpDataset(cebra.data.SingleSessionDataset):
             file_name=f"{self.load_session}_{split}.jl",
         )
         self.data = jl.load(
-            os.path.join(self.path, f"{self.load_session}_{split}.jl"))
+            pathlib.Path(self.path) / f"{self.load_session}_{split}.jl")
         self._post_load()
 
     def _post_load(self):
@@ -407,7 +416,7 @@ def _create_area2_dataset():
 
     """
 
-    PATH = get_datapath("monkey_reaching_preload_smth_40")
+    PATH = pathlib.Path(_DEFAULT_DATADIR) / "monkey_reaching_preload_smth_40"
     for session_type in ["active", "passive", "active-passive", "all"]:
 
         @register(f"area2-bump-pos-{session_type}")
@@ -506,7 +515,7 @@ def _create_area2_shuffled_dataset():
 
     """
 
-    PATH = get_datapath("monkey_reaching_preload_smth_40/")
+    PATH = pathlib.Path(_DEFAULT_DATADIR) / "monkey_reaching_preload_smth_40"
     for session_type in ["active", "active-passive"]:
 
         @register(f"area2-bump-pos-{session_type}-shuffled-trial")
