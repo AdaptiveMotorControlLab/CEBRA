@@ -259,3 +259,127 @@ class MultisessionSampler(cebra_distr.PriorDistribution,
         for i in range(self.num_sessions):
             pos_samples[i] = self.data[i][pos_idx[i]]
         return pos_samples
+
+
+class DiscreteMultisessionSampler(cebra_distr.PriorDistribution,
+                                  cebra_distr.ConditionalDistribution):
+    """Discrete multi-session sampling.
+
+    Discrete indices don't need to be aligned. Positive pairs are found
+    by matching the discrete index in randomly assigned sessions.
+
+    After data processing, the dimensionality of the returned features
+    matches. The resulting embeddings can be concatenated, and shuffling
+    (across the session axis) can be applied to the reference samples, or
+    reversed for the positive samples.
+
+    TODO:
+        * Add better CUDA support and refactor ``numpy`` implementation.
+    """
+
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+        # TODO(stes): implement in pytorch
+        self.all_data = self.dataset.discrete_index.cpu().numpy()
+        self.session_lengths = np.array(self.dataset.session_lengths)
+
+        self.lengths = np.cumsum(self.session_lengths)
+        self.lengths[1:] = self.lengths[:-1]
+        self.lengths[0] = 0
+
+        self.index = [
+            cebra_distr.DiscreteUniform(
+                dataset.discrete_index.int().to(_device))
+            for dataset in self.dataset.iter_sessions()
+        ]
+
+    @property
+    def num_sessions(self) -> int:
+        """The number of sessions in the index."""
+        return len(self.lengths)
+
+    def mix(self, array: np.ndarray, idx: np.ndarray):
+        """Re-order array elements according to the given index mapping.
+
+        The given array should be of the shape ``(session, batch, ...)`` and the
+        indices should have length ``session x batch``, representing a mapping
+        between indices.
+
+        The resulting array will be rearranged such that
+        ``out.reshape(session*batch, -1)[i] = array.reshape(session*batch, -1)[idx[i]]``
+
+        For the inverse mapping, convert the indices first using ``_invert_index``
+        function.
+
+        Args:
+            array: A 2D matrix containing samples for each session.
+            idx: A list of indexes to re-order ``array`` on.
+        """
+        n, m = array.shape[:2]
+        return array.reshape(n * m, -1)[idx].reshape(array.shape)
+
+    def sample_prior(self, num_samples):
+        # TODO(stes) implement empirical/uniform resampling
+        ref_idx = np.random.uniform(0, 1, (self.num_sessions, num_samples))
+        ref_idx = (ref_idx * self.session_lengths[:, None]).astype(int)
+        return ref_idx
+
+    def sample_conditional(self, idx: torch.Tensor) -> torch.Tensor:
+        """Sample from the conditional distribution.
+
+        Note:
+            * Reference samples are sampled equally between sessions.
+            * In order to guarantee the same number of positive samples per
+              session, reference samples are randomly assigned to a session and its
+              corresponding positive sample is searched in that session only.
+            * As a result, ref/pos pairing is shuffled and can be recovered
+              the reverse shuffle operation.
+
+        Args:
+            idx: Reference indices, with dimension ``(session, batch)``.
+
+        Returns:
+            Positive indices (1st return value), which will be grouped by
+            session and *not* match the reference indices.
+            In addition, a mapping will be returned to apply the same shuffle operation
+            that was applied to assign reference samples to a session along session/batch dimension
+            (2nd return value), or reverse the shuffle operation (3rd return value).
+            Returned shapes are ``(session, batch), (session, batch), (session, batch)``.
+
+        TODO:
+            * re-implement in pytorch for additional speed gains
+        """
+
+        shape = idx.shape
+        # TODO(stes) unclear why we cannot restrict to 2d overall
+        # idx has shape (2, #samples per batch)
+        s = idx.shape[:2]
+        idx_all = (idx + self.lengths[:, None]).flatten()
+
+        # get discrete indices
+        query = self.all_data[idx_all]
+
+        # shuffle operation to assign each index to a session
+        idx = np.random.permutation(len(query))
+
+        # TODO this part fails in Pytorch
+        # apply shuffle
+        query = query[idx.reshape(s)]
+        query = torch.from_numpy(query).to(_device)
+
+        # sample conditional for each assigned session
+        pos_idx = torch.zeros(shape, device=_device).long()
+        for i in range(self.num_sessions):
+            pos_idx[i] = self.index[i].sample_conditional(query[i])
+        pos_idx = pos_idx.cpu().numpy()
+
+        # reverse indices to recover the ref/pos samples matching
+        idx_rev = _invert_index(idx)
+        return pos_idx, idx, idx_rev
+
+    def __getitem__(self, pos_idx):
+        pos_samples = np.zeros(pos_idx.shape[:2] + (self.data.shape[2],))
+        for i in range(self.num_sessions):
+            pos_samples[i] = self.data[i][pos_idx[i]]
+        return pos_samples

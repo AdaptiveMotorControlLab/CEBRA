@@ -6,17 +6,17 @@ tf.log has edited to tf.math.log.
 
 import tensorflow as tf
 #print(tf.__version__)
-from keras.models import Sequential
-from keras.optimizers import Adam
-from keras import layers
-from keras.models import Model
-from keras import losses
-from keras.layers.core import Lambda
-from keras import backend as K
-from keras.callbacks import ModelCheckpoint
-from keras.activations import softplus
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras import layers
+from tensorflow.keras.models import Model
+from tensorflow.keras import losses
+from tensorflow.keras.layers import Lambda
+from tensorflow.keras import backend as K
+from tensorflow.keras.callbacks import ModelCheckpoint
+from tensorflow.keras.activations import softplus
 import numpy as np
-from keras.callbacks import LearningRateScheduler
+from tensorflow.keras.callbacks import LearningRateScheduler
 
 eps = 1e-7;
 

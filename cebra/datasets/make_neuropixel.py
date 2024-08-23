@@ -171,7 +171,7 @@ def read_neuropixel(
 ):
     """Load 120Hz Neuropixels data recorded in the specified cortex during the movie1 stimulus.
 
-    The Neuropixels recordin is filtered and transformed to spike counts in a bin size specified by the sampling rat.
+    The Neuropixels recording is filtered and transformed to spike counts in a bin size specified by the sampling rat.
 
     Args:
         path: The wildcard file path where the neuropixels .nwb files are located.

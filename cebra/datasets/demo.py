@@ -111,15 +111,17 @@ class DemoDatasetMixed(DemoDataset):
         return self.dindex
 
 
-# TODO(stes) remove this from the demo datasets until multi-session training
-# with discrete indices is implemented in the sklearn API.
-# @register("demo-discrete-multisession")
+@register("demo-discrete-multisession")
 class MultiDiscrete(cebra.data.DatasetCollection):
     """Demo dataset for testing."""
 
-    def __init__(self, nums_neural=[3, 4, 5]):
+    def __init__(
+        self,
+        nums_neural=[3, 4, 5],
+        num_timepoints=_DEFAULT_NUM_TIMEPOINTS,
+    ):
         super().__init__(*[
-            DemoDatasetDiscrete(_DEFAULT_NUM_TIMEPOINTS, num_neural)
+            DemoDatasetDiscrete(num_timepoints, num_neural)
             for num_neural in nums_neural
         ])
 

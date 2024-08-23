@@ -108,7 +108,7 @@ intersphinx_mapping = {
     "sklearn": ("https://scikit-learn.org/stable", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
-    "pandas": ("http://pandas.pydata.org/pandas-docs/dev", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
     "scipy": ("http://docs.scipy.org/doc/scipy/reference/", None),
     "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
     "plotly": ("https://plotly.com/python-api-reference/", None)
