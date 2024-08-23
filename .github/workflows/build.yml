@@ -18,7 +18,7 @@ jobs:
         # We aim to support the versions on pytorch.org
         # as well as selected previous versions on
         # https://pytorch.org/get-started/previous-versions/
-        torch-version: ["1.12.1", "2.0.0"]
+        torch-version: ["1.12.1", "2.0.0", "2.4.0"]
         include:
           - os: ubuntu-latest
             python-version: "3.10"
