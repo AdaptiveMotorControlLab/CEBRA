@@ -465,13 +465,13 @@ Similarly, for the discrete case a discrete label can be provided and the CEBRA 
     discrete_label1 = np.random.randint(0,10,(timesteps1, ))
     discrete_label2 = np.random.randint(0,10,(timesteps2, ))
 
-    multi_cebra_model = cebra.CEBRA(batch_size=512,
+    multi_cebra_model_discrete = cebra.CEBRA(batch_size=512,
                                     output_dimension=out_dim,
                                     max_iterations=10,
                                     max_adapt_iterations=10)
 
 
-    multi_cebra_model.fit([neural_session1, neural_session2], [discrete_label1, discrete_label2])
+    multi_cebra_model_discrete.fit([neural_session1, neural_session2], [discrete_label1, discrete_label2])
 
 .. admonition:: See API docs
     :class: dropdown
@@ -1434,7 +1434,7 @@ gets initialized which also allows the `prior` to be directly parametrized.
 
     # 8. Plot Embedding
     cebra.plot_embedding(
-        x_train_emb,
+        x_train_emb.cpu(),
         discrete_label[neural_model.get_offset().__len__() - 1 :, 0],
         markersize=10,
     )
