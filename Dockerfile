@@ -7,6 +7,7 @@ RUN apt-get update -y \
 	&& rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir torch torchvision --index-url https://download.pytorch.org/whl/cu124
+RUN pip install --upgrade pip 
 #RUN pip install --no-cache-dir --pre 'cebra[dev,datasets,integrations]' \
 #	&& pip uninstall -y cebra
 
