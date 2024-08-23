@@ -59,13 +59,11 @@ fi
 
 docker build -t cebra-docs -f - . << "EOF"
 FROM python:3.9
-
 RUN python -m pip install --upgrade pip setuptools wheel \
     && apt-get update -y && apt-get install -y pandoc git
-
-RUN pip install torch --extra-index-url=https://download.pytorch.org/whl/cpu \
-    && pip install 'cebra[docs]' && pip uninstall -y cebra
-
+RUN pip install torch --extra-index-url=https://download.pytorch.org/whl/cpu
+COPY dist/cebra-0.4.0-py2.py3-none-any.whl .
+RUN pip install 'cebra-0.4.0-py2.py3-none-any.whl[docs]'
 EOF
 
 checkout_cebra_figures
