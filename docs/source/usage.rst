@@ -435,7 +435,7 @@ For multi-session training, lists of data are provided instead of a single datas
 
     neural_session1 = np.random.normal(0,1,(timesteps1, neurons1))
     neural_session2 = np.random.normal(0,1,(timesteps2, neurons2))
-    continuous_label1 = np.random.uniform(0,1,(timesteps1, 3))
+    continuous_label1 = np.random.uniform(0,1,(timesteps1, 3)).astype(np.int64)
     continuous_label2 = np.random.uniform(0,1,(timesteps2, 3))
 
     multi_cebra_model = cebra.CEBRA(batch_size=512,
