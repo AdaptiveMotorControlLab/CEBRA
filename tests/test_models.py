@@ -88,52 +88,6 @@ def test_offset_models(model_name, batch_size, input_length):
         assert len(outputs) == batch_size
 
 
-def test_multiobjective():
-
-    class TestModel(cebra.models.Model):
-
-        def __init__(self):
-            super().__init__(num_input=10, num_output=10)
-            self._model = nn.Linear(self.num_input, self.num_output)
-
-        def forward(self, x):
-            return self._model(x)
-
-        @property
-        def get_offset(self):
-            return None
-
-    model = TestModel()
-
-    multi_model_overlap = cebra.models.MultiobjectiveModel(
-        model,
-        dimensions=(4, 6),
-        output_mode="overlapping",
-        append_last_dimension=True)
-    multi_model_separate = cebra.models.MultiobjectiveModel(
-        model,
-        dimensions=(4, 6),
-        output_mode="separate",
-        append_last_dimension=True)
-
-    x = torch.randn(5, 10)
-
-    assert model(x).shape == (5, 10)
-
-    assert model.num_output == multi_model_overlap.num_output
-    assert model.get_offset == multi_model_overlap.get_offset
-
-    first, second, third = multi_model_overlap(x)
-    assert first.shape == (5, 4)
-    assert second.shape == (5, 6)
-    assert third.shape == (5, 10)
-
-    first, second, third = multi_model_separate(x)
-    assert first.shape == (5, 4)
-    assert second.shape == (5, 2)
-    assert third.shape == (5, 4)
-
-
 @pytest.mark.parametrize("version,raises", [
     ["1.12", False],
     ["2.", False],

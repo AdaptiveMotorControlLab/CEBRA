@@ -871,7 +871,7 @@ class Offset10Model(_OffsetModel, ConvolutionalModelMixin):
 
 
 @register("offset1-model-mse-tanh")
-class Offset0ModelMSE(_OffsetModel):
+class Offset0ModelMSETanH(_OffsetModel):
     """CEBRA model with a single sample receptive field, without output normalization."""
 
     def __init__(self, num_neurons, num_units, num_output, normalize=False):
@@ -901,7 +901,7 @@ class Offset0ModelMSE(_OffsetModel):
 @parametrize("offset1-model-mse-clip-{clip_min}-{clip_max}",
              clip_min=(1000, 100, 50, 25, 20, 15, 10, 5, 1),
              clip_max=(1000, 100, 50, 25, 20, 15, 10, 5, 1))
-class Offset0ModelMSE(_OffsetModel):
+class Offset0ModelMSEClip(_OffsetModel):
     """CEBRA model with a single sample receptive field, without output normalization."""
 
     def __init__(self,
@@ -942,7 +942,7 @@ class Offset0ModelMSE(_OffsetModel):
 @parametrize("offset1-model-mse-v2-{n_intermediate_layers}layers{tanh}",
              n_intermediate_layers=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
              tanh=("-tanh", ""))
-class Offset0Model(_OffsetModel):
+class Offset0ModelMSETanHv2(_OffsetModel):
     """CEBRA model with a single sample receptive field, without output normalization."""
 
     def __init__(self,
@@ -993,7 +993,7 @@ class Offset0Model(_OffsetModel):
 @parametrize("offset1-model-mse-resnet-{n_intermediate_layers}layers{tanh}",
              n_intermediate_layers=(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
              tanh=("-tanh", ""))
-class Offset0Model(_OffsetModel):
+class Offset0ModelResNetTanH(_OffsetModel):
     """CEBRA model with a single sample receptive field, without output normalization."""
 
     def __init__(self,

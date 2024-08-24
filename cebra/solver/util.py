@@ -90,6 +90,7 @@ class ProgressBar:
             raise ValueError(
                 f"log_format must be one of {self._valid_formats}, "
                 f"but got {self.log_formats}")
+        self._stats = None
 
     def __iter__(self):
         self.iterator = self.loader
@@ -97,8 +98,8 @@ class ProgressBar:
             self.iterator = tqdm.tqdm(self.iterator)
         for num_batch, batch in enumerate(self.iterator):
             yield num_batch, batch
-            self._log_message(num_batch, self.iterator.stats)
-        self._log_message(num_batch, self.iterator.stats)
+            self._log_message(num_batch, self._stats)
+        self._log_message(num_batch, self._stats)
 
     def _log_message(self, num_steps, stats):
         if self.logger is None:
@@ -119,4 +120,4 @@ class ProgressBar:
         if self.use_tqdm:
             self.iterator.set_description(_description(stats))
 
-        self.iterator.stats = stats
+        self._stats = stats
