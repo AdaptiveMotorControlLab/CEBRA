@@ -67,14 +67,12 @@ class TensorDataset(cebra_data.SingleSessionDataset):
 
     """
 
-    def __init__(
-        self,
-        neural: Union[torch.Tensor, npt.NDArray],
-        continuous: Union[torch.Tensor, npt.NDArray] = None,
-        discrete: Union[torch.Tensor, npt.NDArray] = None,
-        offset: int = 1,
-        device: str = "cpu"
-    ):
+    def __init__(self,
+                 neural: Union[torch.Tensor, npt.NDArray],
+                 continuous: Union[torch.Tensor, npt.NDArray] = None,
+                 discrete: Union[torch.Tensor, npt.NDArray] = None,
+                 offset: int = 1,
+                 device: str = "cpu"):
         super().__init__(device=device)
         self.neural = self._to_tensor(neural, torch.FloatTensor).float()
         self.continuous = self._to_tensor(continuous, torch.FloatTensor)
