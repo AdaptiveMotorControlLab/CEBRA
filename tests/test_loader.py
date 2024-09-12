@@ -186,6 +186,37 @@ def test_continuous(conditional, device, benchmark):
     benchmark(load_speed)
 
 
+@parametrize_device
+@pytest.mark.parametrize(
+    "conditional, positive_sampling, discrete_sampling_prior",
+    [
+        ("time", "discrete_variable", "empirical"),
+        ("time", "conditional", "empirical"),
+        ("time", "discrete_variable", "uniform"),
+        ("time", "conditional", "uniform"),
+        ("time_delta", "discrete_variable", "empirical"),
+        ("time_delta", "conditional", "empirical"),
+        ("time_delta", "discrete_variable", "uniform"),
+        ("time_delta", "conditional", "uniform"),
+    ],
+)
+def test_mixed(
+    conditional, positive_sampling, discrete_sampling_prior, device, benchmark
+):
+    dataset = RandomDataset(N=100, d=5, device=device)
+    loader = cebra.data.MixedDataLoader(
+        dataset=dataset,
+        num_steps=10,
+        batch_size=8,
+        conditional=conditional,
+        positive_sampling=positive_sampling,
+        discrete_sampling_prior=discrete_sampling_prior,
+    )
+    _assert_dataset_on_correct_device(loader, device)
+    load_speed = LoadSpeed(loader)
+    benchmark(load_speed)
+
+
 def _check_attributes(obj, is_list=False):
     if is_list:
         for obj_ in obj:
