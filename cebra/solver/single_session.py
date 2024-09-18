@@ -67,7 +67,7 @@ class SingleSessionSolver(abc_.Solver):
         self.n_features = loader.dataset.input_dimension
 
     def _check_is_inputs_valid(self, inputs: torch.Tensor, session_id: int):
-        """Check that the inputs can be infered using the selected model.
+        """Check that the inputs can be inferred using the selected model.
         
         Note: This method checks that the number of neurons in the input is
         similar to the input dimension to the selected model.

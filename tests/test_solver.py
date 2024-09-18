@@ -683,7 +683,7 @@ def test_batched_transform_multi_session(data_name, model_name, padding,
     n_samples = dataset._datasets[0].neural.shape[0]
     assert all(
         d.neural.shape[0] == n_samples for d in dataset._datasets
-    ), "for this set all of the sessions need ot have same number of samples."
+    ), # all sessions need to have same number of samples
 
     smallest_batch_length = n_samples - batch_size
     offset_ = model[0].get_offset()

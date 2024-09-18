@@ -86,7 +86,7 @@ def _check_indices(batch_start_idx: int, batch_end_idx: int,
         raise ValueError(
             f"The batch has length {batch_size_lenght} which "
             f"is smaller or equal than the required offset length {len(offset)}."
-            f"Either choose a model with smaller offset or the batch shoud contain more samples."
+            f"Either choose a model with smaller offset or the batch should contain more samples."
         )
 
 
@@ -511,7 +511,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
     @abc.abstractmethod
     def _check_is_inputs_valid(self, inputs: torch.Tensor, session_id: int):
-        """Check that the inputs can be infered using the selected model.
+        """Check that the inputs can be inferred using the selected model.
         
         Note: This method checks that the number of neurons in the input is
         similar to the input dimension to the selected model.
