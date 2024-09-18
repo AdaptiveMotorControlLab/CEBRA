@@ -153,9 +153,8 @@ except:
 
 
 @pytest.mark.requires_dataset
-@pytest.mark.parametrize("options",
-                         cebra.datasets.get_options("*",
-                                                    expand_parametrized=False))
+@pytest.mark.parametrize(
+    "options", cebra.datasets.get_options("*", expand_parametrized=False))
 def test_options(options):
     assert len(options) > 0
     assert len(multisubject_options) > 0

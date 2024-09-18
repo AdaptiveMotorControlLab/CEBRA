@@ -130,8 +130,8 @@ class MultiSessionLoader(cebra_data.Loader):
 
     def __post_init__(self):
         super().__post_init__()
-        self.sampler = cebra.distributions.MultisessionSampler(self.dataset,
-                                                       self.time_offset)
+        self.sampler = cebra.distributions.MultisessionSampler(
+            self.dataset, self.time_offset)
 
     def get_indices(self, num_samples: int) -> List[BatchIndex]:
         ref_idx = self.sampler.sample_prior(self.batch_size)
@@ -169,7 +169,8 @@ class DiscreteMultiSessionDataLoader(MultiSessionLoader):
     # Overwrite sampler with the discrete implementation
     # Generalize MultisessionSampler to avoid doing this?
     def __post_init__(self):
-        self.sampler = cebra.distributions.DiscreteMultisessionSampler(self.dataset)
+        self.sampler = cebra.distributions.DiscreteMultisessionSampler(
+            self.dataset)
 
     @property
     def index(self):
