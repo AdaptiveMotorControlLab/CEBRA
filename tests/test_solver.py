@@ -65,6 +65,7 @@ for args in [
 
 # multi_session_tests.append((*args, cebra.solver.MultiSessionAuxVariableSolver))
 
+
 def _get_loader(data, loader_initfunc):
     kwargs = dict(num_steps=5, batch_size=32)
     loader = loader_initfunc(data, **kwargs)
@@ -574,6 +575,7 @@ def test_select_model_multi_session(data_name, model_name, session_id,
             assert offset.left == offset_.left and offset.right == offset_.right
             assert model == model_
 
+
 models = [
     "offset1-model",
     "offset10-model",
@@ -683,7 +685,7 @@ def test_batched_transform_multi_session(data_name, model_name, padding,
     n_samples = dataset._datasets[0].neural.shape[0]
     assert all(
         d.neural.shape[0] == n_samples for d in dataset._datasets
-    ), # all sessions need to have same number of samples
+    ), "for this set all of the sessions need to have same number of samples."
 
     smallest_batch_length = n_samples - batch_size
     offset_ = model[0].get_offset()

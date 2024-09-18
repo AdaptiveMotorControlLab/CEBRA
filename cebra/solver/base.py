@@ -185,7 +185,7 @@ def _transform(
     model: cebra.models.Model,
     inputs: torch.Tensor,
     pad_before_transform: bool,
-    offset: cebra.data.Offset,
+    offset: cebra.data.datatypes.Offset,
 ) -> torch.Tensor:
     """Compute the embedding.
 
@@ -206,7 +206,7 @@ def _transform(
 
 def _batched_transform(model: cebra.models.Model, inputs: torch.Tensor,
                        batch_size: int, pad_before_transform: bool,
-                       offset: cebra.data.Offset) -> torch.Tensor:
+                       offset: cebra.data.datatypes.Offset) -> torch.Tensor:
     """Compute the embedding on batched inputs.
 
     Args:
