@@ -91,14 +91,15 @@ def _check_indices(batch_start_idx: int, batch_end_idx: int,
 
 
 def _add_batched_zero_padding(batched_data: torch.Tensor,
-                              offset: cebra.data.Offset, batch_start_idx: int,
+                              offset: cebra.data.Offset, 
+                              batch_start_idx: int,
                               batch_end_idx: int,
                               num_samples: int) -> torch.Tensor:
     """Add zero padding to the input data before inference.
 
     Args:
         batched_data: Data to apply the inference on.
-        offset (cebra.data.Offset): _description_
+        offset: Offset of the model to consider when padding.
         batch_start_idx: Index of the first sample in the batch.
         batch_end_idx: Index of the first sample in the batch.
         num_samples (int): Total number of samples in the data. 
