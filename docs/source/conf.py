@@ -104,7 +104,7 @@ napoleon_attr_annotations = True
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
-    "torch": ("https://pytorch.org/docs/master/", None),
+    "torch": ("https://pytorch.org/docs/stable/", None),
     "sklearn": ("https://scikit-learn.org/stable", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),

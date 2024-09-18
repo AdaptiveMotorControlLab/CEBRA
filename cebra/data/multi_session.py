@@ -30,7 +30,7 @@ import numpy as np
 import torch
 
 import cebra.data as cebra_data
-import cebra.distributions as cebra_distr
+import cebra.distributions
 from cebra.data.datatypes import Batch
 from cebra.data.datatypes import BatchIndex
 
@@ -130,7 +130,7 @@ class MultiSessionLoader(cebra_data.Loader):
 
     def __post_init__(self):
         super().__post_init__()
-        self.sampler = cebra_distr.MultisessionSampler(self.dataset,
+        self.sampler = cebra.distributions.MultisessionSampler(self.dataset,
                                                        self.time_offset)
 
     def get_indices(self, num_samples: int) -> List[BatchIndex]:
@@ -169,7 +169,7 @@ class DiscreteMultiSessionDataLoader(MultiSessionLoader):
     # Overwrite sampler with the discrete implementation
     # Generalize MultisessionSampler to avoid doing this?
     def __post_init__(self):
-        self.sampler = cebra_distr.DiscreteMultisessionSampler(self.dataset)
+        self.sampler = cebra.distributions.DiscreteMultisessionSampler(self.dataset)
 
     @property
     def index(self):
