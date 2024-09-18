@@ -22,6 +22,7 @@
 """Plotly interface to CEBRA."""
 from typing import Optional, Tuple, Union
 
+import matplotlib.cm
 import matplotlib.colors
 import numpy as np
 import numpy.typing as npt

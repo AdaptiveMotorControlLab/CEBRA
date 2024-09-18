@@ -65,7 +65,6 @@ for args in [
 
 # multi_session_tests.append((*args, cebra.solver.MultiSessionAuxVariableSolver))
 
-
 def _get_loader(data, loader_initfunc):
     kwargs = dict(num_steps=5, batch_size=32)
     loader = loader_initfunc(data, **kwargs)
@@ -575,18 +574,13 @@ def test_select_model_multi_session(data_name, model_name, session_id,
             assert offset.left == offset_.left and offset.right == offset_.right
             assert model == model_
 
-
-#this is a very crucial test. should be checked for different choices of offsets,
-# dataset sizes (also edge cases like dataset size 1001 and batch size 1000 -> is the padding properly handled?)
-#try to isolate this from the remaining tests, and make it really rigorous with a lot of test cases.
-
 models = [
     "offset1-model",
     "offset10-model",
     "offset40-model-4x-subsample",
     "offset1-model",
     "offset10-model",
-]  # there is an issue with "offset4-model-2x-subsample" because it's not a convolutional model.
+]
 batch_size_inference = [40_000, 99_990, 99_999]
 
 single_session_tests_transform = []

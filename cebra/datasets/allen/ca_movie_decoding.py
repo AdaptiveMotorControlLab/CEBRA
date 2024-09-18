@@ -31,7 +31,6 @@ References:
 
 import glob
 import hashlib
-import os
 import pathlib
 
 import h5py

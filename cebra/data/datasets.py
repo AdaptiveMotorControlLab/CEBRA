@@ -67,14 +67,13 @@ class TensorDataset(cebra_data.SingleSessionDataset):
 
     """
 
-    def __init__(
-        self,
-        neural: Union[torch.Tensor, npt.NDArray],
-        continuous: Union[torch.Tensor, npt.NDArray] = None,
-        discrete: Union[torch.Tensor, npt.NDArray] = None,
-        offset: int = 1,
-    ):
-        super().__init__()
+    def __init__(self,
+                 neural: Union[torch.Tensor, npt.NDArray],
+                 continuous: Union[torch.Tensor, npt.NDArray] = None,
+                 discrete: Union[torch.Tensor, npt.NDArray] = None,
+                 offset: int = 1,
+                 device: str = "cpu"):
+        super().__init__(device=device)
         self.neural = self._to_tensor(neural, torch.FloatTensor).float()
         self.continuous = self._to_tensor(continuous, torch.FloatTensor)
         self.discrete = self._to_tensor(discrete, torch.LongTensor)
@@ -222,9 +221,9 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
         else:
             self._cindex = None
         if discrete:
-            raise NotImplementedError(
-                "Multisession implementation does not support discrete index yet."
-            )
+            self._dindex = torch.cat(list(
+                self._iter_property("discrete_index")),
+                                     dim=0)
         else:
             self._dindex = None
 
