@@ -68,6 +68,7 @@ for args in [
     multi_session_tests.append((*args, cebra.solver.MultiSessionSolver))
 
 
+
 def _get_loader(data, loader_initfunc):
     kwargs = dict(num_steps=5, batch_size=32)
     loader = loader_initfunc(data, **kwargs)
