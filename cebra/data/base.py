@@ -207,7 +207,6 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
             model: The model to configure the dataset for.
         """
         raise NotImplementedError
-        self.offset = model.get_offset()
 
 
 @dataclasses.dataclass

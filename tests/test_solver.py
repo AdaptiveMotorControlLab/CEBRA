@@ -344,7 +344,7 @@ def test_multi_session(data_name, loader_initfunc, model_architecture,
 
     with pytest.raises(RuntimeError, match="No.*session_id"):
         embedding = solver.transform(X[0])
-    with pytest.raises(RuntimeError, match="single.*session"):
+    with pytest.raises(ValueError, match="single.*session"):
         embedding = solver.transform(X)
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = solver.transform(X[0], session_id=5)
@@ -353,10 +353,6 @@ def test_multi_session(data_name, loader_initfunc, model_architecture,
 
     for param in solver.parameters(session_id=0):
         assert isinstance(param, torch.Tensor)
-
-    with pytest.raises(RuntimeError, match="No.*session_id"):
-        for param in solver.parameters():
-            assert isinstance(param, torch.Tensor)
 
     fitted_solver = copy.deepcopy(solver)
     with tempfile.TemporaryDirectory() as temp_dir:

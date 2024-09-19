@@ -81,18 +81,17 @@ def _check_indices(batch_start_idx: int, batch_end_idx: int,
             f"batch_end_idx ({batch_end_idx}) cannot exceed the length of inputs ({num_samples})."
         )
 
-    batch_size_lenght = batch_end_idx - batch_start_idx
-    if batch_size_lenght <= len(offset):
+    batch_size_length = batch_end_idx - batch_start_idx
+    if batch_size_length <= len(offset):
         raise ValueError(
-            f"The batch has length {batch_size_lenght} which "
+            f"The batch has length {batch_size_length} which "
             f"is smaller or equal than the required offset length {len(offset)}."
             f"Either choose a model with smaller offset or the batch should contain more samples."
         )
 
 
 def _add_batched_zero_padding(batched_data: torch.Tensor,
-                              offset: cebra.data.Offset, 
-                              batch_start_idx: int,
+                              offset: cebra.data.Offset, batch_start_idx: int,
                               batch_end_idx: int,
                               num_samples: int) -> torch.Tensor:
     """Add zero padding to the input data before inference.
@@ -409,6 +408,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         TODO:
             * Refine the API here. Drop the validation entirely, and implement this via a hook?
         """
+        self._set_fitted_params(loader)
         self.to(loader.device)
 
         iterator = self._get_loader(loader)
@@ -435,8 +435,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 if save_hook is not None:
                     save_hook(num_steps, self)
                 self.save(logdir, f"checkpoint_{num_steps:#07d}.pth")
-
-        self._set_fitted_params(loader)
 
     def step(self, batch: cebra.data.Batch) -> dict:
         """Perform a single gradient update.
@@ -553,6 +551,10 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """
         raise NotImplementedError
 
+    @property
+    def is_fitted(self):
+        return hasattr(self, "n_features")
+
     @torch.no_grad()
     def transform(self,
                   inputs: Union[torch.Tensor, List[torch.Tensor], npt.NDArray],
@@ -579,19 +581,24 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Returns:
             The output embedding.
         """
+        if not self.is_fitted:
+            raise ValueError(
+                f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
+                "appropriate arguments before using this estimator.")
+
+        if batch_size is not None and batch_size < 1:
+            raise ValueError(
+                f"Batch size should be at least 1, got {batch_size}")
+
         if isinstance(inputs, list):
-            raise NotImplementedError(
-                "Inputs to transform() should be the data for a single session."
+            raise ValueError(
+                "Inputs to transform() should be the data for a single session, but received a list."
             )
 
         elif not isinstance(inputs, torch.Tensor):
             raise ValueError(
                 f"Inputs should be a torch.Tensor, not {type(inputs)}.")
 
-        if not hasattr(self, "n_features"):
-            raise ValueError(
-                f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
-                "appropriate arguments before using this estimator.")
         model, offset = self._select_model(inputs, session_id)
 
         if len(offset) < 2 and pad_before_transform:
@@ -647,7 +654,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         checkpoint = torch.load(savepath, map_location=self.device)
         self.load_state_dict(checkpoint, strict=True)
 
-    def save(self, logdir, filename="checkpoint.pth"):
+    def save(self, logdir, filename="checkpoint_last.pth"):
         """Save the model and optimizer params.
 
         Args:
