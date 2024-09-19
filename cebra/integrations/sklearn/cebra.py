@@ -1235,7 +1235,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
         sklearn_utils_validation.check_is_fitted(self, "n_features_")
         self.solver_._check_is_session_id_valid(session_id=session_id)
 
-        if torch.is_tensor(X) and X.device.type == "cuda":
+        if torch.is_tensor(X):
             X = X.detach().cpu()
 
         X = sklearn_utils.check_input_array(X, min_samples=len(self.offset_))
@@ -1255,6 +1255,60 @@ class CEBRA(TransformerMixin, BaseEstimator):
                 batch_size=batch_size)
 
         return output.detach().cpu().numpy()
+
+    # Deprecated, kept for testing.
+    def transform_deprecated(self,
+                             X: Union[npt.NDArray, torch.Tensor],
+                             session_id: Optional[int] = None) -> npt.NDArray:
+        """Transform an input sequence and return the embedding.
+
+        Args:
+            X: A numpy array or torch tensor of size ``time x dimension``.
+            session_id: The session ID, an :py:class:`int` between 0 and :py:attr:`num_sessions` for
+                multisession, set to ``None`` for single session.
+
+        Returns:
+            A :py:func:`numpy.array` of size ``time x output_dimension``.
+
+        Example:
+
+            >>> import cebra
+            >>> import numpy as np
+            >>> dataset =  np.random.uniform(0, 1, (1000, 30))
+            >>> cebra_model = cebra.CEBRA(max_iterations=10)
+            >>> cebra_model.fit(dataset)
+            CEBRA(max_iterations=10)
+            >>> embedding = cebra_model.transform(dataset)
+
+        """
+
+        sklearn_utils_validation.check_is_fitted(self, "n_features_")
+        model, offset = self._select_model(X, session_id)
+
+        # Input validation
+        X = sklearn_utils.check_input_array(X, min_samples=len(self.offset_))
+        input_dtype = X.dtype
+
+        with torch.no_grad():
+            model.eval()
+
+            if self.pad_before_transform:
+                X = np.pad(X, ((offset.left, offset.right - 1), (0, 0)),
+                           mode="edge")
+            X = torch.from_numpy(X).float().to(self.device_)
+
+            if isinstance(model, cebra.models.ConvolutionalModelMixin):
+                # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
+                X = X.transpose(1, 0).unsqueeze(0)
+                output = model(X).cpu().numpy().squeeze(0).transpose(1, 0)
+            else:
+                # Standard evaluation, (T, C, dt)
+                output = model(X).cpu().numpy()
+
+        if input_dtype == "float64":
+            return output.astype(input_dtype)
+
+        return output
 
     def fit_transform(
         self,

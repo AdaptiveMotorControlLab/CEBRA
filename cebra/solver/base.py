@@ -452,8 +452,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 if logdir is not None:
                     self.save(logdir, f"checkpoint_{num_steps:#07d}.pth")
 
-        self._set_fitted_params(loader)
-
     def step(self, batch: cebra.data.Batch) -> dict:
         """Perform a single gradient update.
 
@@ -603,9 +601,18 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Returns:
             The output embedding.
         """
+        if not self.is_fitted:
+            raise ValueError(
+                f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
+                "appropriate arguments before using this estimator.")
+
+        if batch_size is not None and batch_size < 1:
+            raise ValueError(
+                f"Batch size should be at least 1, got {batch_size}")
+
         if isinstance(inputs, list):
-            raise NotImplementedError(
-                "Inputs to transform() should be the data for a single session."
+            raise ValueError(
+                "Inputs to transform() should be the data for a single session, but received a list."
             )
         elif not isinstance(inputs, torch.Tensor):
             raise ValueError(
@@ -673,7 +680,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             session_n_features for session_n_features in n_features
         ] if isinstance(n_features, list) else n_features)
 
-    def save(self, logdir, filename="checkpoint.pth"):
+    def save(self, logdir, filename="checkpoint_last.pth"):
         """Save the model and optimizer params.
 
         Args:

@@ -41,9 +41,9 @@ class MultiSessionSolver(abc_.Solver):
 
     def parameters(self, session_id: Optional[int] = None):
         """Iterate over all parameters."""
-        self._check_is_session_id_valid(session_id=session_id)
-        for parameter in self.model[session_id].parameters():
-            yield parameter
+        if session_id is not None:
+            for parameter in self.model[session_id].parameters():
+                yield parameter
 
         for parameter in self.criterion.parameters():
             yield parameter
