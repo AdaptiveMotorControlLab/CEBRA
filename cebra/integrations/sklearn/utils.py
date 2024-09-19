@@ -78,7 +78,8 @@ def check_input_array(X: npt.NDArray, *, min_samples: int) -> npt.NDArray:
         X,
         accept_sparse=False,
         accept_large_sparse=False,
-        dtype=("float16", "float32", "float64"),
+        # NOTE: remove float16 because F.pad does not allow float16.
+        dtype=("float32", "float64"),
         order=None,
         copy=False,
         force_all_finite=True,

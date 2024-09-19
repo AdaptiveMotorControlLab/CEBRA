@@ -196,6 +196,7 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
         """
         raise NotImplementedError()
 
+    @abc.abstractmethod
     def configure_for(self, model: "cebra.models.Model"):
         """Configure the dataset offset for the provided model.
 
@@ -205,7 +206,7 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
         Args:
             model: The model to configure the dataset for.
         """
-        self.offset = model.get_offset()
+        raise NotImplementedError
 
 
 @dataclasses.dataclass
@@ -229,6 +230,8 @@ class Loader(abc.ABC, cebra.io.HasDevice):
         default=None,
         doc="""A dataset instance specifying a ``__getitem__`` function.""",
     )
+
+    time_offset: int = dataclasses.field(default=10)
 
     num_steps: int = dataclasses.field(
         default=None,
