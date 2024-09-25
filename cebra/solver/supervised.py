@@ -26,7 +26,6 @@ Note:
     as experimental/outdated, and the API for this particular package unstable.
 """
 import abc
-import os
 from collections.abc import Iterable
 from typing import List
 

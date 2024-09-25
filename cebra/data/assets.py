@@ -21,9 +21,9 @@
 #
 
 import hashlib
-import os
 import re
 import warnings
+from pathlib import Path
 from typing import Optional
 
 import requests
@@ -57,8 +57,10 @@ def download_file_with_progress_bar(url: str,
     """
 
     # Check if the file already exists in the location
-    file_path = os.path.join(location, file_name)
-    if os.path.exists(file_path):
+    location_path = Path(location)
+    file_path = location_path / file_name
+
+    if file_path.exists():
         existing_checksum = calculate_checksum(file_path)
         if existing_checksum == expected_checksum:
             return file_path
@@ -91,10 +93,10 @@ def download_file_with_progress_bar(url: str,
         )
 
     # Create the directory and any necessary parent directories
-    os.makedirs(location, exist_ok=True)
+    location_path.mkdir(exist_ok=True)
 
     filename = filename_match.group(1)
-    file_path = os.path.join(location, filename)
+    file_path = location_path / filename
 
     total_size = int(response.headers.get("Content-Length", 0))
     checksum = hashlib.md5()  # create checksum
@@ -111,7 +113,7 @@ def download_file_with_progress_bar(url: str,
     downloaded_checksum = checksum.hexdigest()  # Get the checksum value
     if downloaded_checksum != expected_checksum:
         warnings.warn(f"Checksum verification failed. Deleting '{file_path}'.")
-        os.remove(file_path)
+        file_path.unlink()
         warnings.warn("File deleted. Retrying download...")
 
         # Retry download using a for loop

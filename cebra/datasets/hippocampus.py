@@ -32,7 +32,7 @@ References:
 """
 
 import hashlib
-import os
+import pathlib
 
 import joblib
 import numpy as np
@@ -94,8 +94,8 @@ class SingleRatDataset(cebra.data.SingleSessionDataset):
     """
 
     def __init__(self, name="achilles", root=_DEFAULT_DATADIR, download=True):
-        location = os.path.join(root, "rat_hippocampus")
-        file_path = os.path.join(location, f"{name}.jl")
+        location = pathlib.Path(root) / "rat_hippocampus"
+        file_path = location / f"{name}.jl"
 
         super().__init__(download=download,
                          data_url=rat_dataset_urls[name]["url"],

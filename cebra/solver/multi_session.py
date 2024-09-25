@@ -22,7 +22,6 @@
 """Solver implementations for multi-session datasetes."""
 
 import abc
-import os
 from collections.abc import Iterable
 from typing import List, Optional
 

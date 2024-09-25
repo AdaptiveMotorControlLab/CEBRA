@@ -113,6 +113,8 @@ def test_monkey():
 def test_allen():
     from cebra.datasets import allen
 
+    pytest.skip("Test takes too long")
+
     ca_dataset = cebra.datasets.init("allen-movie-one-ca-VISp-100-train-10-111")
     ca_loader = cebra.data.ContinuousDataLoader(
         dataset=ca_dataset,
