@@ -22,10 +22,16 @@
 """Ephys neural and behavior data used for the monkey reaching experiment.
 
 References:
-    * Chowdhury, Raeed H., Joshua I. Glaser, and Lee E. Miller. "Area 2 of primary somatosensory cortex encodes kinematics of the whole arm." Elife 9 (2020).
-    * Chowdhury, Raeed; Miller, Lee (2022) Area2 Bump: macaque somatosensory area 2 spiking activity during reaching with perturbations (Version 0.220113.0359) [Data set]. `DANDI archive <https://doi.org/10.48324/dandi.000127/0.220113.0359>`_
-    * Pei, Felix, et al. "Neural Latents Benchmark'21: Evaluating latent variable models of neural population activity." arXiv preprint arXiv:2109.04463 (2021).
-
+    * Chowdhury, Raeed H., Joshua I. Glaser, and Lee E. Miller.
+      "Area 2 of primary somatosensory cortex encodes kinematics of the whole arm."
+      Elife 9 (2020).
+    * Chowdhury, Raeed; Miller, Lee (2022)
+      Area2 Bump: macaque somatosensory area 2 spiking activity during reaching
+      with perturbations (Version 0.220113.0359) [Data set].
+      `DANDI archive <https://doi.org/10.48324/dandi.000127/0.220113.0359>`_
+    * Pei, Felix, et al.
+      "Neural Latents Benchmark'21: Evaluating latent variable models of neural
+      population activity." arXiv preprint arXiv:2109.04463 (2021).
 """
 
 import pathlib
@@ -421,7 +427,7 @@ def _create_area2_dataset():
     for session_type in ["active", "passive", "active-passive", "all"]:
 
         @register(f"area2-bump-pos-{session_type}")
-        class Dataset(Area2BumpDataset):
+        class DatasetV1(Area2BumpDataset):
             """Monkey reaching dataset with hand position labels.
 
             The dataset loads continuous x,y hand position as behavior labels.
@@ -450,7 +456,7 @@ def _create_area2_dataset():
                 return self.pos
 
         @register(f"area2-bump-target-{session_type}")
-        class Dataset(Area2BumpDataset):
+        class DatasetV2(Area2BumpDataset):
             """Monkey reaching dataset with target direction labels.
 
             The dataset loads discrete target direction (0-7) as behavior labels.
@@ -477,7 +483,7 @@ def _create_area2_dataset():
                 return None
 
         @register(f"area2-bump-posdir-{session_type}")
-        class Dataset(Area2BumpDataset):
+        class DatasetV3(Area2BumpDataset):
             """Monkey reaching dataset with hand position labels and discrete target labels.
 
             The dataset loads continuous x,y hand position and discrete target labels (0-7)
@@ -520,7 +526,7 @@ def _create_area2_shuffled_dataset():
     for session_type in ["active", "active-passive"]:
 
         @register(f"area2-bump-pos-{session_type}-shuffled-trial")
-        class Dataset(Area2BumpShuffledDataset):
+        class DatasetV4(Area2BumpShuffledDataset):
             """Monkey reaching dataset with the shuffled trial type.
 
             The dataset loads the discrete binary trial type label active(0)/passive(1)
@@ -548,7 +554,7 @@ def _create_area2_shuffled_dataset():
                 return self.pos
 
         @register(f"area2-bump-pos-{session_type}-shuffled-position")
-        class Dataset(Area2BumpShuffledDataset):
+        class DatasetV5(Area2BumpShuffledDataset):
             """Monkey reaching dataset with the shuffled hand position.
 
             The dataset loads continuous x,y hand position in randomly shuffled order.
@@ -577,7 +583,7 @@ def _create_area2_shuffled_dataset():
                 return self.pos_shuffled
 
         @register(f"area2-bump-target-{session_type}-shuffled")
-        class Dataset(Area2BumpShuffledDataset):
+        class DatasetV6(Area2BumpShuffledDataset):
             """Monkey reaching dataset with the shuffled hand position.
 
             The dataset loads discrete target direction (0-7 for active and 0-15 for active-passive)

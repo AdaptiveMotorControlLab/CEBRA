@@ -27,8 +27,11 @@ import torch
 
 import cebra.data
 import cebra.io
+from cebra.datasets import get_datapath
 from cebra.datasets import parametrize
 from cebra.datasets import register
+
+_DEFAULT_DATADIR = get_datapath()
 
 
 @register("continuous-gaussian-mixture")
