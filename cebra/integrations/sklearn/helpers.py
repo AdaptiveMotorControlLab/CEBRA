@@ -40,7 +40,7 @@ def _get_min_max(
     min = float("inf")
     max = float("-inf")
     for label in labels:
-        if any(isinstance(l, str) for l in label):
+        if any(isinstance(label_element, str) for label_element in label):
             raise ValueError(
                 "Invalid labels dtype, expect floats or integers, got string")
         min = np.min(label) if min > np.min(label) else min

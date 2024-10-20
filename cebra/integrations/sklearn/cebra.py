@@ -314,7 +314,8 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
     for key, value in state.items():
         setattr(cebra_, key, value)
 
-    state_and_args = {**args, **state}
+    #TODO(stes): unused right now
+    #state_and_args = {**args, **state}
 
     if not sklearn_utils.check_fitted(cebra_):
         raise ValueError(
@@ -1335,7 +1336,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
                     - 'args': A dictionary of parameters used to initialize the CEBRA model.
                     - 'state': The state of the CEBRA model, which includes various internal attributes.
                     - 'state_dict': The state dictionary of the underlying solver used by CEBRA.
-                    - 'metadata': Additional metadata about the saved model, including the backend used and the version of CEBRA PyTorch, NumPy and scikit-learn.
+                    - 'metadata': Additional metadata about the saved model, including the backend used and
+                      the version of CEBRA PyTorch, NumPy and scikit-learn.
 
                 "torch" backend:
                     The model is directly saved using `torch.save` with no additional information. The saved
