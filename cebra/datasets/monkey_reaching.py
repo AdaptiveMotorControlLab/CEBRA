@@ -77,8 +77,12 @@ def _load_data(
             "Could not import the nlb_tools package required for data loading "
             "the raw reaching datasets in NWB format. "
             "If required, you can install the dataset by running "
-            "pip install nlb_tools or installing cebra with the [datasets] "
-            "dependencies: pip install 'cebra[datasets]'")
+            "pip install nlb_tools."
+            # NOTE(stes): Install nlb_tools manually for now, also see
+            # note in setup.cfg
+            # or installing cebra with the [datasets] "
+            #"dependencies: pip install 'cebra[datasets]'")
+        )
 
     def _get_info(trial_info, data):
         passive = []
