@@ -36,6 +36,7 @@ import cebra.data as cebra_data
 import cebra.distributions
 from cebra.data.datatypes import Batch
 from cebra.data.datatypes import BatchIndex
+from cebra.data import Offset
 
 
 class TensorDataset(cebra_data.SingleSessionDataset):
@@ -71,7 +72,7 @@ class TensorDataset(cebra_data.SingleSessionDataset):
                  neural: Union[torch.Tensor, npt.NDArray],
                  continuous: Union[torch.Tensor, npt.NDArray] = None,
                  discrete: Union[torch.Tensor, npt.NDArray] = None,
-                 offset: int = 1,
+                 offset: Offset = Offset(1),
                  device: str = "cpu"):
         super().__init__(device=device)
         self.neural = self._to_tensor(neural, torch.FloatTensor).float()
