@@ -45,7 +45,7 @@ def _convert_cmap2colorscale(cmap: str, pl_entries: int = 11, rdigits: int = 2):
     """
     scale = np.linspace(0, 1, pl_entries)
     colors = (cmap(scale)[:, :3] * 255).astype(np.uint8)
-    pl_colorscale = [[round(s, rdigits), f"rgb{tuple(color)}"]
+    pl_colorscale = [[float(round(s, rdigits)), f"rgb{tuple(color.tolist())}"]
                      for s, color in zip(scale, colors)]
     return pl_colorscale
 
