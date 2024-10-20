@@ -176,11 +176,11 @@ def plot_embedding_interactive(
         embedding: A matrix containing the feature representation computed with CEBRA.
         embedding_labels: The labels used to map the data to color. It can be:
 
-            * A vector that is the same sample size as the embedding, associating a value
-            to each of the sample, either discrete or continuous.
-            * A string, either `time`, then the labels will color the embedding based on
-            temporality, or a string that can be interpreted as a RGB(A) color, then
-            the embedding will be uniformly displayed with that unique color.
+            - A vector that is the same sample size as the embedding, associating a value
+              to each of the sample, either discrete or continuous.
+            - A string, either `time`, then the labels will color the embedding based on
+              temporality, or a string that can be interpreted as a RGB(A) color, then
+              the embedding will be uniformly displayed with that unique color.
 
         axis: Optional axis to create the plot on.
         idx_order: A tuple (x, y, z) or (x, y) that maps a dimension in the data to a dimension
@@ -198,13 +198,13 @@ def plot_embedding_interactive(
         kwargs: Optional arguments to customize the plots. This dictionary includes the following
             optional arguments:
 
-            -- showlegend: Whether to show the legend or not.
-            -- discrete: Whether the labels are discrete or not.
-            -- col: The column of the subplot to plot the embedding on.
-            -- row: The row of the subplot to plot the embedding on.
-            -- template: The template to use for the plot.
+            - ``showlegend``: Whether to show the legend or not.
+            - ``discrete``: Whether the labels are discrete or not.
+            - ``col``: The column of the subplot to plot the embedding on.
+            - ``row``: The row of the subplot to plot the embedding on.
+            - ``template``: The template to use for the plot.
 
-            Note: showlegend can be True only if discrete is True.
+            Note: ``showlegend`` can be ``True`` only if ``discrete`` is ``True``.
             See :py:class:`plotly.graph_objects.Scatter` documentation for more details on which
             arguments to use.
 
