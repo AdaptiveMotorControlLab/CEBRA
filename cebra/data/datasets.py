@@ -39,7 +39,7 @@ from cebra.data.datatypes import BatchIndex
 
 import warnings
 
-class TensorDataset(SingleSessionDataset):
+class TensorDataset(cebra_data.SingleSessionDataset):
     """Discrete and/or continuously indexed dataset based on torch/numpy arrays.
 
     If dealing with datasets sufficiently small to fit :py:func:`numpy.array` or :py:class:`torch.Tensor`, this
