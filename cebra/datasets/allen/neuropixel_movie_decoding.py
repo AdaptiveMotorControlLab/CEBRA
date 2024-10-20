@@ -26,25 +26,17 @@ References:
     *Siegle, Joshua H., et al. "Survey of spiking in the mouse visual system reveals functional hierarchy." Nature 592.7852 (2021): 86-92.
 
 """
-import glob
-import hashlib
 import pathlib
 
-import h5py
 import joblib
 import numpy as np
-import pandas as pd
-import scipy.io
 import torch
 from numpy.random import Generator
 from numpy.random import PCG64
-from sklearn.decomposition import PCA
 
 import cebra.data
-from cebra.datasets import allen
 from cebra.datasets import get_datapath
 from cebra.datasets import parametrize
-from cebra.datasets import register
 from cebra.datasets.allen import ca_movie_decoding
 from cebra.datasets.allen import NUM_NEURONS
 from cebra.datasets.allen import SEEDS

@@ -20,9 +20,6 @@
 # limitations under the License.
 #
 import collections
-from typing import Tuple
-
-import torch
 
 __all__ = ["Batch", "BatchIndex", "Offset"]
 

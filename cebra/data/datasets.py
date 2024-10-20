@@ -21,21 +21,14 @@
 #
 """Pre-defined datasets."""
 
-import abc
-import collections
 import types
 from typing import List, Tuple, Union
 
-import literate_dataclasses as dataclasses
 import numpy as np
 import numpy.typing as npt
 import torch
-from numpy.typing import NDArray
 
 import cebra.data as cebra_data
-import cebra.distributions
-from cebra.data.datatypes import Batch
-from cebra.data.datatypes import BatchIndex
 
 
 class TensorDataset(cebra_data.SingleSessionDataset):

@@ -28,25 +28,17 @@ References:
     *http://observatory.brain-map.org/visualcoding
 
 """
-import glob
-import hashlib
 import pathlib
 
-import h5py
-import joblib
 import numpy as np
-import pandas as pd
 import scipy.io
 import torch
-from numpy.random import Generator
-from numpy.random import PCG64
 from sklearn.decomposition import PCA
 
 import cebra.data
 from cebra.datasets import get_datapath
 from cebra.datasets import init
 from cebra.datasets import parametrize
-from cebra.datasets import register
 
 _DEFAULT_DATADIR = get_datapath()
 

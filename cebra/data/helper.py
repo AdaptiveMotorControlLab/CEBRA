@@ -181,14 +181,14 @@ class OrthogonalProcrustesAlignment:
         elif ref_data.shape[0] == data.shape[0] and (ref_label is None or
                                                      label is None):
             raise ValueError(
-                f"Missing labels: the data to align are the same shape but you provided only "
-                f"one of the sets of labels. Either provide both the reference and alignment "
-                f"labels or none.")
+                "Missing labels: the data to align are the same shape but you provided only "
+                "one of the sets of labels. Either provide both the reference and alignment "
+                "labels or none.")
         else:
             if ref_label is None or label is None:
                 raise ValueError(
-                    f"Missing labels: the data to align are not the same shape, "
-                    f"provide labels to align the data and reference data.")
+                    "Missing labels: the data to align are not the same shape, "
+                    "provide labels to align the data and reference data.")
 
             if len(ref_label.shape) == 1:
                 ref_label = np.expand_dims(ref_label, axis=1)

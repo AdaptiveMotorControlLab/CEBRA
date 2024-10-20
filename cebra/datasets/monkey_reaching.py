@@ -28,14 +28,11 @@ References:
 
 """
 
-import hashlib
 import pathlib
-import pickle as pk
 from typing import Union
 
 import joblib as jl
 import numpy as np
-import scipy.io
 import torch
 
 import cebra.data
@@ -72,7 +69,7 @@ def _load_data(
 
     try:
         from nlb_tools.nwb_interface import NWBDataset
-    except ImportError as e:
+    except ImportError:
         raise ImportError(
             "Could not import the nlb_tools package required for data loading "
             "the raw reaching datasets in NWB format. "

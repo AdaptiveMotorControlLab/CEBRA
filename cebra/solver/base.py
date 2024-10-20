@@ -32,11 +32,10 @@ implement larger changes to the training loop.
 
 import abc
 import os
-from typing import Callable, Dict, List, Literal, Optional, Union
+from typing import Callable, Dict, List, Literal, Optional
 
 import literate_dataclasses as dataclasses
 import torch
-import tqdm
 
 import cebra
 import cebra.data
@@ -204,7 +203,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 validation_loss = self.validation(valid_loader)
                 if self.best_loss is None or validation_loss < self.best_loss:
                     self.best_loss = validation_loss
-                    self.save(logdir, f"checkpoint_best.pth")
+                    self.save(logdir, "checkpoint_best.pth")
             if save_model:
                 if decode:
                     self.decode_history.append(
