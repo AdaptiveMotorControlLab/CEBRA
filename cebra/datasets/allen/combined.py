@@ -22,13 +22,19 @@
 """Joint Allen pseudomouse Ca/Neuropixel datasets.
 
 References:
-    *Deitch, Daniel, Alon Rubin, and Yaniv Ziv. "Representational drift in the mouse visual cortex." Current biology 31.19 (2021): 4327-4339.
-    *de Vries, Saskia EJ, et al. "A large-scale standardized physiological survey reveals functional organization of the mouse visual cortex." Nature neuroscience 23.1 (2020): 138-151.
-    *https://github.com/zivlab/visual_drift
-    *http://observatory.brain-map.org/visualcoding
-    *https://allensdk.readthedocs.io/en/latest/visual_coding_neuropixels.html
-    *Siegle, Joshua H., et al. "Survey of spiking in the mouse visual system reveals functional hierarchy." Nature 592.7852 (2021): 86-92.
-
+    * Deitch, Daniel, Alon Rubin, and Yaniv Ziv.
+      "Representational drift in the mouse visual cortex."
+      Current Biology 31.19 (2021): 4327-4339.
+    * de Vries, Saskia EJ, et al.
+      "A large-scale standardized physiological survey reveals functional
+      organization of the mouse visual cortex."
+      Nature Neuroscience 23.1 (2020): 138-151.
+    * https://github.com/zivlab/visual_drift
+    * http://observatory.brain-map.org/visualcoding
+    * https://allensdk.readthedocs.io/en/latest/visual_coding_neuropixels.html
+    * Siegle, Joshua H., et al.
+      "Survey of spiking in the mouse visual system reveals functional hierarchy."
+      Nature 592.7852 (2021): 86-92.
 """
 
 import cebra.data

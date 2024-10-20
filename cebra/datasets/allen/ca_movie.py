@@ -22,11 +22,15 @@
 """Allen pseudomouse Ca dataset.
 
 References:
-    *Deitch, Daniel, Alon Rubin, and Yaniv Ziv. "Representational drift in the mouse visual cortex." Current biology 31.19 (2021): 4327-4339.
-    *de Vries, Saskia EJ, et al. "A large-scale standardized physiological survey reveals functional organization of the mouse visual cortex." Nature neuroscience 23.1 (2020): 138-151.
-    *https://github.com/zivlab/visual_drift
-    *http://observatory.brain-map.org/visualcoding
-
+    * Deitch, Daniel, Alon Rubin, and Yaniv Ziv.
+      "Representational drift in the mouse visual cortex."
+      Current biology 31.19 (2021): 4327-4339.
+    * de Vries, Saskia EJ, et al.
+      "A large-scale standardized physiological survey reveals functional
+      organization of the mouse visual cortex."
+      Nature neuroscience 23.1 (2020): 138-151.
+    * https://github.com/zivlab/visual_drift
+    * http://observatory.brain-map.org/visualcoding
 """
 
 import pathlib
