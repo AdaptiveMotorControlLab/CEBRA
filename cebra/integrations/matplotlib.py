@@ -290,13 +290,13 @@ class _EmbeddingPlot(_BasePlot):
 
             * If ``idx_order`` is not provided, the plot will be 3D by default.
             * If ``idx_order`` is provided, if it has 3 dimensions, the plot will be 3D, if only 2 dimensions
-                are provided, the plot will be 2D.
+            are provided, the plot will be 2D.
 
         If the embedding dimension is equal to 2:
 
             * If ``idx_order`` is not provided, the plot will be 2D by default.
             * If ``idx_order`` is provided, if it has 3 dimensions, the plot will be 3D, if 2 dimensions
-                are provided, the plot will be 2D.
+            are provided, the plot will be 2D.
 
         This is supposing that the dimensions provided to ``idx_order`` are in the range of the number of
         dimensions of the embedding (i.e., between 0 and :py:attr:`cebra.CEBRA.output_dimension` -1).
