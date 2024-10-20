@@ -30,7 +30,7 @@ import pathlib
 import joblib as jl
 import keras
 import numpy as np
-import poisson
+import poisson as poisson_utils
 import scipy.stats
 import tensorflow as tf
 
@@ -228,7 +228,7 @@ if __name__ == "__main__":
         flattened_lam = lam_true.flatten()
         x = np.zeros_like(flattened_lam)
         for i, rate in enumerate(flattened_lam):
-            neuron = poisson.PoissonNeuron(
+            neuron = poisson_utils.PoissonNeuron(
                 spike_rate=rate * args.scale,
                 num_repeats=1,
                 time_interval=args.time_interval,
