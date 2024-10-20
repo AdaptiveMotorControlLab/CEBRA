@@ -21,10 +21,7 @@
 #
 """Single session solvers embed a single pair of time series."""
 
-import abc
 import copy
-from collections.abc import Iterable
-from typing import List
 
 import literate_dataclasses as dataclasses
 import torch

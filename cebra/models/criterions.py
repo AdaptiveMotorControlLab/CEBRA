@@ -33,7 +33,7 @@ by the training loops implemented in :py:class:`cebra.solver.base.Solver` classe
 """
 
 import math
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import torch
 from torch import nn

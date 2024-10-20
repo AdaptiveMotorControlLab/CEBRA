@@ -36,7 +36,6 @@ import h5py
 import joblib as jl
 import numpy as np
 import numpy.typing as npt
-import pandas as pd
 
 
 def _filter_units(

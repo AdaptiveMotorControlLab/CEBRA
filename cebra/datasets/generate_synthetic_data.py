@@ -26,7 +26,6 @@ References:
 """
 import argparse
 import pathlib
-import sys
 
 import joblib as jl
 import keras

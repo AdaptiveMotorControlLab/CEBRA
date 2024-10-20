@@ -25,17 +25,9 @@ Note:
     It is inclear whether these will be kept. Consider the implementation
     as experimental/outdated, and the API for this particular package unstable.
 """
-import abc
-from collections.abc import Iterable
-from typing import List
 
-import literate_dataclasses as dataclasses
 import torch
-import tqdm
 
-import cebra
-import cebra.data
-import cebra.models
 import cebra.solver.base as abc_
 
 

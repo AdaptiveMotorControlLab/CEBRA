@@ -22,10 +22,8 @@
 """Neural network models and criterions for training CEBRA models."""
 import abc
 
-import literate_dataclasses as dataclasses
 import torch
 import torch.nn.functional as F
-import tqdm
 from torch import nn
 
 import cebra.data

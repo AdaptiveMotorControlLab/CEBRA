@@ -31,14 +31,12 @@ References:
 """
 
 import argparse
-import glob
 import pathlib
 
 import h5py
 import joblib as jl
 import numpy as np
 import numpy.typing as npt
-import pandas as pd
 
 from cebra.datasets import get_datapath
 
