@@ -115,7 +115,9 @@ class _Registry:
     ):
         instance = cls.get_instance(module)
         if expand_parametrized:
-            filter_ = lambda k, v: True
+
+            def filter_(k, v):
+                return True
         else:
 
             class _Filter(set):
