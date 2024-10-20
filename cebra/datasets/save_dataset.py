@@ -50,7 +50,7 @@ def save_allen_decoding_dataset(savepath=get_datapath("allen_preload/")):
                     print(f"{savepath}/{dataname}.jl")
 
 
-def save_allen_dataset(savepath=get_datapth("allen_preload/")):
+def save_allen_dataset(savepath=get_datapath("allen_preload/")):
     """Load and save complete allen dataset for Ca.
     Load and save all neural and behavioral data relevant for allen decoding dataset to reduce data loading time for the experiments using the shared data.
     It saves Ca data for the neuron numbers (10-1000), 5 different seeds for sampling the neurons.

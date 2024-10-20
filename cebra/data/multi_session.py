@@ -22,11 +22,9 @@
 """Datasets and loaders for multi-session training."""
 
 import abc
-import collections
 from typing import List
 
 import literate_dataclasses as dataclasses
-import numpy as np
 import torch
 
 import cebra.data as cebra_data

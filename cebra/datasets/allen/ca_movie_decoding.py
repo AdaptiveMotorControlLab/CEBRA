@@ -22,18 +22,19 @@
 """Allen pseudomouse Ca decoding dataset with train/test split.
 
 References:
-    *Deitch, Daniel, Alon Rubin, and Yaniv Ziv. "Representational drift in the mouse visual cortex." Current biology 31.19 (2021): 4327-4339.
-    *de Vries, Saskia EJ, et al. "A large-scale standardized physiological survey reveals functional organization of the mouse visual cortex." Nature neuroscience 23.1 (2020): 138-151.
-    *https://github.com/zivlab/visual_drift
-    *http://observatory.brain-map.org/visualcoding
-
+    * Deitch, Daniel, Alon Rubin, and Yaniv Ziv.
+      "Representational drift in the mouse visual cortex."
+      Current biology 31.19 (2021): 4327-4339.
+    * de Vries, Saskia EJ, et al.
+      "A large-scale standardized physiological survey reveals functional
+      organization of the mouse visual cortex."
+      Nature neuroscience 23.1 (2020): 138-151.
+    * https://github.com/zivlab/visual_drift
+    * http://observatory.brain-map.org/visualcoding
 """
 
-import glob
-import hashlib
 import pathlib
 
-import h5py
 import joblib
 import numpy as np
 import pandas as pd
@@ -41,12 +42,10 @@ import scipy.io
 import torch
 from numpy.random import Generator
 from numpy.random import PCG64
-from sklearn.decomposition import PCA
 
 import cebra.data
 from cebra.datasets import get_datapath
 from cebra.datasets import parametrize
-from cebra.datasets import register
 from cebra.datasets.allen import NUM_NEURONS
 from cebra.datasets.allen import SEEDS
 from cebra.datasets.allen import SEEDS_DISJOINT
@@ -245,11 +244,6 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
                 pseudo_mouse.append(session)
 
         pseudo_mouse = np.concatenate(pseudo_mouse)
-
-        return pseudo_mouse
-
-        pseudo_mouse = np.vstack(
-            [get_neural_data(num_movie, mice) for mice in list_mice])
 
         return pseudo_mouse
 

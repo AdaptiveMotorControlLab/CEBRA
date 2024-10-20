@@ -30,7 +30,6 @@ Discrete data has to come in the format of a single label for each datapoint. Mu
 discrete labels should be converted accordingly.
 """
 
-import numpy as np
 import torch
 
 import cebra.data
@@ -188,9 +187,9 @@ class ConditionalIndex(cebra_distributions.Index):
                 "of samples.")
         if len(discrete.shape) > 1:
             raise ValueError(
-                f"Discrete indexing information needs to be limited to a 1d "
-                f"array/tensor. Multi-dimensional discrete indices should be "
-                f"reformatted first.")
+                "Discrete indexing information needs to be limited to a 1d "
+                "array/tensor. Multi-dimensional discrete indices should be "
+                "reformatted first.")
             # TODO(stes): Once a helper function exists, the error message should
             #            mention it.
 

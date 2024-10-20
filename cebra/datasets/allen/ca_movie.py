@@ -22,18 +22,19 @@
 """Allen pseudomouse Ca dataset.
 
 References:
-    *Deitch, Daniel, Alon Rubin, and Yaniv Ziv. "Representational drift in the mouse visual cortex." Current biology 31.19 (2021): 4327-4339.
-    *de Vries, Saskia EJ, et al. "A large-scale standardized physiological survey reveals functional organization of the mouse visual cortex." Nature neuroscience 23.1 (2020): 138-151.
-    *https://github.com/zivlab/visual_drift
-    *http://observatory.brain-map.org/visualcoding
-
+    * Deitch, Daniel, Alon Rubin, and Yaniv Ziv.
+      "Representational drift in the mouse visual cortex."
+      Current biology 31.19 (2021): 4327-4339.
+    * de Vries, Saskia EJ, et al.
+      "A large-scale standardized physiological survey reveals functional
+      organization of the mouse visual cortex."
+      Nature neuroscience 23.1 (2020): 138-151.
+    * https://github.com/zivlab/visual_drift
+    * http://observatory.brain-map.org/visualcoding
 """
 
-import glob
-import hashlib
 import pathlib
 
-import h5py
 import joblib
 import numpy as np
 import pandas as pd
@@ -46,7 +47,6 @@ from sklearn.decomposition import PCA
 import cebra.data
 from cebra.datasets import get_datapath
 from cebra.datasets import parametrize
-from cebra.datasets import register
 from cebra.datasets.allen import NUM_NEURONS
 from cebra.datasets.allen import SEEDS
 

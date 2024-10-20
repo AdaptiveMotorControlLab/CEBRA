@@ -33,9 +33,10 @@ by the training loops implemented in :py:class:`cebra.solver.base.Solver` classe
 """
 
 import math
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 
@@ -212,7 +213,6 @@ class LearnableInfoNCE(BaseInfoNCE):
             self.max_inverse_temperature = math.inf
         else:
             self.max_inverse_temperature = 1.0 / min_temperature
-        start_tempearture = float(temperature)
         log_inverse_temperature = torch.tensor(
             math.log(1.0 / float(temperature)))
         self.log_inverse_temperature = nn.Parameter(log_inverse_temperature)

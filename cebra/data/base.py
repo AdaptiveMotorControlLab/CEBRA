@@ -22,11 +22,8 @@
 """Base classes for datasets and loaders."""
 
 import abc
-import collections
-from typing import List
 
 import literate_dataclasses as dataclasses
-import numpy as np
 import torch
 
 import cebra.data.assets as cebra_data_assets

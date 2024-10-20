@@ -33,7 +33,7 @@ try:
     from cebra.integrations.sklearn.decoder import L1LinearRegressor
 
     is_sklearn_available = True
-except ImportError as e:
+except ImportError:
     # silently fail for now
     pass
 
@@ -42,7 +42,7 @@ try:
     from cebra.integrations.matplotlib import *
 
     is_matplotlib_available = True
-except ImportError as e:
+except ImportError:
     # silently fail for now
     pass
 
@@ -51,7 +51,7 @@ try:
     from cebra.integrations.plotly import *
 
     is_plotly_available = True
-except ImportError as e:
+except ImportError:
     # silently fail for now
     pass
 
@@ -92,11 +92,11 @@ def __getattr__(key):
 
         return CEBRA
     elif key == "KNNDecoder":
-        from cebra.integrations.sklearn.decoder import KNNDecoder
+        from cebra.integrations.sklearn.decoder import KNNDecoder  # noqa: F811
 
         return KNNDecoder
     elif key == "L1LinearRegressor":
-        from cebra.integrations.sklearn.decoder import L1LinearRegressor
+        from cebra.integrations.sklearn.decoder import L1LinearRegressor  # noqa: F811
 
         return L1LinearRegressor
     elif not key.startswith("_"):
