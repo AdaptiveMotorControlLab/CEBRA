@@ -1015,15 +1015,15 @@ def plot_embedding(
 
     If the embedding dimension is equal or higher to 3:
 
-        * If ``idx_order`` is not provided, the plot will be 3D by default.
-        * If ``idx_order`` is provided, and it has 3 dimensions, the plot will be 3D;
-        if only 2 dimensions are provided, the plot will be 2D.
+        - If ``idx_order`` is not provided, the plot will be 3D by default.
+        - If ``idx_order`` is provided, and it has 3 dimensions, the plot will be 3D;
+          if only 2 dimensions are provided, the plot will be 2D.
 
     If the embedding dimension is equal to 2:
 
-        * If ``idx_order`` is not provided, the plot will be 2D by default.
-        * If ``idx_order`` is provided, and it has 3 dimensions, the plot will be 3D;
-        if 2 dimensions are provided, the plot will be 2D.
+        - If ``idx_order`` is not provided, the plot will be 2D by default.
+        - If ``idx_order`` is provided, and it has 3 dimensions, the plot will be 3D;
+          if 2 dimensions are provided, the plot will be 2D.
 
     This assumes that the dimensions provided to ``idx_order`` are within the range of the
     number of dimensions of the embedding (i.e., between 0 and
@@ -1036,11 +1036,11 @@ def plot_embedding(
         embedding: A matrix containing the feature representation computed with CEBRA.
         embedding_labels: The labels used to map the data to color. It can be:
 
-            * A vector that is the same sample size as the embedding, associating a value
-            to each sample, either discrete or continuous.
-            * A string, either `time`, which will color the embedding based on temporality,
-            or a string that can be interpreted as an RGB(A) color, which will display
-            the embedding uniformly with that color.
+            - A vector that is the same sample size as the embedding, associating a value
+              to each sample, either discrete or continuous.
+            - A string, either `time`, which will color the embedding based on temporality,
+              or a string that can be interpreted as an RGB(A) color, which will display
+              the embedding uniformly with that color.
 
         ax: Optional axis to create the plot on.
         idx_order: A tuple (x, y, z) or (x, y) that maps a dimension in the data to a dimension
