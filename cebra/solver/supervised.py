@@ -61,7 +61,7 @@ class SupervisedNNSolver(abc_.Solver):
         step_idx = 0
         while True:
             for _, batch in enumerate(loader):
-                stats = self.step(batch)
+                _ = self.step(batch)
                 self._log_checkpoint(num_steps, loader, valid_loader)
                 step_idx += 1
                 if step_idx >= num_steps:

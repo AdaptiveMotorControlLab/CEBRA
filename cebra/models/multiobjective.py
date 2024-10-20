@@ -94,7 +94,7 @@ class MultiobjectiveModel(nn.Module):
             Returns:
                 ``True`` for a valid representation, ``False`` otherwise.
             """
-            return mode in _ALL
+            return mode in _ALL  # noqa: F821
 
     def __init__(
         self,

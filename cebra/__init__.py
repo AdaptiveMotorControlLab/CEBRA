@@ -92,11 +92,11 @@ def __getattr__(key):
 
         return CEBRA
     elif key == "KNNDecoder":
-        from cebra.integrations.sklearn.decoder import KNNDecoder
+        from cebra.integrations.sklearn.decoder import KNNDecoder  # noqa: F811
 
         return KNNDecoder
     elif key == "L1LinearRegressor":
-        from cebra.integrations.sklearn.decoder import L1LinearRegressor
+        from cebra.integrations.sklearn.decoder import L1LinearRegressor  # noqa: F811
 
         return L1LinearRegressor
     elif not key.startswith("_"):
