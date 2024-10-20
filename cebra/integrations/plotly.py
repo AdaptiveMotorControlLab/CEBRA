@@ -79,7 +79,8 @@ class _EmbeddingInteractivePlot(_EmbeddingPlot):
         """Specify the cmap for plotting the latent space.
 
         Args:
-            cmap: The Colormap instance or registered colormap name used to map scalar data to colors. It will be ignored if `embedding_labels` is set to a valid RGB(A).
+            cmap: The Colormap instance or registered colormap name used to map scalar data to colors.
+                It will be ignored if `embedding_labels` is set to a valid RGB(A).
 
 
         Returns:
@@ -171,25 +172,32 @@ def plot_embedding_interactive(
     The function makes use of :py:class:`plotly.graph_objects.Scatter` and parameters from that function can be provided
     as part of ``kwargs``.
 
-
     Args:
         embedding: A matrix containing the feature representation computed with CEBRA.
         embedding_labels: The labels used to map the data to color. It can be:
 
-            * A vector that is the same sample size as the embedding, associating a value to each of the sample, either discrete or continuous.
-            * A string, either `time`, then the labels while color the embedding based on temporality, or a string that can be interpreted as a RGB(A) color, then the embedding will be uniformly display with that unique color.
+            * A vector that is the same sample size as the embedding, associating a value
+            to each of the sample, either discrete or continuous.
+            * A string, either `time`, then the labels will color the embedding based on
+            temporality, or a string that can be interpreted as a RGB(A) color, then
+            the embedding will be uniformly displayed with that unique color.
+
         axis: Optional axis to create the plot on.
-        idx_order: A tuple (x, y, z) or (x, y) that maps a dimension in the data to a dimension in the 3D/2D
-            embedding. The simplest form is (0, 1, 2) or (0, 1) but one might want to plot either those
-            dimensions differently (e.g., (1, 0, 2)) or other dimensions from the feature representation
-            (e.g., (2, 4, 5)).
+        idx_order: A tuple (x, y, z) or (x, y) that maps a dimension in the data to a dimension
+            in the 3D/2D embedding. The simplest form is (0, 1, 2) or (0, 1) but one might want
+            to plot either those dimensions differently (e.g., (1, 0, 2)) or other dimensions
+            from the feature representation (e.g., (2, 4, 5)).
+
         markersize: The marker size.
         alpha: The marker blending, between 0 (transparent) and 1 (opaque).
-        cmap: The Colormap instance or registered colormap name used to map scalar data to colors. It will be ignored if `embedding_labels` is set to a valid RGB(A).
+        cmap: The Colormap instance or registered colormap name used to map scalar data to colors.
+            It will be ignored if `embedding_labels` is set to a valid RGB(A).
         title: The title on top of the embedding.
         figsize: Figure width and height in inches.
         dpi: Figure resolution.
-        kwargs: Optional arguments to customize the plots. This dictionary includes the following optional arguments:
+        kwargs: Optional arguments to customize the plots. This dictionary includes the following
+            optional arguments:
+
             -- showlegend: Whether to show the legend or not.
             -- discrete: Whether the labels are discrete or not.
             -- col: The column of the subplot to plot the embedding on.
@@ -197,13 +205,8 @@ def plot_embedding_interactive(
             -- template: The template to use for the plot.
 
             Note: showlegend can be True only if discrete is True.
-
-            See :py:class:`plotly.graph_objects.Scatter` documentation for more
-                details on which arguments to use.
-
-    Returns:
-        The plotly figure.
-
+            See :py:class:`plotly.graph_objects.Scatter` documentation for more details on which
+            arguments to use.
 
     Example:
 
