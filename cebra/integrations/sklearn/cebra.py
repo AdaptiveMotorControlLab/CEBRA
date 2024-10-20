@@ -780,8 +780,6 @@ class CEBRA(BaseEstimator, TransformerMixin):
                             f"receptive fields/offsets larger than 1 via the sklearn API. "
                             f"Please use a different model, or revert to the pytorch "
                             f"API for training.")
-
-                d.configure_for(model[n])
         else:
             if not isinstance(model, cebra.models.ConvolutionalModelMixin):
                 if len(model.get_offset()) > 1:
@@ -791,37 +789,11 @@ class CEBRA(BaseEstimator, TransformerMixin):
                         f"Please use a different model, or revert to the pytorch "
                         f"API for training.")
 
-            dataset.configure_for(model)
+        dataset.configure_for(model)
 
     def _select_model(self, X: Union[npt.NDArray, torch.Tensor],
                       session_id: int):
-        # Choose the model and get its corresponding offset
-        if self.num_sessions is not None:  # multisession implementation
-            if session_id is None:
-                raise RuntimeError(
-                    "No session_id provided: multisession model requires a session_id to choose the model corresponding to your data shape."
-                )
-            if session_id >= self.num_sessions or session_id < 0:
-                raise RuntimeError(
-                    f"Invalid session_id {session_id}: session_id for the current multisession model must be between 0 and {self.num_sessions-1}."
-                )
-            if self.n_features_[session_id] != X.shape[1]:
-                raise ValueError(
-                    f"Invalid input shape: model for session {session_id} requires an input of shape"
-                    f"(n_samples, {self.n_features_[session_id]}), got (n_samples, {X.shape[1]})."
-                )
-
-            model = self.model_[session_id]
-            model.to(self.device_)
-        else:  # single session
-            if session_id is not None and session_id > 0:
-                raise RuntimeError(
-                    f"Invalid session_id {session_id}: single session models only takes an optional null session_id."
-                )
-            model = self.model_
-
-        offset = model.get_offset()
-        return model, offset
+        return self.solver_._select_model(X, session_id=session_id)
 
     def _check_labels_types(self, y: tuple, session_id: Optional[int] = None):
         """Check that the input labels are compatible with the labels used to fit the model.
@@ -1203,7 +1175,58 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
     def transform(self,
                   X: Union[npt.NDArray, torch.Tensor],
+                  batch_size: Optional[int] = None,
                   session_id: Optional[int] = None) -> npt.NDArray:
+        """Transform an input sequence and return the embedding.
+
+        Args:
+            X: A numpy array or torch tensor of size ``time x dimension``.
+            batch_size:
+            session_id: The session ID, an :py:class:`int` between 0 and :py:attr:`num_sessions` for
+                multisession, set to ``None`` for single session.
+
+        Returns:
+            A :py:func:`numpy.array` of size ``time x output_dimension``.
+
+        Example:
+
+            >>> import cebra
+            >>> import numpy as np
+            >>> dataset =  np.random.uniform(0, 1, (1000, 30))
+            >>> cebra_model = cebra.CEBRA(max_iterations=10)
+            >>> cebra_model.fit(dataset)
+            CEBRA(max_iterations=10)
+            >>> embedding = cebra_model.transform(dataset)
+
+        """
+        sklearn_utils_validation.check_is_fitted(self, "n_features_")
+        self.solver_._check_is_session_id_valid(session_id=session_id)
+
+        if torch.is_tensor(X):
+            X = X.detach().cpu()
+
+        X = sklearn_utils.check_input_array(X, min_samples=len(self.offset_))
+
+        if isinstance(X, np.ndarray):
+            X = torch.from_numpy(X)
+
+        if batch_size is not None and batch_size < 1:
+            raise ValueError(
+                f"Batch size should be at least 1, got {batch_size}")
+
+        with torch.no_grad():
+            output = self.solver_.transform(
+                inputs=X,
+                pad_before_transform=self.pad_before_transform,
+                session_id=session_id,
+                batch_size=batch_size)
+
+        return output.detach().cpu().numpy()
+
+    # Deprecated, kept for testing.
+    def transform_deprecated(self,
+                             X: Union[npt.NDArray, torch.Tensor],
+                             session_id: Optional[int] = None) -> npt.NDArray:
         """Transform an input sequence and return the embedding.
 
         Args:
@@ -1454,6 +1477,11 @@ class CEBRA(BaseEstimator, TransformerMixin):
             cebra_ = _load_cebra_with_sklearn_backend(checkpoint)
         else:
             cebra_ = _check_type_checkpoint(checkpoint)
+
+        n_features = cebra_.n_features_
+        cebra_.solver_.n_features = ([
+            session_n_features for session_n_features in n_features
+        ] if isinstance(n_features, list) else n_features)
 
         return cebra_
 
