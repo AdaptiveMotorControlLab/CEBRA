@@ -76,7 +76,7 @@ class TensorDataset(cebra_data.SingleSessionDataset):
         super().__init__(device=device)
         self.neural = self._to_tensor(neural, check_dtype="float").float()
         self.continuous = self._to_tensor(continuous,
-                                          check_dtype="float").float()
+                                          check_dtype="float")
         self.discrete = self._to_tensor(discrete, check_dtype="integer")
         if self.continuous is None and self.discrete is None:
             raise ValueError(
