@@ -20,12 +20,9 @@
 # limitations under the License.
 #
 import pathlib
-from typing import Tuple
 
 import joblib as jl
-import literate_dataclasses as dataclasses
 import numpy as np
-import sklearn
 import torch
 
 import cebra.data
@@ -33,6 +30,8 @@ import cebra.io
 from cebra.datasets import get_datapath
 from cebra.datasets import parametrize
 from cebra.datasets import register
+
+_DEFAULT_DATADIR = get_datapath()
 
 
 @register("continuous-gaussian-mixture")

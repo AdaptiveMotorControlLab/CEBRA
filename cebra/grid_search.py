@@ -138,7 +138,8 @@ class GridSearch:
                 to fit the CEBRA models on. The models are then trained using temporal contrastive learning
                 (CEBRA-Time).
                 An example of a valid ``datasets`` value could be:
-                ``datasets={"dataset1": neural_data, "dataset2": (neurald_data, continuous_data, discrete_data), "dataset3": (neural_data2, continuous_data2)}``.
+                ``datasets={"dataset1": neural_data, "dataset2": (neurald_data, continuous_data, discrete_data),
+                "dataset3": (neural_data2, continuous_data2)}``.
             params: Dict of parameter values provided by the user, either as a single value, for
                 fixed hyperparameter values, or with a list of values for hyperparameters to optimize.
                 If the value is a list of a single element, the hyperparameter is considered as fixed.

@@ -35,6 +35,7 @@ import sklearn.utils.validation
 import torch
 
 from cebra import CEBRA
+from cebra.helper import requires_package_version
 
 
 def _register_colormap():
@@ -289,13 +290,13 @@ class _EmbeddingPlot(_BasePlot):
 
             * If ``idx_order`` is not provided, the plot will be 3D by default.
             * If ``idx_order`` is provided, if it has 3 dimensions, the plot will be 3D, if only 2 dimensions
-                are provided, the plot will be 2D.
+            are provided, the plot will be 2D.
 
         If the embedding dimension is equal to 2:
 
             * If ``idx_order`` is not provided, the plot will be 2D by default.
             * If ``idx_order`` is provided, if it has 3 dimensions, the plot will be 3D, if 2 dimensions
-                are provided, the plot will be 2D.
+            are provided, the plot will be 2D.
 
         This is supposing that the dimensions provided to ``idx_order`` are in the range of the number of
         dimensions of the embedding (i.e., between 0 and :py:attr:`cebra.CEBRA.output_dimension` -1).
@@ -480,8 +481,9 @@ class _EmbeddingPlot(_BasePlot):
         elif isinstance(self.embedding_labels, Iterable):
             if len(self.embedding_labels) != self.embedding.shape[0]:
                 raise ValueError(
-                    f"Invalid embedding labels: the labels vector should have the same number of samples as the embedding, got {len(self.embedding_labels)}, expect {self.embedding.shape[0]}."
-                )
+                    f"Invalid embedding labels: the labels vector should have the same number "
+                    f"of samples as the embedding, got {len(self.embedding_labels)}, "
+                    f"expected {self.embedding.shape[0]}.")
             if self.embedding_labels.ndim > 1:
                 raise NotImplementedError(
                     f"Invalid embedding labels: plotting does not support multiple sets of labels, got {self.embedding_labels.ndim}."
@@ -668,8 +670,9 @@ class _ConsistencyPlot(_BasePlot):
         assert len(pairs) == len(values), (self.pairs.shape, len(values))
         score_dict = {tuple(pair): value for pair, value in zip(pairs, values)}
 
-        if self.labels is None:
-            n_grid = self.score
+        # NOTE(stes): Never used, might be possible to remove.
+        #if self.labels is None:
+        #    n_grid = self.score
 
         heatmap_values = np.zeros((len(self.labels), len(self.labels)))
 
@@ -1012,46 +1015,53 @@ def plot_embedding(
 
     If the embedding dimension is equal or higher to 3:
 
-        * If ``idx_order`` is not provided, the plot will be 3D by default.
-        * If ``idx_order`` is provided, if it has 3 dimensions, the plot will be 3D, if only 2 dimensions are provided, the plot will be 2D.
+        - If ``idx_order`` is not provided, the plot will be 3D by default.
+        - If ``idx_order`` is provided, and it has 3 dimensions, the plot will be 3D;
+          if only 2 dimensions are provided, the plot will be 2D.
 
     If the embedding dimension is equal to 2:
 
-        * If ``idx_order`` is not provided, the plot will be 2D by default.
-        * If ``idx_order`` is provided, if it has 3 dimensions, the plot will be 3D, if 2 dimensions are provided, the plot will be 2D.
+        - If ``idx_order`` is not provided, the plot will be 2D by default.
+        - If ``idx_order`` is provided, and it has 3 dimensions, the plot will be 3D;
+          if 2 dimensions are provided, the plot will be 2D.
 
-    This is supposing that the dimensions provided to ``idx_order`` are in the range of the number of
-    dimensions of the embedding (i.e., between 0 and :py:attr:`cebra.CEBRA.output_dimension` -1).
+    This assumes that the dimensions provided to ``idx_order`` are within the range of the
+    number of dimensions of the embedding (i.e., between 0 and
+    :py:attr:`cebra.CEBRA.output_dimension` -1).
 
-    The function makes use of :py:func:`matplotlib.pyplot.scatter` and parameters from that function can be provided
-    as part of ``kwargs``.
-
+    The function makes use of :py:func:`matplotlib.pyplot.scatter`, and parameters from
+    that function can be provided as part of ``kwargs``.
 
     Args:
         embedding: A matrix containing the feature representation computed with CEBRA.
         embedding_labels: The labels used to map the data to color. It can be:
 
-            * A vector that is the same sample size as the embedding, associating a value to each of the sample, either discrete or continuous.
-            * A string, either `time`, then the labels while color the embedding based on temporality, or a string that can be interpreted as a RGB(A) color, then the embedding will be uniformly display with that unique color.
+            - A vector that is the same sample size as the embedding, associating a value
+              to each sample, either discrete or continuous.
+            - A string, either `time`, which will color the embedding based on temporality,
+              or a string that can be interpreted as an RGB(A) color, which will display
+              the embedding uniformly with that color.
+
         ax: Optional axis to create the plot on.
-        idx_order: A tuple (x, y, z) or (x, y) that maps a dimension in the data to a dimension in the 3D/2D
-            embedding. The simplest form is (0, 1, 2) or (0, 1) but one might want to plot either those
-            dimensions differently (e.g., (1, 0, 2)) or other dimensions from the feature representation
-            (e.g., (2, 4, 5)).
+        idx_order: A tuple (x, y, z) or (x, y) that maps a dimension in the data to a dimension
+            in the 3D/2D embedding. The simplest form is (0, 1, 2) or (0, 1), but one might
+            want to plot either those dimensions differently (e.g., (1, 0, 2)) or other
+            dimensions from the feature representation (e.g., (2, 4, 5)).
+
         markersize: The marker size.
         alpha: The marker blending, between 0 (transparent) and 1 (opaque).
-        cmap: The Colormap instance or registered colormap name used to map scalar data to colors. It will be ignored if `embedding_labels` is set to a valid RGB(A).
+        cmap: The Colormap instance or registered colormap name used to map scalar data to colors.
+            It will be ignored if `embedding_labels` is set to a valid RGB(A).
         title: The title on top of the embedding.
         figsize: Figure width and height in inches.
         dpi: Figure resolution.
-        kwargs: Optional arguments to customize the plots. See :py:func:`matplotlib.pyplot.scatter` documentation for more
-            details on which arguments to use.
+        kwargs: Optional arguments to customize the plots. See :py:func:`matplotlib.pyplot.scatter`
+            documentation for more details on which arguments to use.
 
     Returns:
         The axis :py:meth:`matplotlib.axes.Axes.axis` of the plot.
 
     Example:
-
         >>> import cebra
         >>> import numpy as np
         >>> X = np.random.uniform(0, 1, (100, 50))
@@ -1061,8 +1071,8 @@ def plot_embedding(
         CEBRA(max_iterations=10)
         >>> embedding = cebra_model.transform(X)
         >>> ax = cebra.plot_embedding(embedding, embedding_labels='time')
-
     """
+
     return _EmbeddingPlot(
         embedding=embedding,
         embedding_labels=embedding_labels,
@@ -1134,7 +1144,12 @@ def plot_consistency(
         >>> labels2 = np.random.uniform(0, 1, (1000, ))
         >>> dataset_ids = ["achilles", "buddy"]
         >>> # between-datasets consistency, by aligning on the labels
-        >>> scores, pairs, datasets = cebra.sklearn.metrics.consistency_score(embeddings=[embedding1, embedding2], labels=[labels1, labels2], dataset_ids=dataset_ids, between="datasets")
+        >>> scores, pairs, datasets = cebra.sklearn.metrics.consistency_score(
+        ...     embeddings=[embedding1, embedding2],
+        ...     labels=[labels1, labels2],
+        ...     dataset_ids=dataset_ids,
+        ...     between="datasets"
+        ... )
         >>> ax = cebra.plot_consistency(scores, pairs, datasets, vmin=0, vmax=100)
 
     """
@@ -1151,9 +1166,6 @@ def plot_consistency(
         figsize=figsize,
         dpi=dpi,
     ).plot(**kwargs)
-
-
-from cebra.helper import requires_package_version
 
 
 @requires_package_version(matplotlib, "3.6")

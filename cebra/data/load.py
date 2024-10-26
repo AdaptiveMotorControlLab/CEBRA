@@ -663,7 +663,8 @@ def load(
         - if no key is provided, the first data structure found upon iteration of the collection will be loaded;
         - if a key is provided, it needs to correspond to an existing item of the collection;
         - if a key is provided, the data value accessed needs to be a data structure;
-        - the function loads data for only one data structure, even if the file contains more. The function can be called again with the corresponding key to get the other ones.
+        - the function loads data for only one data structure, even if the file contains more. The function can be
+          called again with the corresponding key to get the other ones.
 
     Args:
         file: The path to the given file to load, in a supported format.
