@@ -29,6 +29,7 @@ import numpy.typing as npt
 import torch
 
 import cebra.data as cebra_data
+import cebra.helper as cebra_helper
 
 
 class TensorDataset(cebra_data.SingleSessionDataset):
@@ -68,8 +69,7 @@ class TensorDataset(cebra_data.SingleSessionDataset):
                  device: str = "cpu"):
         super().__init__(device=device)
         self.neural = self._to_tensor(neural, check_dtype="float").float()
-        self.continuous = self._to_tensor(continuous,
-                                          check_dtype="float")
+        self.continuous = self._to_tensor(continuous, check_dtype="float")
         self.discrete = self._to_tensor(discrete, check_dtype="integer")
         if self.continuous is None and self.discrete is None:
             raise ValueError(
@@ -97,10 +97,11 @@ class TensorDataset(cebra_data.SingleSessionDataset):
         if isinstance(array, np.ndarray):
             array = torch.from_numpy(array)
         if check_dtype is not None:
-            if (check_dtype == "int" and not cebra.helper._is_integer(array)
+            if (check_dtype == "int" and not cebra_helper._is_integer(array)
                ) or (check_dtype == "float" and
-                     not cebra.helper._is_floating(array)):
-                raise TypeError(f"Array has type {array.dtype} instead of {check_dtype}.")
+                     not cebra_helper._is_floating(array)):
+                raise TypeError(
+                    f"Array has type {array.dtype} instead of {check_dtype}.")
         return array
 
     @property
