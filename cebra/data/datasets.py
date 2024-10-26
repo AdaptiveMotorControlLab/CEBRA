@@ -107,7 +107,7 @@ class TensorDataset(cebra_data.SingleSessionDataset):
             if (check_dtype == "int" and not cebra.helper._is_integer(array)
                ) or (check_dtype == "float" and
                      not cebra.helper._is_floating(array)):
-                raise TypeError(f"{array.dtype} instead of {check_dtype}.")
+                raise TypeError(f"Array has type {array.dtype} instead of {check_dtype}.")
         return array
 
     @property
