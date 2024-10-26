@@ -160,7 +160,7 @@ class _DLCLoader:
             )
         elif self.dlc_df.columns.nlevels == 4:
             raise NotImplementedError(
-                f"Multi-animals DLC files are not handled. Please provide a single-animal file."
+                "Multi-animals DLC files are not handled. Please provide a single-animal file."
             )
 
         dlc_df_coords = (

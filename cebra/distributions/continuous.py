@@ -23,7 +23,6 @@
 
 from typing import Literal, Optional
 
-import numpy as np
 import torch
 
 import cebra.data
@@ -112,8 +111,8 @@ class TimeContrastive(abc_.JointDistribution, abc_.HasGenerator):
         abc_.HasGenerator.__init__(self, device=device, seed=seed)
         if continuous is None and num_samples is None:
             raise ValueError(
-                f"Supply either a continuous index (which will be used to infer the dataset size) "
-                f"or alternatively the number of datapoints using the num_samples argument."
+                "Supply either a continuous index (which will be used to infer the dataset size) "
+                "or alternatively the number of datapoints using the num_samples argument."
             )
         if continuous is not None and num_samples is not None:
             if len(continuous) != num_samples:

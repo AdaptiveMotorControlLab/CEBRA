@@ -165,7 +165,7 @@ def requires_package_version(module, version: str):
 
         @wraps(function)
         def wrapper(*args, patched_version=None, **kwargs):
-            if patched_version != None:
+            if patched_version is not None:
                 installed_version = pkg_resources.parse_version(
                     patched_version)  # Use the patched version if provided
             else:

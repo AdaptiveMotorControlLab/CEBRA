@@ -134,7 +134,7 @@ class MultisessionProjectorModel(cebra.models.Model):
         return self._features[index](inp)
 
     def forward(self, inp):
-        raise NotImplemented()
+        raise NotImplementedError()
 
     def get_offset(self) -> cebra.data.Offset:
         return cebra.data.Offset(5, 5)
