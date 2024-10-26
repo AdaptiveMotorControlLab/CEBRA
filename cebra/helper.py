@@ -99,7 +99,7 @@ def _is_integer(y: Union[npt.NDArray, torch.Tensor]) -> bool:
 
 
 def _is_floating(y: Union[npt.NDArray, torch.Tensor]) -> bool:
-    """Check if the values in ``y`` are :py:class:`int`.
+    """Check if the values in ``y`` are :py:class:`float`.
 
     Note:
         There is no ``torch`` method to check that the ``dtype`` of a :py:class:`torch.Tensor`
@@ -116,6 +116,19 @@ def _is_floating(y: Union[npt.NDArray, torch.Tensor]) -> bool:
     return (isinstance(y, np.ndarray) and
             np.issubdtype(y.dtype, np.floating)) or (isinstance(
                 y, torch.Tensor) and torch.is_floating_point(y))
+
+
+def _is_floating_or_integer(y: Union[npt.NDArray, torch.Tensor]) -> bool:
+    """Check if the values in ``y`` are :py:class:`int` or :py:class:`float`.
+
+    Args:
+        y: An array, either as a :py:func:`numpy.array` or a :py:class:`torch.Tensor`.
+
+    Returns:
+        ``True`` if ``y`` contains :py:class:`float` or :py:class:`int`.
+    """
+
+    return _is_floating(y) or _is_integer(y)
 
 
 def get_loader_options(dataset: "cebra.data.Dataset") -> List[str]:
