@@ -108,6 +108,10 @@ class TensorDataset(cebra_data.SingleSessionDataset):
                     f"Array has type {array.dtype} instead of {check_dtype}.")
         if cebra_helper._is_floating(array):
             array = array.float()
+        if cebra_helper._is_integer(array):
+            # NOTE(stes): Required for standardizing number format on
+            # windows machines.
+            array = array.long()
         return array
 
     @property
