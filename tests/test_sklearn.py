@@ -1097,7 +1097,7 @@ def test_move_cpu_to_cuda_device(device):
 def test_move_cpu_to_mps_device(device):
 
     if not cebra.helper._is_mps_availabe(torch):
-        pytest.skip(f"MPS device is not available")
+        pytest.skip("MPS device is not available")
 
     X = np.random.uniform(0, 1, (10, 5))
     cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",

@@ -22,10 +22,7 @@
 import itertools
 import pathlib
 import pickle
-import platform
 import tempfile
-import unittest
-from unittest.mock import patch
 
 import h5py
 import hdf5storage

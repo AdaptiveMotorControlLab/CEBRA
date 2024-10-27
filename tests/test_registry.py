@@ -117,7 +117,7 @@ def test_override():
     _Foo1 = test_module.register("foo")(Foo)
     assert _Foo1 == Foo
     assert _Foo1 != Bar
-    assert f"foo" in test_module.get_options()
+    assert "foo" in test_module.get_options()
 
     # Check that the class was actually added to the module
     assert (
@@ -137,7 +137,7 @@ def test_override():
     _Foo2 = test_module.register("foo", override=True)(Bar)
     assert _Foo2 != Foo
     assert _Foo2 == Bar
-    assert f"foo" in test_module.get_options()
+    assert "foo" in test_module.get_options()
 
 
 def test_depreciation():
@@ -145,7 +145,7 @@ def test_depreciation():
     Foo = _make_class()
     _Foo1 = test_module.register("foo")(Foo)
     assert _Foo1 == Foo
-    assert f"foo" in test_module.get_options()
+    assert "foo" in test_module.get_options()
 
     # Registering the same class under different names
     # also raises and error

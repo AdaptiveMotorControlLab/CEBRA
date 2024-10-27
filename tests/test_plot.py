@@ -72,8 +72,6 @@ def test_plot_imports():
 def test_colormaps():
     import matplotlib
 
-    import cebra
-
     cmap = matplotlib.colormaps["cebra"]
     assert cmap is not None
     plt.scatter([1], [2], c=[2], cmap="cebra")
