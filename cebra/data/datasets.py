@@ -71,7 +71,7 @@ class TensorDataset(cebra_data.SingleSessionDataset):
         super().__init__(device=device)
         self.neural = self._to_tensor(neural, check_dtype="float").float()
         self.continuous = self._to_tensor(continuous, check_dtype="float")
-        self.discrete = self._to_tensor(discrete, check_dtype="integer")
+        self.discrete = self._to_tensor(discrete, check_dtype="int")
         if self.continuous is None and self.discrete is None:
             raise ValueError(
                 "You have to pass at least one of the arguments 'continuous' or 'discrete'."
@@ -87,7 +87,7 @@ class TensorDataset(cebra_data.SingleSessionDataset):
 
         Args:
             array: Array to check.
-            check_dtype (list, optional): If not `None`, list of dtypes to which the values in `array`
+            check_dtype: If not `None`, list of dtypes to which the values in `array`
                 must belong to. Defaults to None.
 
         Returns:
@@ -98,11 +98,16 @@ class TensorDataset(cebra_data.SingleSessionDataset):
         if isinstance(array, np.ndarray):
             array = torch.from_numpy(array)
         if check_dtype is not None:
+            if check_dtype not in ["int", "float"]:
+                raise ValueError(
+                    f"check_dtype must be 'int' or 'float', got {check_dtype}")
             if (check_dtype == "int" and not cebra_helper._is_integer(array)
                ) or (check_dtype == "float" and
                      not cebra_helper._is_floating(array)):
                 raise TypeError(
                     f"Array has type {array.dtype} instead of {check_dtype}.")
+        if cebra_helper._is_floating(array):
+            array = array.float()
         return array
 
     @property
