@@ -155,8 +155,8 @@ def test_version_check(version, raises):
             cebra.models.model._check_torch_version(raise_error=True)
 
 
-def test_version_check_2():
-    raises = not cebra.models.model._check_torch_version(raise_error=False)
+def test_version_check_dropout_available():
+    raises = cebra.models.model._check_torch_version(raise_error=False)
     if raises:
         assert len(cebra.models.get_options("*dropout*")) == 0
     else:
