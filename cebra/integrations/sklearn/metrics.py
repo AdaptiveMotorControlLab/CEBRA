@@ -108,15 +108,14 @@ def infonce_loss(
     return avg_loss
 
 
-def goodness_of_fit_score(
-    cebra_model: cebra_sklearn_cebra.CEBRA,
-    X: Union[npt.NDArray, torch.Tensor],
-    *y,
-    session_id: Optional[int] = None,
-    num_batches: int = 500,
-    correct_by_batchsize: bool = False,
-) -> float:
+def goodness_of_fit_score(cebra_model: cebra_sklearn_cebra.CEBRA,
+                          X: Union[npt.NDArray, torch.Tensor],
+                          *y,
+                          session_id: Optional[int] = None,
+                          num_batches: int = 500) -> float:
     """Compute the InfoNCE loss on a *single session* dataset on the model.
+
+    This function uses the :func:`infonce_loss` function to compute the InfoNCE loss.
 
     Args:
         cebra_model: The model to use to compute the InfoNCE loss on the samples.
@@ -127,23 +126,60 @@ def goodness_of_fit_score(
             for multisession, set to ``None`` for single session.
         num_batches: The number of iterations to consider to evaluate the model on the new data.
             Higher values will give a more accurate estimate. Set it to at least 500 iterations.
+
+    Returns:
+        The average GoF score estimated over ``num_batches`` batches from the data distribution.
+
+    Related:
+        :func:`infonce_to_goodness_of_fit`
+
+    Example:
+
+        >>> import cebra
+        >>> import numpy as np
+        >>> neural_data = np.random.uniform(0, 1, (1000, 20))
+        >>> cebra_model = cebra.CEBRA(max_iterations=10)
+        >>> cebra_model.fit(neural_data)
+        CEBRA(max_iterations=10)
+        >>> gof = cebra.goodness_of_fit_score(cebra_model, neural_data)
     """
-    loss = infonce_loss(cebra_model=cebra_model,
-                        X=X,
+    loss = infonce_loss(cebra_model,
+                        X,
                         *y,
                         session_id=session_id,
-                        num_batches=500,
+                        num_batches=num_batches,
                         correct_by_batchsize=False)
     return infonce_to_goodness_of_fit(loss, cebra_model)
 
 
-def goodness_of_fit_score(model):
+def goodness_of_fit_history(model):
+    """Return the history of the goodness of fit score.
+
+    Args:
+        model: A trained CEBRA model.
+
+    Returns:
+        A numpy array containing the goodness of fit values, measured in bits.
+
+    Related:
+        :func:`infonce_to_goodness_of_fit`
+
+    Example:
+
+        >>> import cebra
+        >>> import numpy as np
+        >>> neural_data = np.random.uniform(0, 1, (1000, 20))
+        >>> cebra_model = cebra.CEBRA(max_iterations=10)
+        >>> cebra_model.fit(neural_data)
+        CEBRA(max_iterations=10)
+        >>> gof_history = cebra.goodness_of_fit_history(cebra_model)
+    """
     infonce = np.array(model.state_dict_["log"]["total"])
     return infonce_to_goodness_of_fit(infonce, model)
 
 
 def infonce_to_goodness_of_fit(infonce: Union[float, Iterable[float]],
-                               model: cebra.CEBRA) -> np.ndarray:
+                               model: cebra_sklearn_cebra.CEBRA) -> np.ndarray:
     """Given a trained CEBRA model, return goodness of fit metric
 
     The goodness of fit ranges from 0 (lowest meaningful value)
@@ -161,18 +197,16 @@ def infonce_to_goodness_of_fit(infonce: Union[float, Iterable[float]],
 
     .. math::
 
-        S = \log N - \text{InfoNCE}
+        S = \\log N - \\text{InfoNCE}
 
     Args:
         model: The trained CEBRA model
 
     Returns:
-        Numpy array containing the goodness of fit
-        values, measured in bits
+        Numpy array containing the goodness of fit values, measured in bits
 
     Raises:
-        ``RuntimeError``, if provided model is not
-        fit to data.
+        ``RuntimeError``, if provided model is not fit to data.
     """
     if not hasattr(model, "state_dict_"):
         raise RuntimeError("Fit the CEBRA model first.")
