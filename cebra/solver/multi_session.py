@@ -21,11 +21,8 @@
 #
 """Solver implementations for multi-session datasetes."""
 
-import abc
-from collections.abc import Iterable
 from typing import List, Optional
 
-import literate_dataclasses as dataclasses
 import torch
 
 import cebra
@@ -126,10 +123,10 @@ class MultiSessionSolver(abc_.Solver):
 
     def _set_fitted_params(self, loader: cebra.data.Loader):
         """Set parameters once the solver is fitted.
-        
+
         In multi session solver, the number of session is set to the number of
         sessions in the dataset of the loader and the number of
-        features is set as a list corresponding to the number of neurons in 
+        features is set as a list corresponding to the number of neurons in
         each dataset.
 
         Args:
@@ -145,11 +142,11 @@ class MultiSessionSolver(abc_.Solver):
     def _check_is_inputs_valid(self, inputs: torch.Tensor,
                                session_id: Optional[int]):
         """Check that the inputs can be inferred using the selected model.
-        
+
         Note: This method checks that the number of neurons in the input is
         similar to the input dimension to the selected model.
-        
-        Args: 
+
+        Args:
             inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
@@ -163,10 +160,10 @@ class MultiSessionSolver(abc_.Solver):
 
     def _check_is_session_id_valid(self, session_id: Optional[int]):
         """Check that the session ID provided is valid for the solver instance.
-        
+
         The session ID must be non-null and between 0 and the number session in the dataset.
-        
-        Args: 
+
+        Args:
             session_id: The session ID to check.
         """
 
@@ -181,14 +178,14 @@ class MultiSessionSolver(abc_.Solver):
 
     def _select_model(self, inputs: torch.Tensor, session_id: Optional[int]):
         """ Select the model based on the input dimension and session ID.
-        
-        Args: 
+
+        Args:
             inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
 
-        Returns: 
+        Returns:
             The model (first returns) and the offset of the model (second returns).
         """
         self._check_is_session_id_valid(session_id=session_id)

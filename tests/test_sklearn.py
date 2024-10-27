@@ -1145,7 +1145,7 @@ def test_move_cpu_to_cuda_device(device):
 def test_move_cpu_to_mps_device(device):
 
     if not cebra.helper._is_mps_availabe(torch):
-        pytest.skip(f"MPS device is not available")
+        pytest.skip("MPS device is not available")
 
     X = np.random.uniform(0, 1, (10, 5))
     cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",
@@ -1360,7 +1360,7 @@ def test_check_device():
 )
 def test_new_transform(model_architecture, device):
     """
-    This is a test that the original sklearn transform returns the same output as 
+    This is a test that the original sklearn transform returns the same output as
     the new sklearn transform that uses the pytorch solver transform.
     """
     output_dimension = 4

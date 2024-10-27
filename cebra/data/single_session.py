@@ -26,12 +26,9 @@ arguments and configuration values and subclass :py:class:`.base.Loader`.
 """
 
 import abc
-import collections
 import warnings
-from typing import List
 
 import literate_dataclasses as dataclasses
-import numpy as np
 import torch
 
 import cebra.data as cebra_data
@@ -365,8 +362,8 @@ class HybridDataLoader(cebra_data.Loader):
 
         if self.conditional != "time_delta":
             raise NotImplementedError(
-                f"Hybrid training is currently only implemented using the ``time_delta`` "
-                f"continual distribution.")
+                "Hybrid training is currently only implemented using the ``time_delta`` "
+                "continual distribution.")
 
         self.time_distribution = cebra.distributions.TimeContrastive(
             time_offset=self.time_offset,

@@ -56,7 +56,7 @@ class SingleSessionSolver(abc_.Solver):
 
     def _set_fitted_params(self, loader: cebra.data.Loader):
         """Set parameters once the solver is fitted.
-        
+
         In single session solver, the number of session is set to None and the number of
         features is set to the number of neurons in the dataset.
 
@@ -68,11 +68,11 @@ class SingleSessionSolver(abc_.Solver):
 
     def _check_is_inputs_valid(self, inputs: torch.Tensor, session_id: int):
         """Check that the inputs can be inferred using the selected model.
-        
+
         Note: This method checks that the number of neurons in the input is
         similar to the input dimension to the selected model.
-        
-        Args: 
+
+        Args:
             inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
@@ -86,10 +86,10 @@ class SingleSessionSolver(abc_.Solver):
 
     def _check_is_session_id_valid(self, session_id: Optional[int] = None):
         """Check that the session ID provided is valid for the solver instance.
-        
+
         The session ID must be null or equal to 0.
-        
-        Args: 
+
+        Args:
             session_id: The session ID to check.
         """
 
@@ -104,14 +104,14 @@ class SingleSessionSolver(abc_.Solver):
     ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
                cebra.data.datatypes.Offset]:
         """ Select the model based on the input dimension and session ID.
-        
-        Args: 
+
+        Args:
             inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
 
-        Returns: 
+        Returns:
             The model (first returns) and the offset of the model (second returns).
         """
         self._check_is_inputs_valid(inputs, session_id=session_id)
@@ -229,14 +229,14 @@ class SingleSessionHybridSolver(abc_.MultiobjectiveSolver, SingleSessionSolver):
     ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
                cebra.data.datatypes.Offset]:
         """ Select the model based on the input dimension and session ID.
-        
-        Args: 
+
+        Args:
             inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
 
-        Returns: 
+        Returns:
             The model (first returns) and the offset of the model (second returns).
         """
         self._check_is_inputs_valid(inputs, session_id=session_id)

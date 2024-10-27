@@ -31,12 +31,10 @@ References:
 
 """
 
-import hashlib
 import pathlib
 
 import joblib
 import numpy as np
-import scipy.io
 import sklearn.model_selection
 import sklearn.neighbors
 import torch

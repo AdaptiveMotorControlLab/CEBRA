@@ -68,7 +68,6 @@ def test_demo():
 
 @pytest.mark.requires_dataset
 def test_hippocampus():
-    from cebra.datasets import hippocampus
 
     pytest.skip("Outdated")
     dataset = cebra.datasets.init("rat-hippocampus-single")
@@ -99,7 +98,6 @@ def test_hippocampus():
 
 @pytest.mark.requires_dataset
 def test_monkey():
-    from cebra.datasets import monkey_reaching
 
     dataset = cebra.datasets.init(
         "area2-bump-pos-active-passive",
@@ -111,7 +109,6 @@ def test_monkey():
 
 @pytest.mark.requires_dataset
 def test_allen():
-    from cebra.datasets import allen
 
     pytest.skip("Test takes too long")
 
@@ -153,8 +150,9 @@ except:
 
 
 @pytest.mark.requires_dataset
-@pytest.mark.parametrize(
-    "options", cebra.datasets.get_options("*", expand_parametrized=False))
+@pytest.mark.parametrize("options",
+                         cebra.datasets.get_options("*",
+                                                    expand_parametrized=False))
 def test_options(options):
     assert len(options) > 0
     assert len(multisubject_options) > 0

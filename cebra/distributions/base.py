@@ -31,7 +31,6 @@ and could for example be time, or information about an experimental condition.
 """
 
 import abc
-import functools
 
 import torch
 
@@ -82,7 +81,7 @@ class HasGenerator(cebra.io.HasDevice):
         self._generator = torch.Generator(device=device)
         try:
             self._generator.set_state(state.to(device))
-        except (TypeError, RuntimeError) as e:
+        except (TypeError, RuntimeError):
             # TODO(https://discuss.pytorch.org/t/cuda-rng-state-does-not-change-when-re-seeding-why-is-that/47917/3)
             self._generator.manual_seed(self.seed)
 

@@ -21,9 +21,7 @@
 #
 """Define the CEBRA model."""
 
-import copy
 import itertools
-import warnings
 from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
                     Union)
 
@@ -33,7 +31,6 @@ import pkg_resources
 import sklearn.utils.validation as sklearn_utils_validation
 import torch
 from sklearn.base import BaseEstimator
-from sklearn.base import ClassifierMixin
 from sklearn.base import TransformerMixin
 from torch import nn
 
@@ -274,8 +271,8 @@ def _init_loader(
             "Until then, please train using the PyTorch API."))
     else:
         raise RuntimeError(
-            f"Index combination not covered. Please report this issue and add the following "
-            f"information to your bug report: \n" + error_message)
+            "Index combination not covered. Please report this issue and add the following "
+            "information to your bug report: \n" + error_message)
 
 
 def _check_type_checkpoint(checkpoint):
@@ -776,18 +773,18 @@ class CEBRA(BaseEstimator, TransformerMixin):
                                   cebra.models.ConvolutionalModelMixin):
                     if len(model[n].get_offset()) > 1:
                         raise ValueError(
-                            f"It is not yet supported to run non-convolutional models with "
-                            f"receptive fields/offsets larger than 1 via the sklearn API. "
-                            f"Please use a different model, or revert to the pytorch "
-                            f"API for training.")
+                            "It is not yet supported to run non-convolutional models with "
+                            "receptive fields/offsets larger than 1 via the sklearn API. "
+                            "Please use a different model, or revert to the pytorch "
+                            "API for training.")
         else:
             if not isinstance(model, cebra.models.ConvolutionalModelMixin):
                 if len(model.get_offset()) > 1:
                     raise ValueError(
-                        f"It is not yet supported to run non-convolutional models with "
-                        f"receptive fields/offsets larger than 1 via the sklearn API. "
-                        f"Please use a different model, or revert to the pytorch "
-                        f"API for training.")
+                        "It is not yet supported to run non-convolutional models with "
+                        "receptive fields/offsets larger than 1 via the sklearn API. "
+                        "Please use a different model, or revert to the pytorch "
+                        "API for training.")
 
         dataset.configure_for(model)
 
@@ -1466,12 +1463,12 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
         if isinstance(checkpoint, dict) and backend == "torch":
             raise RuntimeError(
-                f"Cannot use 'torch' backend with a dictionary-based checkpoint. "
-                f"Please try a different backend.")
+                "Cannot use 'torch' backend with a dictionary-based checkpoint. "
+                "Please try a different backend.")
         if not isinstance(checkpoint, dict) and backend == "sklearn":
             raise RuntimeError(
-                f"Cannot use 'sklearn' backend a non dictionary-based checkpoint. "
-                f"Please try a different backend.")
+                "Cannot use 'sklearn' backend a non dictionary-based checkpoint. "
+                "Please try a different backend.")
 
         if backend == "sklearn":
             cebra_ = _load_cebra_with_sklearn_backend(checkpoint)

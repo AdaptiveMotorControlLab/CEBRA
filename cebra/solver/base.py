@@ -32,15 +32,12 @@ implement larger changes to the training loop.
 
 import abc
 import os
-from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
-                    Union)
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import literate_dataclasses as dataclasses
-import numpy as np
 import numpy.typing as npt
 import torch
 import torch.nn.functional as F
-import tqdm
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
@@ -48,7 +45,6 @@ import cebra
 import cebra.data
 import cebra.io
 import cebra.models
-import cebra.solver.util as cebra_solver_util
 from cebra.solver.util import Meter
 from cebra.solver.util import ProgressBar
 
@@ -56,9 +52,9 @@ from cebra.solver.util import ProgressBar
 def _check_indices(batch_start_idx: int, batch_end_idx: int,
                    offset: cebra.data.Offset, num_samples: int):
     """Check that indexes in a batch are in a correct range.
-    
-    First and last index must be positive integers, smaller than the total length of inputs 
-    in the dataset, the first index must be smaller than the last and the batch size cannot 
+
+    First and last index must be positive integers, smaller than the total length of inputs
+    in the dataset, the first index must be smaller than the last and the batch size cannot
     be smaller than the offset of the model.
 
     Args:
@@ -101,7 +97,7 @@ def _add_batched_zero_padding(batched_data: torch.Tensor,
         offset: Offset of the model to consider when padding.
         batch_start_idx: Index of the first sample in the batch.
         batch_end_idx: Index of the first sample in the batch.
-        num_samples (int): Total number of samples in the data. 
+        num_samples (int): Total number of samples in the data.
 
     Returns:
         The padded batch.
@@ -136,7 +132,7 @@ def _get_batch(inputs: torch.Tensor, offset: Optional[cebra.data.Offset],
         The batch.
     """
     if offset is None:
-        raise ValueError(f"offset cannot be null.")
+        raise ValueError("offset cannot be null.")
 
     if batch_start_idx == 0:  # First batch
         indices = batch_start_idx, (batch_end_idx + offset.right - 1)
@@ -427,7 +423,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 validation_loss = self.validation(valid_loader)
                 if self.best_loss is None or validation_loss < self.best_loss:
                     self.best_loss = validation_loss
-                    self.save(logdir, f"checkpoint_best.pth")
+                    self.save(logdir, "checkpoint_best.pth")
             if save_model:
                 if decode:
                     self.decode_history.append(
@@ -511,11 +507,11 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     @abc.abstractmethod
     def _check_is_inputs_valid(self, inputs: torch.Tensor, session_id: int):
         """Check that the inputs can be inferred using the selected model.
-        
+
         Note: This method checks that the number of neurons in the input is
         similar to the input dimension to the selected model.
-        
-        Args: 
+
+        Args:
             inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
@@ -526,8 +522,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     @abc.abstractmethod
     def _check_is_session_id_valid(self, session_id: Optional[int] = None):
         """Check that the session ID provided is valid for the solver instance.
-        
-        Args: 
+
+        Args:
             session_id: The session ID to check.
         """
         raise NotImplementedError
@@ -539,14 +535,14 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
                cebra.data.datatypes.Offset]:
         """ Select the model based on the input dimension and session ID.
-        
-        Args: 
+
+        Args:
             inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
 
-        Returns: 
+        Returns:
             The model (first returns) and the offset of the model (second returns).
         """
         raise NotImplementedError

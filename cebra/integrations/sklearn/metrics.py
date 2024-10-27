@@ -188,7 +188,7 @@ def _consistency_datasets(
     if labels is None:
         raise ValueError(
             "Missing labels, computing consistency between datasets requires labels, expect "
-            f"a set of labels for each embedding.")
+            "a set of labels for each embedding.")
     if len(embeddings) != len(labels):
         raise ValueError(
             "Invalid set of labels, computing consistency between datasets requires labels, "
@@ -274,8 +274,8 @@ def _consistency_runs(
     if not all(embeddings[0].shape[0] == embeddings[i].shape[0]
                for i in range(1, len(embeddings))):
         raise ValueError(
-            f"Invalid embeddings, all embeddings should be the same shape to be compared in a between-runs way."
-            f"If your embeddings are coming from different models, you can use between-datasets"
+            "Invalid embeddings, all embeddings should be the same shape to be compared in a between-runs way."
+            "If your embeddings are coming from different models, you can use between-datasets"
         )
 
     run_ids = np.arange(len(embeddings))
@@ -354,11 +354,11 @@ def consistency_score(
     if between == "runs":
         if labels is not None:
             raise ValueError(
-                f"No labels should be provided for between-runs consistency.")
+                "No labels should be provided for between-runs consistency.")
         if dataset_ids is not None:
             raise ValueError(
-                f"No dataset ID should be provided for between-runs consistency."
-                f"All embeddings should be computed on the same dataset.")
+                "No dataset ID should be provided for between-runs consistency."
+                "All embeddings should be computed on the same dataset.")
         scores, pairs, ids = _consistency_runs(embeddings=embeddings,)
     elif between == "datasets":
         scores, pairs, ids = _consistency_datasets(

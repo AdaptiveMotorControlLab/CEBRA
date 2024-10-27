@@ -27,7 +27,6 @@ TODO:
 """
 from typing import Literal
 
-import numpy as np
 import torch
 
 import cebra.io

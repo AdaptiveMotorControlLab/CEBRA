@@ -20,7 +20,6 @@
 # limitations under the License.
 #
 import copy
-import itertools
 import tempfile
 
 import numpy as np
@@ -506,8 +505,8 @@ for model_name in ["offset10-model"]:
 
 @pytest.mark.parametrize(
     "data_name, model_name ,session_id, loader_initfunc, solver_initfunc",
-    single_session_tests_select_model +
-    single_session_hybrid_tests_select_model)
+    single_session_tests_select_model + single_session_hybrid_tests_select_model
+)
 def test_select_model_single_session(data_name, model_name, session_id,
                                      loader_initfunc, solver_initfunc):
     dataset = cebra.datasets.init(data_name)
