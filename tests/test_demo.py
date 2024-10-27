@@ -21,7 +21,6 @@
 #
 import glob
 import re
-import sys
 
 import pytest
 
