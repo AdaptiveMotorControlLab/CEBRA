@@ -69,6 +69,17 @@ class SingleSessionDataset(cebra_data.Dataset):
             reference=self[index.reference],
         )
 
+    def configure_for(self, model: "cebra.models.Model"):
+        """Configure the dataset offset for the provided model.
+
+        Call this function before indexing the dataset. This sets the
+        `offset` attribute of the dataset.
+
+        Args:
+            model: The model to configure the dataset for.
+        """
+        self.offset = model.get_offset()
+
 
 @dataclasses.dataclass
 class DiscreteDataLoader(cebra_data.Loader):
@@ -189,7 +200,6 @@ class ContinuousDataLoader(cebra_data.Loader):
     and become equivalent to time contrastive learning.
     """,
     )
-    time_offset: int = dataclasses.field(default=10)
     delta: float = dataclasses.field(default=0.1)
 
     def __post_init__(self):
@@ -271,7 +281,6 @@ class MixedDataLoader(cebra_data.Loader):
     """
 
     conditional: str = dataclasses.field(default="time_delta")
-    time_offset: int = dataclasses.field(default=10)
 
     @property
     def dindex(self):
@@ -334,7 +343,6 @@ class HybridDataLoader(cebra_data.Loader):
     """
 
     conditional: str = dataclasses.field(default="time_delta")
-    time_offset: int = dataclasses.field(default=10)
     delta: float = dataclasses.field(default=0.1)
 
     @property

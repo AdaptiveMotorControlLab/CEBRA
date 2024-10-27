@@ -39,6 +39,15 @@ class MultiSessionSolver(abc_.Solver):
 
     _variant_name = "multi-session"
 
+    def parameters(self, session_id: Optional[int] = None):
+        """Iterate over all parameters."""
+        if session_id is not None:
+            for parameter in self.model[session_id].parameters():
+                yield parameter
+
+        for parameter in self.criterion.parameters():
+            yield parameter
+
     def _mix(self, array: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
         shape = array.shape
         n, m = shape[:2]
@@ -112,6 +121,80 @@ class MultiSessionSolver(abc_.Solver):
             negative=neg.view(-1, num_features),
         )
 
+    def _set_fitted_params(self, loader: cebra.data.Loader):
+        """Set parameters once the solver is fitted.
+
+        In multi session solver, the number of session is set to the number of
+        sessions in the dataset of the loader and the number of
+        features is set as a list corresponding to the number of neurons in
+        each dataset.
+
+        Args:
+            loader: Loader used to fit the solver.
+        """
+
+        self.num_sessions = loader.dataset.num_sessions
+        self.n_features = [
+            loader.dataset.get_input_dimension(session_id)
+            for session_id in range(loader.dataset.num_sessions)
+        ]
+
+    def _check_is_inputs_valid(self, inputs: torch.Tensor,
+                               session_id: Optional[int]):
+        """Check that the inputs can be inferred using the selected model.
+
+        Note: This method checks that the number of neurons in the input is
+        similar to the input dimension to the selected model.
+
+        Args:
+            inputs: Data to infer using the selected model.
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+        """
+        if self.n_features[session_id] != inputs.shape[1]:
+            raise ValueError(
+                f"Invalid input shape: model for session {session_id} requires an input of shape"
+                f"(n_samples, {self.n_features[session_id]}), got (n_samples, {inputs.shape[1]})."
+            )
+
+    def _check_is_session_id_valid(self, session_id: Optional[int]):
+        """Check that the session ID provided is valid for the solver instance.
+
+        The session ID must be non-null and between 0 and the number session in the dataset.
+
+        Args:
+            session_id: The session ID to check.
+        """
+
+        if session_id is None:
+            raise RuntimeError(
+                "No session_id provided: multisession model requires a session_id to choose the model corresponding to your data shape."
+            )
+        if session_id >= self.num_sessions or session_id < 0:
+            raise RuntimeError(
+                f"Invalid session_id {session_id}: session_id for the current multisession model must be between 0 and {self.num_sessions-1}."
+            )
+
+    def _select_model(self, inputs: torch.Tensor, session_id: Optional[int]):
+        """ Select the model based on the input dimension and session ID.
+
+        Args:
+            inputs: Data to infer using the selected model.
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Returns:
+            The model (first returns) and the offset of the model (second returns).
+        """
+        self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_inputs_valid(inputs, session_id=session_id)
+
+        model = self.model[session_id]
+        offset = model.get_offset()
+        return model, offset
+
     def validation(self, loader, session_id: Optional[int] = None):
         """Compute score of the model on data.
 
@@ -143,7 +226,7 @@ class MultiSessionSolver(abc_.Solver):
 
 
 @register("multi-session-aux")
-class MultiSessionAuxVariableSolver(abc_.Solver):
+class MultiSessionAuxVariableSolver(MultiSessionSolver):
     """Multi session training, contrasting neural data against behavior."""
 
     _variant_name = "multi-session-aux"
