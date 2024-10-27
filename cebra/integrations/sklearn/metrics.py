@@ -206,7 +206,7 @@ def infonce_to_goodness_of_fit(infonce: Union[float, Iterable[float]],
         Numpy array containing the goodness of fit values, measured in bits
 
     Raises:
-        ``RuntimeError``, if provided model is not fit to data.
+        RuntimeError: If the provided model is not fit to data.
     """
     if not hasattr(model, "state_dict_"):
         raise RuntimeError("Fit the CEBRA model first.")
