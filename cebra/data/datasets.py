@@ -30,6 +30,7 @@ import torch
 
 import cebra.data as cebra_data
 import cebra.helper as cebra_helper
+from cebra.data.datatypes import Offset
 
 
 class TensorDataset(cebra_data.SingleSessionDataset):
