@@ -70,7 +70,6 @@ def test_demo():
 def test_hippocampus():
 
     pytest.skip("Outdated")
-
     dataset = cebra.datasets.init("rat-hippocampus-single")
     loader = cebra.data.ContinuousDataLoader(
         dataset=dataset,
@@ -99,7 +98,6 @@ def test_hippocampus():
 
 @pytest.mark.requires_dataset
 def test_monkey():
-
     dataset = cebra.datasets.init(
         "area2-bump-pos-active-passive",
         path=pathlib.Path(_DEFAULT_DATADIR) / "monkey_reaching_preload_smth_40",
@@ -110,7 +108,6 @@ def test_monkey():
 
 @pytest.mark.requires_dataset
 def test_allen():
-
     pytest.skip("Test takes too long")
 
     ca_dataset = cebra.datasets.init("allen-movie-one-ca-VISp-100-train-10-111")
