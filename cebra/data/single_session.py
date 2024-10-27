@@ -370,6 +370,11 @@ class HybridDataLoader(cebra_data.Loader):
 
         self._init_behavior_distribution()
         self._init_time_distribution()
+        
+        if self.conditional != "time_delta":
+            raise NotImplementedError(
+                "Hybrid training is currently only implemented using the ``time_delta`` "
+                "continual distribution.")
 
     def _init_behavior_distribution(self):
         if self.conditional == "time":

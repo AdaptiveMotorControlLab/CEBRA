@@ -33,7 +33,7 @@ implement larger changes to the training loop.
 import abc
 import os
 import warnings
-from typing import Callable, Dict, Iterable, List, Literal, Optional, Union
+from typing import Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
 import literate_dataclasses as dataclasses
 import numpy.typing as npt
@@ -41,7 +41,6 @@ import numpy as np
 import numpy.typing as npt
 import torch
 import torch.nn.functional as F
-import tqdm
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
