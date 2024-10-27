@@ -239,7 +239,7 @@ def test_compare_models():
         _ = cebra_plot.compare_models(models, labels=long_labels, ax=ax)
     with pytest.raises(ValueError, match="Invalid.*labels"):
         invalid_labels = copy.deepcopy(labels)
-        ele = invalid_labels.pop()
+        _ = invalid_labels.pop()
         invalid_labels.append(["a"])
         _ = cebra_plot.compare_models(models, labels=invalid_labels, ax=ax)
 
