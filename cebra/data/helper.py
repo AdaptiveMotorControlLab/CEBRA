@@ -94,10 +94,15 @@ class OrthogonalProcrustesAlignment:
 
     For each dataset, the data and labels to align the data on is provided.
 
-    1. The ``top_k`` indexes of the labels to align (``label``) that are the closest to the labels of the reference dataset (``ref_label``) are selected and used to sample from the dataset to align (``data``).
-    2. ``data`` and ``ref_data`` (the reference dataset) are subsampled to the same number of samples ``subsample``.
-    3. The orthogonal mapping is computed, using :py:func:`scipy.linalg.orthogonal_procrustes`, on those subsampled datasets.
-    4. The resulting orthongonal matrix ``_transform`` can be used to map the original ``data`` to the ``ref_data``.
+    1. The ``top_k`` indexes of the labels to align (``label``) that are the closest to
+       the labels of the reference dataset (``ref_label``) are selected and used to sample
+       from the dataset to align (``data``).
+    2. ``data`` and ``ref_data`` (the reference dataset) are subsampled to the same number
+       of samples ``subsample``.
+    3. The orthogonal mapping is computed, using :py:func:`scipy.linalg.orthogonal_procrustes`,
+       on those subsampled datasets.
+    4. The resulting orthongonal matrix ``_transform`` can be used to map the original ``data``
+       to the ``ref_data``.
 
     Note:
         ``data`` and ``ref_data`` can be of different sample size (axis 0) but **must** have the same number

@@ -98,8 +98,6 @@ try:
     from cebra.datasets.monkey_reaching import *
     from cebra.datasets.synthetic_data import *
 except ModuleNotFoundError as e:
-    import warnings
-
     warnings.warn(f"Could not initialize one or more datasets: {e}. "
                   f"For using the datasets, consider installing the "
                   f"[datasets] extension via pip.")

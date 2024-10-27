@@ -358,7 +358,6 @@ class HybridDataLoader(cebra_data.Loader):
         #            here might be sub-optimal. The final behavior should be determined after
         #            e.g. integrating the FAISS dataloader back in.
         super().__post_init__()
-        index = self.index.to(self.device)
 
         if self.conditional != "time_delta":
             raise NotImplementedError(
@@ -368,8 +367,7 @@ class HybridDataLoader(cebra_data.Loader):
         self.time_distribution = cebra.distributions.TimeContrastive(
             time_offset=self.time_offset,
             num_samples=len(self.dataset.neural),
-            device=self.device,
-        )
+            device=self.device)
         self.behavior_distribution = cebra.distributions.TimedeltaDistribution(
             self.dataset.continuous_index, self.time_offset, device=self.device)
 

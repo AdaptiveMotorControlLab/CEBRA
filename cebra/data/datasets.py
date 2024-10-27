@@ -22,13 +22,15 @@
 """Pre-defined datasets."""
 
 import types
-from typing import List, Tuple, Union
+from typing import List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
 import torch
 
 import cebra.data as cebra_data
+import cebra.helper as cebra_helper
+from cebra.data.datatypes import Offset
 
 
 class TensorDataset(cebra_data.SingleSessionDataset):
@@ -64,26 +66,52 @@ class TensorDataset(cebra_data.SingleSessionDataset):
                  neural: Union[torch.Tensor, npt.NDArray],
                  continuous: Union[torch.Tensor, npt.NDArray] = None,
                  discrete: Union[torch.Tensor, npt.NDArray] = None,
-                 offset: int = 1,
+                 offset: Offset = Offset(0, 1),
                  device: str = "cpu"):
         super().__init__(device=device)
-        self.neural = self._to_tensor(neural, torch.FloatTensor).float()
-        self.continuous = self._to_tensor(continuous, torch.FloatTensor)
-        self.discrete = self._to_tensor(discrete, torch.LongTensor)
+        self.neural = self._to_tensor(neural, check_dtype="float").float()
+        self.continuous = self._to_tensor(continuous, check_dtype="float")
+        self.discrete = self._to_tensor(discrete, check_dtype="int")
         if self.continuous is None and self.discrete is None:
             raise ValueError(
                 "You have to pass at least one of the arguments 'continuous' or 'discrete'."
             )
         self.offset = offset
 
-    def _to_tensor(self, array, check_dtype=None):
+    def _to_tensor(
+            self,
+            array: Union[torch.Tensor, npt.NDArray],
+            check_dtype: Optional[Literal["int",
+                                          "float"]] = None) -> torch.Tensor:
+        """Convert :py:func:`numpy.array` to :py:class:`torch.Tensor` if necessary and check the dtype.
+
+        Args:
+            array: Array to check.
+            check_dtype: If not `None`, list of dtypes to which the values in `array`
+                must belong to. Defaults to None.
+
+        Returns:
+            The `array` as a :py:class:`torch.Tensor`.
+        """
         if array is None:
             return None
         if isinstance(array, np.ndarray):
             array = torch.from_numpy(array)
         if check_dtype is not None:
-            if not isinstance(array, check_dtype):
-                raise TypeError(f"{type(array)} instead of {check_dtype}.")
+            if check_dtype not in ["int", "float"]:
+                raise ValueError(
+                    f"check_dtype must be 'int' or 'float', got {check_dtype}")
+            if (check_dtype == "int" and not cebra_helper._is_integer(array)
+               ) or (check_dtype == "float" and
+                     not cebra_helper._is_floating(array)):
+                raise TypeError(
+                    f"Array has type {array.dtype} instead of {check_dtype}.")
+        if cebra_helper._is_floating(array):
+            array = array.float()
+        if cebra_helper._is_integer(array):
+            # NOTE(stes): Required for standardizing number format on
+            # windows machines.
+            array = array.long()
         return array
 
     @property
