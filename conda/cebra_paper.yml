@@ -39,7 +39,7 @@ dependencies:
         - "cebra[dev,integrations,datasets,demos]"
         - joblib
         - literate-dataclasses
-        - sklearn
+        - scikit-learn
         - scipy
         - torch
         - keras==2.3.1
