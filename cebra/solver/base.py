@@ -232,7 +232,7 @@ def _batched_transform(model: cebra.models.Model, inputs: torch.Tensor,
 
     output = []
     for batch_idx, index_batch in enumerate(index_dataloader):
-        # NOTE(celia): This is to prevent that adding the offset to the 
+        # NOTE(celia): This is to prevent that adding the offset to the
         # penultimate batch for larger offset make the batch_end_idx larger
         # than the input length, while we also don't want to drop the last
         # samples that do not fit in a complete batch.
