@@ -383,3 +383,67 @@ def test_sklearn_runs_consistency():
     with pytest.raises(ValueError, match="Invalid.*embeddings"):
         _, _, _ = cebra_sklearn_metrics.consistency_score(
             invalid_embeddings_runs, between="runs")
+
+
+@pytest.mark.parametrize("seed", [42, 24, 10])
+def test_goodness_of_fit_score(seed):
+    """
+    Ensure that the GoF score is close to 0 for a model fit on random data.
+    """
+    cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture="offset1-model",
+        max_iterations=5,
+        batch_size=512,
+    )
+    X = torch.tensor(np.random.uniform(0, 1, (5000, 50)))
+    y = torch.tensor(np.random.uniform(0, 1, (5000, 5)))
+    cebra_model.fit(X, y)
+    score = cebra_sklearn_metrics.goodness_of_fit_score(cebra_model,
+                                                        X,
+                                                        y,
+                                                        session_id=0,
+                                                        num_batches=500)
+    assert isinstance(score, float)
+    assert np.isclose(score, 0, atol=0.01)
+
+
+@pytest.mark.parametrize("seed", [42, 24, 10])
+def test_goodness_of_fit_history(seed):
+    """
+    Ensure that the GoF score is higher for a model fit on data with underlying
+    structure than for a model fit on random data.
+    """
+
+    # Generate data
+    generator = torch.Generator().manual_seed(seed)
+    X = torch.rand(1000, 50, dtype=torch.float32, generator=generator)
+    y_random = torch.rand(len(X), 5, dtype=torch.float32, generator=generator)
+    linear_map = torch.randn(50, 5, dtype=torch.float32, generator=generator)
+    y_linear = X @ linear_map
+
+    def _fit_and_get_history(X, y):
+        cebra_model = cebra_sklearn_cebra.CEBRA(
+            model_architecture="offset1-model",
+            max_iterations=150,
+            batch_size=512,
+            device="cpu")
+        cebra_model.fit(X, y)
+        history = cebra_sklearn_metrics.goodness_of_fit_history(cebra_model)
+        # NOTE(stes): Ignore the first 5 iterations, they can have nonsensical values
+        # due to numerical issues.
+        return history[5:]
+
+    history_random = _fit_and_get_history(X, y_random)
+    history_linear = _fit_and_get_history(X, y_linear)
+
+    assert isinstance(history_random, np.ndarray)
+    assert history_random.shape[0] > 0
+    # NOTE(stes): Ignore the first 5 iterations, they can have nonsensical values
+    # due to numerical issues.
+    history_random_non_negative = history_random[history_random >= 0]
+    np.testing.assert_allclose(history_random_non_negative, 0, atol=0.05)
+
+    assert isinstance(history_linear, np.ndarray)
+    assert history_linear.shape[0] > 0
+
+    assert np.all(history_linear[-20:] > history_random[-20:])
