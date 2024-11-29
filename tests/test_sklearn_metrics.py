@@ -223,6 +223,57 @@ def test_sklearn_infonce_loss():
         )
 
 
+def test_sklearn_goodness_of_fit():
+    max_loss_iterations = 2
+    cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture="offset10-model",
+        max_iterations=5,
+        batch_size=128,
+    )
+
+    # Example data
+    X = torch.tensor(np.random.uniform(0, 1, (1000, 50)))
+    y_c1 = torch.tensor(np.random.uniform(0, 1, (1000, 5)))
+
+    X2 = torch.tensor(np.random.uniform(0, 1, (500, 20)))
+    y2_c1 = torch.tensor(np.random.uniform(0, 1, (500, 5)))
+
+    # Single session
+    cebra_model.fit(X, y_c1)
+
+    gof = cebra.sklearn.metrics.goodness_of_fit(cebra_model)
+    assert isinstance(gof, list)
+    _gof = cebra.sklearn.metrics._goodness_of_fit(
+        cebra_model.state_dict_["loss"], batch_size=128)
+    assert isinstance(_gof, list)
+    assert gof == _gof
+
+    # Multisession
+    cebra_model.fit([X, X2], [y_c1, y2_c1])
+
+    gof = cebra.sklearn.metrics.goodness_of_fit(cebra_model)
+    assert isinstance(gof, list)
+    _gof = cebra.sklearn.metrics._goodness_of_fit(
+        cebra_model.state_dict_["loss"], batch_size=128 * 2)
+    assert isinstance(_gof, list)
+    assert gof == _gof
+
+    # Multiple models passed
+    with pytest.raises(ValueError, match="single.*model"):
+        _ = cebra.sklearn.metrics.goodness_of_fit([cebra_model, cebra_model])
+
+    # No batch size
+    cebra_model_no_bs = cebra_sklearn_cebra.CEBRA(
+        model_architecture="offset10-model",
+        max_iterations=max_loss_iterations,
+        batch_size=None,
+    )
+
+    cebra_model_no_bs.fit(X)
+    with pytest.raises(NotImplementedError, match="Batch.*size"):
+        gof = cebra.sklearn.metrics.goodness_of_fit(cebra_model_no_bs)
+
+
 def test_sklearn_datasets_consistency():
     # Example data
     np.random.seed(42)
