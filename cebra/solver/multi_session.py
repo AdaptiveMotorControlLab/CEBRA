@@ -21,11 +21,8 @@
 #
 """Solver implementations for multi-session datasetes."""
 
-import abc
-from collections.abc import Iterable
 from typing import List, Optional
 
-import literate_dataclasses as dataclasses
 import torch
 
 import cebra

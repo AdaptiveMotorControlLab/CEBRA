@@ -94,10 +94,15 @@ class OrthogonalProcrustesAlignment:
 
     For each dataset, the data and labels to align the data on is provided.
 
-    1. The ``top_k`` indexes of the labels to align (``label``) that are the closest to the labels of the reference dataset (``ref_label``) are selected and used to sample from the dataset to align (``data``).
-    2. ``data`` and ``ref_data`` (the reference dataset) are subsampled to the same number of samples ``subsample``.
-    3. The orthogonal mapping is computed, using :py:func:`scipy.linalg.orthogonal_procrustes`, on those subsampled datasets.
-    4. The resulting orthongonal matrix ``_transform`` can be used to map the original ``data`` to the ``ref_data``.
+    1. The ``top_k`` indexes of the labels to align (``label``) that are the closest to
+       the labels of the reference dataset (``ref_label``) are selected and used to sample
+       from the dataset to align (``data``).
+    2. ``data`` and ``ref_data`` (the reference dataset) are subsampled to the same number
+       of samples ``subsample``.
+    3. The orthogonal mapping is computed, using :py:func:`scipy.linalg.orthogonal_procrustes`,
+       on those subsampled datasets.
+    4. The resulting orthongonal matrix ``_transform`` can be used to map the original ``data``
+       to the ``ref_data``.
 
     Note:
         ``data`` and ``ref_data`` can be of different sample size (axis 0) but **must** have the same number
@@ -181,14 +186,14 @@ class OrthogonalProcrustesAlignment:
         elif ref_data.shape[0] == data.shape[0] and (ref_label is None or
                                                      label is None):
             raise ValueError(
-                f"Missing labels: the data to align are the same shape but you provided only "
-                f"one of the sets of labels. Either provide both the reference and alignment "
-                f"labels or none.")
+                "Missing labels: the data to align are the same shape but you provided only "
+                "one of the sets of labels. Either provide both the reference and alignment "
+                "labels or none.")
         else:
             if ref_label is None or label is None:
                 raise ValueError(
-                    f"Missing labels: the data to align are not the same shape, "
-                    f"provide labels to align the data and reference data.")
+                    "Missing labels: the data to align are not the same shape, "
+                    "provide labels to align the data and reference data.")
 
             if len(ref_label.shape) == 1:
                 ref_label = np.expand_dims(ref_label, axis=1)

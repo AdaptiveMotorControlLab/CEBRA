@@ -31,12 +31,10 @@ References:
 
 """
 
-import hashlib
 import pathlib
 
 import joblib
 import numpy as np
-import scipy.io
 import sklearn.model_selection
 import sklearn.neighbors
 import torch
@@ -162,14 +160,16 @@ class SingleRatDataset(cebra.data.SingleSessionDataset):
 class SingleRatTrialSplitDataset(SingleRatDataset):
     """A single rat hippocampus tetrode recording while the rat navigates on a linear track with 3-fold splits.
 
-    Neural data is spike counts binned into 25ms time window and the behavior is position and the running direction (left, right) of a rat.
-    The behavior label is structured as 3D array consists of position, right, and left.
-    The neural and behavior recordings are parsed into trials (a round trip from one end of the track) and the trials are split into a train, valid and test set with k=3 nested cross validation.
+    Neural data is spike counts binned into 25ms time window and the behavior is position and the running
+    direction (left, right) of a rat. The behavior label is structured as 3D array consists of position,
+    right, and left. The neural and behavior recordings are parsed into trials (a round trip from one end
+    of the track) and the trials are split into a train, valid and test set with k=3 nested cross validation.
 
     Args:
         name: The name of a rat to use. Choose among 'achilles', 'buddy', 'cicero' and 'gatsby'.
         split_no: The `k` for k-fold split. Choose among 0, 1, 2.
-        split: The split to use. Choose among 'train', 'valid', 'test', 'all', and 'wo_test'(all trials except test split).
+        split: The split to use. Choose among 'train', 'valid', 'test', 'all', and 'wo_test'
+            (all trials except test split).
 
     """
 
@@ -283,13 +283,16 @@ class MultipleRatsTrialSplitDataset(cebra.data.DatasetCollection):
     """4 rats hippocampus tetrode recording while the rat navigates on a linear track with 3-fold splits.
 
     Neural and behavior recordings of 4 rats.
-    For each rat, neural data is spike counts binned into 25ms time window and the behavior is position and the running direction (left, right) of a rat.
+    For each rat, neural data is spike counts binned into 25ms time window and the behavior is position
+    and the running direction (left, right) of a rat.
     The behavior label is structured as 3D array consists of position, right, and left.
-    Neural and behavior recordings of each rat are parsed into trials (a round trip from one end of the track) and the trials are split into a train, valid and test set with k=3 nested cross validation.
+    Neural and behavior recordings of each rat are parsed into trials (a round trip from one end of the track)
+    and the trials are split into a train, valid and test set with k=3 nested cross validation.
 
     Args:
         split_no: The `k` for k-fold split. Choose among 0, 1, and 2.
-        split: The split to use. Choose among 'train', 'valid', 'test', 'all', and 'wo_test'(all trials except test split).
+        split: The split to use. Choose among 'train', 'valid', 'test', 'all', and 'wo_test'
+            (all trials except test split).
 
     """
 

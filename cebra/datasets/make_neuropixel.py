@@ -21,22 +21,24 @@
 #
 """Generate pseudomouse Neuropixels data.
 
-This script generates the pseudomouse Neuropixels data for each visual cortical area from original Allen ENuropixels Brain observatory 1.1 NWB data.
-We followed the units filtering used in the AllenSDK package.
+This script generates the pseudomouse Neuropixels data for each visual cortical area from original
+Allen ENuropixels Brain observatory 1.1 NWB data. We followed the units filtering used in the AllenSDK package.
 
 References:
-    *Siegle, Joshua H., et al. "Survey of spiking in the mouse visual system reveals functional hierarchy." Nature 592.7852 (2021): 86-92.
-    *https://allensdk.readthedocs.io/en/latest/visual_coding_neuropixels.html
+    * Siegle, Joshua H., et al.
+      "Survey of spiking in the mouse visual system reveals functional hierarchy."
+      Nature 592.7852 (2021): 86-92.
+    * https://allensdk.readthedocs.io/en/latest/visual_coding_neuropixels.html
 
 """
 import argparse
 import glob
+import pathlib
 
 import h5py
 import joblib as jl
 import numpy as np
 import numpy.typing as npt
-import pandas as pd
 
 
 def _filter_units(
@@ -194,11 +196,12 @@ def read_neuropixel(
                     "intervals/natural_movie_one_presentations/start_time"][...]
                 end_time = d[
                     "intervals/natural_movie_one_presentations/stop_time"][...]
-                timeseries = d[
-                    "intervals/natural_movie_one_presentations/timeseries"][...]
-                timeseries_index = d[
-                    "intervals/natural_movie_one_presentations/timeseries_index"][
-                        ...]
+                # NOTE(stes): Never used. Commenting, but leaving for future ref.
+                #timeseries = d[
+                #    "intervals/natural_movie_one_presentations/timeseries"][...]
+                #timeseries_index = d[
+                #    "intervals/natural_movie_one_presentations/timeseries_index"][
+                #        ...]
                 session_no = d["identifier"][...].item()
                 spike_time_index = d["units/spike_times_index"][...]
                 spike_times = d["units/spike_times"][...]
@@ -263,13 +266,13 @@ if __name__ == "__main__":
         "neural": sessions_dic,
         "frames": session_frames
     },
-            Path(args.save_path) /
+            pathlib.Path(args.save_path) /
             f"neuropixel_sessions_{int(args.sampling_rate)}_filtered.jl")
     jl.dump(
         {
             "neural": pseudo_mice,
             "frames": pseudo_mice_frames
         },
-        Path(args.save_path) /
+        pathlib.Path(args.save_path) /
         f"neuropixel_pseudomouse_{int(args.sampling_rate)}_filtered.jl",
     )

@@ -43,7 +43,7 @@ def prepare(N=1000, n=128, d=5, probs=[0.3, 0.1, 0.6], device="cpu"):
     continuous = torch.randn(N, d).to(device)
 
     rand = torch.from_numpy(np.random.randint(0, N, (n,))).to(device)
-    qidx = discrete[rand].to(device)
+    _ = discrete[rand].to(device)
     query = continuous[rand] + 0.1 * torch.randn(n, d).to(device)
     query = query.to(device)
 
@@ -173,7 +173,7 @@ def test_mixed():
         discrete, continuous)
 
     reference_idx = distribution.sample_prior(10)
-    positive_idx = distribution.sample_conditional(reference_idx)
+    _ = distribution.sample_conditional(reference_idx)
 
     # The conditional distribution p(· | disc, cont) should yield
     # samples where the label exactly matches the reference sample.
@@ -193,7 +193,7 @@ def test_continuous(benchmark):
     def _test_distribution(dist):
         distribution = dist(continuous)
         reference_idx = distribution.sample_prior(10)
-        positive_idx = distribution.sample_conditional(reference_idx)
+        _ = distribution.sample_conditional(reference_idx)
         return distribution
 
     distribution = _test_distribution(

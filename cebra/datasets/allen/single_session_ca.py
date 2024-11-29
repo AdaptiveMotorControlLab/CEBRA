@@ -19,34 +19,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Allen single mouse dataset.
+"""
+Allen single mouse dataset.
 
 References:
-    *Deitch, Daniel, Alon Rubin, and Yaniv Ziv. "Representational drift in the mouse visual cortex." Current biology 31.19 (2021): 4327-4339.
-    *de Vries, Saskia EJ, et al. "A large-scale standardized physiological survey reveals functional organization of the mouse visual cortex." Nature neuroscience 23.1 (2020): 138-151.
-    *https://github.com/zivlab/visual_drift
-    *http://observatory.brain-map.org/visualcoding
+    * Deitch, Daniel, Alon Rubin, and Yaniv Ziv.
+      "Representational drift in the mouse visual cortex."
+      Current Biology 31.19 (2021): 4327-4339.
 
+    * de Vries, Saskia EJ, et al.
+      "A large-scale standardized physiological survey reveals functional
+      organization of the mouse visual cortex."
+      Nature Neuroscience 23.1 (2020): 138-151.
+
+    * https://github.com/zivlab/visual_drift
+    * http://observatory.brain-map.org/visualcoding
 """
-import glob
-import hashlib
 import pathlib
 
-import h5py
-import joblib
 import numpy as np
-import pandas as pd
 import scipy.io
 import torch
-from numpy.random import Generator
-from numpy.random import PCG64
 from sklearn.decomposition import PCA
 
 import cebra.data
 from cebra.datasets import get_datapath
 from cebra.datasets import init
 from cebra.datasets import parametrize
-from cebra.datasets import register
 
 _DEFAULT_DATADIR = get_datapath()
 
@@ -121,7 +120,7 @@ class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
     "allen-movie1-ca-single-session-corrupt-{session_id}",
     session_id=range(len(_SINGLE_SESSION_CA)),
 )
-class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
+class SingleSessionAllenCaCorrupted(cebra.data.SingleSessionDataset):
     """A corrupted single mouse 30Hz calcium events dataset during the allen MOVIE1 stimulus.
 
     A dataset of a single mouse 30Hz calcium events from the excitatory neurons in the primary visual cortex
@@ -360,7 +359,7 @@ class MultiSessionAllenCaLeave2Out(cebra.data.DatasetCollection):
     repeat_no=[9],
     split_flag=["train", "test"],
 )
-class SingleSessionAllenCaDecoding(cebra.data.SingleSessionDataset):
+class SingleSessionAllenCaDecodingCorrupted(cebra.data.SingleSessionDataset):
     """A corrupted single mouse 30Hz calcium events dataset during the allen MOVIE1 stimulus with train/test splits.
 
     A dataset of a single mouse 30Hz calcium events from the excitatory neurons

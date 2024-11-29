@@ -20,7 +20,6 @@
 # limitations under the License.
 #
 import numpy as np
-import pytest
 
 import cebra
 import cebra.grid_search

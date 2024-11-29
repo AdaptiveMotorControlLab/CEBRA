@@ -25,17 +25,9 @@ Note:
     It is inclear whether these will be kept. Consider the implementation
     as experimental/outdated, and the API for this particular package unstable.
 """
-import abc
-from collections.abc import Iterable
-from typing import List
 
-import literate_dataclasses as dataclasses
 import torch
-import tqdm
 
-import cebra
-import cebra.data
-import cebra.models
 import cebra.solver.base as abc_
 
 
@@ -69,7 +61,7 @@ class SupervisedNNSolver(abc_.Solver):
         step_idx = 0
         while True:
             for _, batch in enumerate(loader):
-                stats = self.step(batch)
+                _ = self.step(batch)
                 self._log_checkpoint(num_steps, loader, valid_loader)
                 step_idx += 1
                 if step_idx >= num_steps:

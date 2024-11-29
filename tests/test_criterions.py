@@ -19,7 +19,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import numpy as np
 import pytest
 import torch
 from torch import nn
@@ -294,7 +293,7 @@ def _sample_dist_matrices(seed):
 
 
 @pytest.mark.parametrize("seed", [42, 4242, 424242])
-def test_infonce(seed):
+def test_infonce_check_output_parts(seed):
     pos_dist, neg_dist = _sample_dist_matrices(seed)
 
     ref_loss, ref_align, ref_uniform = _reference_infonce(pos_dist, neg_dist)

@@ -22,31 +22,23 @@
 """Joint Allen pseudomouse Ca/Neuropixel datasets.
 
 References:
-    *Deitch, Daniel, Alon Rubin, and Yaniv Ziv. "Representational drift in the mouse visual cortex." Current biology 31.19 (2021): 4327-4339.
-    *de Vries, Saskia EJ, et al. "A large-scale standardized physiological survey reveals functional organization of the mouse visual cortex." Nature neuroscience 23.1 (2020): 138-151.
-    *https://github.com/zivlab/visual_drift
-    *http://observatory.brain-map.org/visualcoding
-    *https://allensdk.readthedocs.io/en/latest/visual_coding_neuropixels.html
-    *Siegle, Joshua H., et al. "Survey of spiking in the mouse visual system reveals functional hierarchy." Nature 592.7852 (2021): 86-92.
-
+    * Deitch, Daniel, Alon Rubin, and Yaniv Ziv.
+      "Representational drift in the mouse visual cortex."
+      Current Biology 31.19 (2021): 4327-4339.
+    * de Vries, Saskia EJ, et al.
+      "A large-scale standardized physiological survey reveals functional
+      organization of the mouse visual cortex."
+      Nature Neuroscience 23.1 (2020): 138-151.
+    * https://github.com/zivlab/visual_drift
+    * http://observatory.brain-map.org/visualcoding
+    * https://allensdk.readthedocs.io/en/latest/visual_coding_neuropixels.html
+    * Siegle, Joshua H., et al.
+      "Survey of spiking in the mouse visual system reveals functional hierarchy."
+      Nature 592.7852 (2021): 86-92.
 """
-
-import glob
-import hashlib
-
-import h5py
-import joblib
-import numpy as np
-import pandas as pd
-import scipy.io
-import torch
-from numpy.random import Generator
-from numpy.random import PCG64
-from sklearn.decomposition import PCA
 
 import cebra.data
 from cebra.datasets import parametrize
-from cebra.datasets import register
 from cebra.datasets.allen import ca_movie
 from cebra.datasets.allen import ca_movie_decoding
 from cebra.datasets.allen import neuropixel_movie
@@ -80,7 +72,7 @@ class AllenMovieDataset(cebra.data.DatasetCollection):
         )
 
     def __repr__(self):
-        return f"CaNeuropixelDataset"
+        return "CaNeuropixelDataset"
 
 
 @parametrize(
@@ -117,7 +109,7 @@ class AllenMovieOneCaNPCortexDataset(cebra.data.DatasetCollection):
         )
 
     def __repr__(self):
-        return f"CaNeuropixelMovieOneCorticesDataset"
+        return "CaNeuropixelMovieOneCorticesDataset"
 
 
 @parametrize(
@@ -152,4 +144,4 @@ class AllenMovieOneCaNPCortexDisjointDataset(cebra.data.DatasetCollection):
         )
 
     def __repr__(self):
-        return f"CaNeuropixelMovieOneCorticesDisjointDataset"
+        return "CaNeuropixelMovieOneCorticesDisjointDataset"
