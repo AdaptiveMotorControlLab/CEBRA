@@ -117,9 +117,7 @@ def goodness_of_fit(model: cebra_sklearn_cebra.CEBRA) -> List[float]:
     different batch sizes or different implementations.
 
     Args: 
-        model: The model to evaluate. This can be an instance of either 
-            `cebra_sklearn_cebra.CEBRA` or `cebra_solver.Solver`.
-        batch_size: Batch size used to train the model.
+        model: The model to evaluate. This is an instance of `cebra_sklearn_cebra.CEBRA`.
 
     Returns: 
         A list of float values representing the goodness of fit for the model.
