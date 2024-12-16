@@ -19,10 +19,17 @@ jobs:
         # as well as selected previous versions on
         # https://pytorch.org/get-started/previous-versions/
         torch-version: ["2.2.2", "2.4.0"]
+        sklearn-version: ["latest"]
         include:
           - os: windows-latest
             torch-version: 2.4.0
             python-version: "3.10"
+            sklearn-version: "latest"
+        include:
+          - os: ubuntu-latest 
+            torch-version: 2.4.0
+            python-version: "3.10"
+            sklearn-version: "legacy"
 
     runs-on: ${{ matrix.os }}
 
@@ -32,7 +39,7 @@ jobs:
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
-          key: pip-os_${{ runner.os }}-python_${{ matrix.python-version }}-torch_${{ matrix.torch-version }}
+          key: pip-os_${{ runner.os }}-python_${{ matrix.python-version }}-torch_${{ matrix.torch-version }}-sklearn_${{ matrix.sklearn-version }}
 
       - name: Checkout code
         uses: actions/checkout@v2
@@ -47,6 +54,11 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install torch==${{ matrix.torch-version }} --extra-index-url https://download.pytorch.org/whl/cpu
           pip install '.[dev,datasets,integrations]'
+
+      - name: Check sklearn legacy version 
+        if: matrix.sklearn-version == 'legacy'
+        run: |
+          pip install scikit-learn==1.4.2 '.[dev,datasets,integrations]'
 
       - name: Run the formatter
         run: |
