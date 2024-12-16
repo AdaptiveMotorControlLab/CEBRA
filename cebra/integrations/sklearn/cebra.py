@@ -371,7 +371,7 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
     return cebra_
 
 
-class CEBRA(BaseEstimator, TransformerMixin):
+class CEBRA(TransformerMixin, BaseEstimator):
     """CEBRA model defined as part of a ``scikit-learn``-like API.
 
     Attributes:
