@@ -72,8 +72,6 @@ def test_plot_imports():
 def test_colormaps():
     import matplotlib
 
-    import cebra
-
     cmap = matplotlib.colormaps["cebra"]
     assert cmap is not None
     plt.scatter([1], [2], c=[2], cmap="cebra")
@@ -241,7 +239,7 @@ def test_compare_models():
         _ = cebra_plot.compare_models(models, labels=long_labels, ax=ax)
     with pytest.raises(ValueError, match="Invalid.*labels"):
         invalid_labels = copy.deepcopy(labels)
-        ele = invalid_labels.pop()
+        _ = invalid_labels.pop()
         invalid_labels.append(["a"])
         _ = cebra_plot.compare_models(models, labels=invalid_labels, ax=ax)
 

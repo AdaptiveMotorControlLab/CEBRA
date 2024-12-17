@@ -48,7 +48,7 @@ dependencies:
         - tensorflow-metal
         - joblib
         - literate-dataclasses
-        - sklearn
+        - scikit-learn
         - scipy
         - torch
         - umap-learn

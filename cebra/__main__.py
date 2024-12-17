@@ -27,11 +27,7 @@
 import argparse
 import sys
 
-import numpy as np
-import torch
-
 import cebra
-import cebra.distributions as cebra_distr
 
 
 def train(parser, kwargs):

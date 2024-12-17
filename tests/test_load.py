@@ -22,10 +22,7 @@
 import itertools
 import pathlib
 import pickle
-import platform
 import tempfile
-import unittest
-from unittest.mock import patch
 
 import h5py
 import hdf5storage
@@ -125,7 +122,7 @@ def generate_numpy_confounder(filename, dtype):
 
 
 @register("npz")
-def generate_numpy_path(filename, dtype):
+def generate_numpy_path_2(filename, dtype):
     A = np.arange(1000, dtype=dtype).reshape(10, 100)
     np.savez(filename, array=A, other_data="test")
     loaded_A = cebra_load.load(pathlib.Path(filename))
@@ -418,7 +415,7 @@ def generate_csv_path(filename, dtype):
 
 @register_error("csv")
 def generate_csv_empty_file(filename, dtype):
-    with open(filename, "w") as creating_new_csv_file:
+    with open(filename, "w") as _:
         pass
     _ = cebra_load.load(filename)
 
@@ -619,7 +616,6 @@ def generate_pickle_invalid_key(filename, dtype):
 
 @register_error("pkl", "p")
 def generate_pickle_no_array(filename, dtype):
-    A = np.arange(1000, dtype=dtype).reshape(10, 100)
     with open(filename, "wb") as f:
         pickle.dump({"A": "test_1", "B": "test_2"}, f)
     _ = cebra_load.load(filename)

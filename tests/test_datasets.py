@@ -68,8 +68,6 @@ def test_demo():
 
 @pytest.mark.requires_dataset
 def test_hippocampus():
-    from cebra.datasets import hippocampus
-
     pytest.skip("Outdated")
     dataset = cebra.datasets.init("rat-hippocampus-single")
     loader = cebra.data.ContinuousDataLoader(
@@ -99,8 +97,6 @@ def test_hippocampus():
 
 @pytest.mark.requires_dataset
 def test_monkey():
-    from cebra.datasets import monkey_reaching
-
     dataset = cebra.datasets.init(
         "area2-bump-pos-active-passive",
         path=pathlib.Path(_DEFAULT_DATADIR) / "monkey_reaching_preload_smth_40",
@@ -111,8 +107,6 @@ def test_monkey():
 
 @pytest.mark.requires_dataset
 def test_allen():
-    from cebra.datasets import allen
-
     pytest.skip("Test takes too long")
 
     ca_dataset = cebra.datasets.init("allen-movie-one-ca-VISp-100-train-10-111")
@@ -148,7 +142,7 @@ try:
     multisubject_options.extend(
         cebra.datasets.get_options(
             "rat-hippocampus-multisubjects-3fold-trial-split*"))
-except:
+except:  # noqa: E722
     options = []
 
 
@@ -388,3 +382,106 @@ def test_download_file_wrong_content_disposition(filename, url,
                     expected_checksum=expected_checksum,
                     location=temp_dir,
                     file_name=filename)
+
+
+@pytest.mark.parametrize("neural, continuous, discrete", [
+    (np.random.randn(100, 30), np.random.randn(
+        100, 2), np.random.randint(0, 5, (100,))),
+    (np.random.randn(50, 20), None, np.random.randint(0, 3, (50,))),
+    (np.random.randn(200, 40), np.random.randn(200, 5), None),
+])
+def test_tensor_dataset_initialization(neural, continuous, discrete):
+    dataset = cebra.data.datasets.TensorDataset(neural,
+                                                continuous=continuous,
+                                                discrete=discrete)
+    assert dataset.neural.shape == neural.shape
+    if continuous is not None:
+        assert dataset.continuous.shape == continuous.shape
+    if discrete is not None:
+        assert dataset.discrete.shape == discrete.shape
+
+
+def test_tensor_dataset_invalid_initialization():
+    neural = np.random.randn(100, 30)
+    with pytest.raises(ValueError):
+        cebra.data.datasets.TensorDataset(neural)
+
+
+@pytest.mark.parametrize("neural, continuous, discrete", [
+    (np.random.randn(100, 30), np.random.randn(
+        100, 2), np.random.randint(0, 5, (100,))),
+    (np.random.randn(50, 20), None, np.random.randint(0, 3, (50,))),
+    (np.random.randn(200, 40), np.random.randn(200, 5), None),
+])
+def test_tensor_dataset_length(neural, continuous, discrete):
+    dataset = cebra.data.datasets.TensorDataset(neural,
+                                                continuous=continuous,
+                                                discrete=discrete)
+    assert len(dataset) == len(neural)
+
+
+@pytest.mark.parametrize("neural, continuous, discrete", [
+    (np.random.randn(100, 30), np.random.randn(
+        100, 2), np.random.randint(0, 5, (100,))),
+    (np.random.randn(50, 20), None, np.random.randint(0, 3, (50,))),
+    (np.random.randn(200, 40), np.random.randn(200, 5), None),
+])
+def test_tensor_dataset_getitem(neural, continuous, discrete):
+    dataset = cebra.data.datasets.TensorDataset(neural,
+                                                continuous=continuous,
+                                                discrete=discrete)
+    index = torch.randint(0, len(dataset), (10,))
+    batch = dataset[index]
+    assert batch.shape[0] == len(index)
+    assert batch.shape[1] == neural.shape[1]
+
+
+def test_tensor_dataset_invalid_discrete_type():
+    neural = np.random.randn(100, 30)
+    continuous = np.random.randn(100, 2)
+    discrete = np.random.randn(100, 2)  # Invalid type: float instead of int
+    with pytest.raises(TypeError):
+        cebra.data.datasets.TensorDataset(neural,
+                                          continuous=continuous,
+                                          discrete=discrete)
+
+
+@pytest.mark.parametrize("array, check_dtype, expected_dtype", [
+    (np.random.randn(100, 30), "float", torch.float32),
+    (np.random.randint(0, 5, (100, 30)), "int", torch.int64),
+    (torch.randn(100, 30), "float", torch.float32),
+    (torch.randint(0, 5, (100, 30)), "int", torch.int64),
+    (None, None, None),
+])
+def test_to_tensor(array, check_dtype, expected_dtype):
+    dataset = cebra.data.datasets.TensorDataset(np.random.randn(10, 2),
+                                                continuous=np.random.randn(
+                                                    10, 2))
+    result = dataset._to_tensor(array, check_dtype=check_dtype)
+    if array is None:
+        assert result is None
+    else:
+        assert isinstance(result, torch.Tensor)
+        assert result.dtype == expected_dtype
+
+
+def test_to_tensor_invalid_dtype():
+    dataset = cebra.data.datasets.TensorDataset(np.random.randn(10, 2),
+                                                continuous=np.random.randn(
+                                                    10, 2))
+    array = np.random.randn(100, 30)
+    with pytest.raises(TypeError):
+        dataset._to_tensor(array, check_dtype="int")
+    array = np.random.randint(0, 5, (100, 30))
+    with pytest.raises(TypeError):
+        dataset._to_tensor(array, check_dtype="float")
+
+
+def test_to_tensor_invalid_check_dtype():
+    dataset = cebra.data.datasets.TensorDataset(np.random.randn(10, 2),
+                                                continuous=np.random.randn(
+                                                    10, 2))
+    array = np.random.randn(100, 30)
+    with pytest.raises(ValueError,
+                       match="check_dtype must be 'int' or 'float', got"):
+        dataset._to_tensor(array, check_dtype="invalid_dtype")

@@ -276,7 +276,6 @@ def test_api(estimator, check):
         pytest.skip(f"Model architecture {estimator.model_architecture} "
                     f"requires longer input sizes than 20 samples.")
 
-    success = True
     exception = None
     num_successful = 0
     total_runs = 0
@@ -334,7 +333,6 @@ def test_sklearn(model_architecture, device):
     y_c1 = np.random.uniform(0, 1, (1000, 5))
     y_c1_s2 = np.random.uniform(0, 1, (800, 5))
     y_c2 = np.random.uniform(0, 1, (1000, 2))
-    y_c2_s2 = np.random.uniform(0, 1, (800, 2))
     y_d = np.random.randint(0, 10, (1000,))
     y_d_s2 = np.random.randint(0, 10, (800,))
 
@@ -817,7 +815,6 @@ def test_sklearn_full(model_architecture, device, pad_before_transform):
     X = np.random.uniform(0, 1, (1000, 50))
     y_c1 = np.random.uniform(0, 1, (1000, 5))
     y_c2 = np.random.uniform(0, 1, (1000, 2))
-    y_d = np.random.randint(0, 10, (1000,))
 
     # time contrastive
     cebra_model.fit(X)
@@ -883,7 +880,7 @@ def test_sklearn_resampling_model_not_yet_supported(model_architecture, device):
 
     with pytest.raises(ValueError):
         cebra_model.fit(X, y_c1)
-        output = cebra_model.transform(X)
+        _ = cebra_model.transform(X)
 
 
 def _iterate_actions():
@@ -1097,7 +1094,7 @@ def test_move_cpu_to_cuda_device(device):
 def test_move_cpu_to_mps_device(device):
 
     if not cebra.helper._is_mps_availabe(torch):
-        pytest.skip(f"MPS device is not available")
+        pytest.skip("MPS device is not available")
 
     X = np.random.uniform(0, 1, (10, 5))
     cebra_model = cebra_sklearn_cebra.CEBRA(model_architecture="offset1-model",
