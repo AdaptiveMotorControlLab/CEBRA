@@ -29,6 +29,7 @@ import cebra.helper
 
 from packaging import version
 from sklearn import __version__ as sklearn_version
+sklearn_version = version.parse(sklearn_version)
 
 
 def update_old_param(old: dict, new: dict, kwargs: dict, default) -> tuple:
