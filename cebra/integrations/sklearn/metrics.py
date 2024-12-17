@@ -140,7 +140,7 @@ def goodness_of_fit_score(cebra_model: cebra_sklearn_cebra.CEBRA,
         >>> neural_data = np.random.uniform(0, 1, (1000, 20))
         >>> cebra_model = cebra.CEBRA(max_iterations=10, batch_size = 512)
         >>> cebra_model.fit(neural_data)
-        CEBRA(max_iterations=10)
+        CEBRA(batch_size=512, max_iterations=10)
         >>> gof = cebra.sklearn.metrics.goodness_of_fit_score(cebra_model, neural_data)
     """
     loss = infonce_loss(cebra_model,
@@ -171,7 +171,7 @@ def goodness_of_fit_history(model):
         >>> neural_data = np.random.uniform(0, 1, (1000, 20))
         >>> cebra_model = cebra.CEBRA(max_iterations=10, batch_size = 512)
         >>> cebra_model.fit(neural_data)
-        CEBRA(max_iterations=10)
+        CEBRA(batch_size=512, max_iterations=10)
         >>> gof_history = cebra.sklearn.metrics.goodness_of_fit_history(cebra_model)
     """
     infonce = np.array(model.state_dict_["log"]["total"])
