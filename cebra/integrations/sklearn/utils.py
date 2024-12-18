@@ -114,32 +114,17 @@ def check_label_array(y: npt.NDArray, *, min_samples: int):
     Returns:
         The converted and validated labels.
     """
-    if sklearn_version < version.parse("1.8"):
-        return sklearn_utils_validation.check_array(
-            y,
-            accept_sparse=False,
-            accept_large_sparse=False,
-            dtype="numeric",
-            order=None,
-            copy=False,
-            force_all_finite=True,
-            ensure_2d=False,
-            allow_nd=False,
-            ensure_min_samples=min_samples,
-        )
-    else:
-        return sklearn_utils_validation.check_array(
-            y,
-            accept_sparse=False,
-            accept_large_sparse=False,
-            dtype="numeric",
-            order=None,
-            copy=False,
-            ensure_all_finite=True,
-            ensure_2d=False,
-            allow_nd=False,
-            ensure_min_samples=min_samples,
-        )
+    return _check_array_ensure_all_finite(
+        y,
+        accept_sparse=False,
+        accept_large_sparse=False,
+        dtype="numeric",
+        order=None,
+        copy=False,
+        ensure_2d=False,
+        allow_nd=False,
+        ensure_min_samples=min_samples,
+    )
 
 
 def check_device(device: str) -> str:
