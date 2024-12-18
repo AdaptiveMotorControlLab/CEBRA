@@ -27,6 +27,16 @@ import torch
 
 import cebra.helper
 
+from packaging import version
+import sklearn
+
+def _check_array_ensure_all_finite(array, **kwargs):
+    if version.parse(sklearn.__version__) < version.parse("1.8"):
+        key = "force_all_finite"
+    else:
+        key = "ensure_all_finite"
+    kwargs[key] = True
+    return sklearn_utils_validation.check_array(array, **kwargs)
 
 def update_old_param(old: dict, new: dict, kwargs: dict, default) -> tuple:
     """Handle deprecated arguments of a function until they are replaced.
@@ -74,19 +84,18 @@ def check_input_array(X: npt.NDArray, *, min_samples: int) -> npt.NDArray:
     Returns:
         The converted and validated array.
     """
-    return sklearn_utils_validation.check_array(
-        X,
-        accept_sparse=False,
-        accept_large_sparse=False,
-        dtype=("float16", "float32", "float64"),
-        order=None,
-        copy=False,
-        force_all_finite=True,
-        ensure_2d=True,
-        allow_nd=False,
-        ensure_min_samples=min_samples,
-        ensure_min_features=1,
-    )
+    return _check_array_ensure_all_finite(
+          X,
+          accept_sparse=False,
+          accept_large_sparse=False,
+          dtype=("float16", "float32", "float64"),
+          order=None,
+          copy=False,
+          ensure_2d=True,
+          allow_nd=False,
+          ensure_min_samples=min_samples,
+          ensure_min_features=1,
+      )
 
 
 def check_label_array(y: npt.NDArray, *, min_samples: int):
@@ -105,14 +114,13 @@ def check_label_array(y: npt.NDArray, *, min_samples: int):
     Returns:
         The converted and validated labels.
     """
-    return sklearn_utils_validation.check_array(
+    return _check_array_ensure_all_finite(
         y,
         accept_sparse=False,
         accept_large_sparse=False,
         dtype="numeric",
         order=None,
         copy=False,
-        force_all_finite=True,
         ensure_2d=False,
         allow_nd=False,
         ensure_min_samples=min_samples,
