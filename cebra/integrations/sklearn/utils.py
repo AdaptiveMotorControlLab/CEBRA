@@ -28,9 +28,15 @@ import torch
 import cebra.helper
 
 from packaging import version
-from sklearn import __version__ as sklearn_version
-sklearn_version = version.parse(sklearn_version)
+import sklearn
 
+def _check_array_ensure_all_finite(array, **kwargs):
+    if version.parse(sklearn.__version__) < version.parse("1.8"):
+        key = "force_all_finite"
+    else:
+        key = "ensure_all_finite"
+    kwargs[key] = True
+    return sklearn_utils_validation.check_array(array, **kwargs)
 
 def update_old_param(old: dict, new: dict, kwargs: dict, default) -> tuple:
     """Handle deprecated arguments of a function until they are replaced.
