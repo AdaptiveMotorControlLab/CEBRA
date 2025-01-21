@@ -151,11 +151,6 @@ html_theme_options = {
             "url": "https://twitter.com/cebraAI",
             "icon": "fab fa-twitter",
         },
-        # {
-        #     "name": "DockerHub",
-        #     "url": "https://hub.docker.com/r/stffsc/cebra",
-        #     "icon": "fab fa-docker",
-        # },
         {
             "name": "PyPI",
             "url": "https://pypi.org/project/cebra/",
