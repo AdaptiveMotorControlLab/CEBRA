@@ -32,8 +32,10 @@ import cebra.helper
 
 def _sklearn_check_array(array, **kwargs):
     # NOTE(stes): See discussion in https://github.com/AdaptiveMotorControlLab/CEBRA/pull/206
+    # https://scikit-learn.org/1.6/modules/generated/sklearn.utils.check_array.html
+    # force_all_finite was renamed to ensure_all_finite and will be removed in 1.8.
     if packaging.version.parse(
-            sklearn.__version__) < packaging.version.parse("1.8"):
+            sklearn.__version__) < packaging.version.parse("1.6"):
         if "ensure_all_finite" in kwargs:
             kwargs["force_all_finite"] = kwargs["ensure_all_finite"]
             del kwargs["ensure_all_finite"]
