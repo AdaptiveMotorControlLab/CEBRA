@@ -28,9 +28,9 @@ from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
 import numpy as np
 import numpy.typing as npt
 import pkg_resources
+import sklearn
 import sklearn.utils.validation as sklearn_utils_validation
 import torch
-import sklearn
 from sklearn.base import BaseEstimator
 from sklearn.base import TransformerMixin
 from sklearn.utils.metaestimators import available_if
@@ -43,11 +43,13 @@ import cebra.integrations.sklearn.utils as sklearn_utils
 import cebra.models
 import cebra.solver
 
+
 def check_version(estimator):
     # NOTE(stes): required as a check for the old way of specifying tags
     # https://github.com/scikit-learn/scikit-learn/pull/29677#issuecomment-2334229165
     from packaging import version
     return version.parse(sklearn.__version__) < version.parse("1.6.dev")
+
 
 def _init_loader(
     is_cont: bool,
