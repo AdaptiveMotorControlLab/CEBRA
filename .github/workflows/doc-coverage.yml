@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8']
+        python-version: ['3.9']
 
     steps:
     # NOTE(stes) currently not used, we check
@@ -31,14 +31,14 @@ jobs:
     #  with:
     #    ref: main
     - uses: actions/checkout@v3
-    - uses: actions/cache@v1
+    - uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip
         restore-keys: |
           ${{ runner.os }}-pip
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install package
