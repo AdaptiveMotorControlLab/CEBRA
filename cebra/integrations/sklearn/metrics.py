@@ -208,7 +208,7 @@ def infonce_to_goodness_of_fit(infonce: Union[float, np.ndarray],
 
     Args:
         infonce: The InfoNCE loss, either a single value or an iterable of values.
-        model: The trained CEBRA model
+        model: The trained CEBRA model. 
         batch_size: The batch size used to train the model.
         num_sessions: The number of sessions used to train the model.
 
