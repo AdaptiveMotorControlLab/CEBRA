@@ -52,7 +52,7 @@ jobs:
           ref: main
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -60,12 +60,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           # NOTE(stes) Pandoc version must be at least (2.14.2) but less than (4.0.0).
-          # as of 29/10/23. Ubuntu 22.04 which is used for ubuntu-latest only has an 
+          # as of 29/10/23. Ubuntu 22.04 which is used for ubuntu-latest only has an
           # old pandoc version (2.9.). We will hence install the latest version manually.
           # previou: sudo apt-get install -y pandoc
-          wget https://github.com/jgm/pandoc/releases/download/3.1.9/pandoc-3.1.9-1-amd64.deb 
-          sudo dpkg -i pandoc-3.1.9-1-amd64.deb 
-          rm pandoc-3.1.9-1-amd64.deb 
+          wget https://github.com/jgm/pandoc/releases/download/3.1.9/pandoc-3.1.9-1-amd64.deb
+          sudo dpkg -i pandoc-3.1.9-1-amd64.deb
+          rm pandoc-3.1.9-1-amd64.deb
           pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
           pip install '.[docs]'
 
