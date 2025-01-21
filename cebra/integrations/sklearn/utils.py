@@ -30,14 +30,13 @@ import torch
 import cebra.helper
 
 
-def _check_array_ensure_all_finite(array, **kwargs):
+def _sklearn_check_array(array, **kwargs):
     # NOTE(stes): See discussion in https://github.com/AdaptiveMotorControlLab/CEBRA/pull/206
     if packaging.version.parse(
             sklearn.__version__) < packaging.version.parse("1.8"):
-        key = "force_all_finite"
-    else:
-        key = "ensure_all_finite"
-    kwargs[key] = True
+        if "ensure_all_finite" in kwargs:
+            kwargs["force_all_finite"] = kwargs["ensure_all_finite"]
+            del kwargs["ensure_all_finite"]
     return sklearn_utils_validation.check_array(array, **kwargs)
 
 
@@ -87,7 +86,7 @@ def check_input_array(X: npt.NDArray, *, min_samples: int) -> npt.NDArray:
     Returns:
         The converted and validated array.
     """
-    return _check_array_ensure_all_finite(
+    return _sklearn_check_array(
         X,
         accept_sparse=False,
         accept_large_sparse=False,
@@ -95,6 +94,7 @@ def check_input_array(X: npt.NDArray, *, min_samples: int) -> npt.NDArray:
         order=None,
         copy=False,
         ensure_2d=True,
+        ensure_all_finite=True,
         allow_nd=False,
         ensure_min_samples=min_samples,
         ensure_min_features=1,
@@ -117,7 +117,7 @@ def check_label_array(y: npt.NDArray, *, min_samples: int):
     Returns:
         The converted and validated labels.
     """
-    return _check_array_ensure_all_finite(
+    return _sklearn_check_array(
         y,
         accept_sparse=False,
         accept_large_sparse=False,
@@ -125,6 +125,7 @@ def check_label_array(y: npt.NDArray, *, min_samples: int):
         order=None,
         copy=False,
         ensure_2d=False,
+        ensure_all_finite=True,
         allow_nd=False,
         ensure_min_samples=min_samples,
     )
