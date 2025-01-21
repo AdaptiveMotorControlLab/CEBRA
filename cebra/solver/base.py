@@ -231,7 +231,19 @@ def _batched_transform(model: cebra.models.Model, inputs: torch.Tensor,
     index_dataloader = DataLoader(index_dataset, batch_size=batch_size)
 
     output = []
-    for index_batch in index_dataloader:
+    for batch_idx, index_batch in enumerate(index_dataloader):
+        # NOTE(celia): This is to prevent that adding the offset to the
+        # penultimate batch for larger offset make the batch_end_idx larger
+        # than the input length, while we also don't want to drop the last
+        # samples that do not fit in a complete batch.
+        if batch_idx == (len(index_dataloader) - 2):
+            # penultimate batch, last complete batch
+            last_batch = index_batch
+            continue
+        if batch_idx == (len(index_dataloader) - 1):
+            # last batch, incomplete
+            index_batch = torch.cat((last_batch, index_batch), dim=0)
+
         batch_start_idx, batch_end_idx = index_batch[0], index_batch[-1] + 1
         batched_data = _get_batch(inputs=inputs,
                                   offset=offset,

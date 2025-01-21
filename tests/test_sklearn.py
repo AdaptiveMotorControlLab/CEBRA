@@ -1506,3 +1506,20 @@ def test_new_transform(model_architecture, device):
     embedding2 = cebra_model.transform_deprecated(X, session_id=2)
     assert np.allclose(embedding1, embedding2, rtol=1e-5,
                        atol=1e-8), "Arrays are not close enough"
+
+
+def test_last_incomplete_batch_smaller_than_offset():
+    """
+    When offset of the model is larger than the remaining samples in the 
+    last batch, an error could happen. We merge the penultimate 
+    and last batches together to avoid this.
+    """
+    train = cebra.data.TensorDataset(neural=np.random.rand(20111, 100),
+                                     continuous=np.random.rand(20111, 2))
+
+    model = cebra.CEBRA(max_iterations=2,
+                        model_architecture="offset36-model-more-dropout",
+                        device="cpu")
+    model.fit(train.neural, train.continuous)
+
+    _ = model.transform(train.neural, batch_size=300)
