@@ -113,9 +113,11 @@ def goodness_of_fit_score(cebra_model: cebra_sklearn_cebra.CEBRA,
                           *y,
                           session_id: Optional[int] = None,
                           num_batches: int = 500) -> float:
-    """Compute the InfoNCE loss on a *single session* dataset on the model.
+    """Compute the goodness of fit score on a *single session* dataset on the model.
 
-    This function uses the :func:`infonce_loss` function to compute the InfoNCE loss.
+    This function uses the :func:`infonce_loss` function to compute the InfoNCE loss
+    for a given `cebra_model` and the :func:`infonce_to_goodness_of_fit` function 
+    to derive the goodness of fit from the InfoNCE loss.
 
     Args:
         cebra_model: The model to use to compute the InfoNCE loss on the samples.
