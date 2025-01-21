@@ -166,7 +166,7 @@ def test_single_session(data_name, loader_initfunc, model_architecture,
 
     solver.fit(loader)
 
-    assert solver.num_sessions == None
+    assert solver.num_sessions is None
     assert solver.n_features == X.shape[1]
     
     embedding = solver.transform(X)
@@ -231,25 +231,25 @@ def test_single_session_auxvar(data_name, loader_initfunc, model_architecture, s
 
     pytest.skip("Not yet supported")
 
-    loader = _get_loader(data_name, loader_initfunc)
-    model = _make_model(loader.dataset)
-    behavior_model = _make_behavior_model(loader.dataset)  # noqa: F841
+    # loader = _get_loader(data_name, loader_initfunc)
+    # model = _make_model(loader.dataset)
+    # behavior_model = _make_behavior_model(loader.dataset)  # noqa: F841
 
-    criterion = cebra.models.InfoNCE()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    # criterion = cebra.models.InfoNCE()
+    # optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-    solver = solver_initfunc(
-        model=model,
-        criterion=criterion,
-        optimizer=optimizer,
-    )
+    # solver = solver_initfunc(
+    #     model=model,
+    #     criterion=criterion,
+    #     optimizer=optimizer,
+    # )
 
-    batch = next(iter(loader))
-    assert batch.reference.shape == (32, loader.dataset.input_dimension, 10)
-    log = solver.step(batch)
-    assert isinstance(log, dict)
+    # batch = next(iter(loader))
+    # assert batch.reference.shape == (32, loader.dataset.input_dimension, 10)
+    # log = solver.step(batch)
+    # assert isinstance(log, dict)
 
-    solver.fit(loader)
+    # solver.fit(loader)
 
 
 @pytest.mark.parametrize(
@@ -280,7 +280,7 @@ def test_single_session_hybrid(data_name, loader_initfunc, model_architecture,
 
     solver.fit(loader)
 
-    assert solver.num_sessions == None
+    assert solver.num_sessions is None
     assert solver.n_features == X.shape[1]
 
     embedding = solver.transform(X)
@@ -721,7 +721,6 @@ def test_select_model_single_session(data_name, model_name, session_id,
     dataset = cebra.datasets.init(data_name)
     model = create_model(model_name, dataset.input_dimension)
     dataset.configure_for(model)
-    loader = _get_loader(dataset, loader_initfunc=loader_initfunc)
     offset = model.get_offset()
     solver = solver_initfunc(model=model, criterion=None, optimizer=None)
 
@@ -841,7 +840,6 @@ def test_batched_transform_single_session(
 
     smallest_batch_length = loader.dataset.neural.shape[0] - batch_size
     offset_ = model.get_offset()
-    padding_left = offset_.left if padding else 0
 
     if smallest_batch_length <= len(offset_):
         with pytest.raises(ValueError):
@@ -893,7 +891,6 @@ def test_batched_transform_multi_session(data_name, model_name, padding,
 
     smallest_batch_length = n_samples - batch_size
     offset_ = model[0].get_offset()
-    padding_left = offset_.left if padding else 0
     for d in dataset._datasets:
         d.offset = offset_
     loader_kwargs = dict(num_steps=10, batch_size=32)
@@ -918,7 +915,6 @@ def test_batched_transform_multi_session(data_name, model_name, padding,
                                  pad_before_transform=padding)
 
         else:
-            model_ = model[i]
             embedding = solver.transform(inputs=inputs.neural,
                                          session_id=i,
                                          pad_before_transform=padding)

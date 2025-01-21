@@ -1375,11 +1375,9 @@ def test_new_transform(model_architecture, device):
     # example dataset
     X = np.random.uniform(0, 1, (1000, 50))
     X_s2 = np.random.uniform(0, 1, (800, 30))
-    X_s3 = np.random.uniform(0, 1, (1000, 30))
     y_c1 = np.random.uniform(0, 1, (1000, 5))
     y_c1_s2 = np.random.uniform(0, 1, (800, 5))
     y_c2 = np.random.uniform(0, 1, (1000, 2))
-    y_c2_s2 = np.random.uniform(0, 1, (800, 2))
     y_d = np.random.randint(0, 10, (1000,))
     y_d_s2 = np.random.randint(0, 10, (800,))
 
