@@ -154,7 +154,7 @@ def goodness_of_fit_score(cebra_model: cebra_sklearn_cebra.CEBRA,
     return infonce_to_goodness_of_fit(loss, cebra_model)
 
 
-def goodness_of_fit_history(model):
+def goodness_of_fit_history(model: cebra_sklearn_cebra.CEBRA) -> np.ndarray:
     """Return the history of the goodness of fit score.
 
     Args:
