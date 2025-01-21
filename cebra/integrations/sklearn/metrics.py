@@ -235,7 +235,10 @@ def infonce_to_goodness_of_fit(infonce: Union[float, np.ndarray],
             num_sessions = 1
     else:
         if batch_size is None or num_sessions is None:
-            raise ValueError("batch_size should be provided if model is not provided.")
+            raise ValueError(
+                  f"batch_size ({batch_size}) and num_sessions ({num_sessions})"
+                  f"should be provided if model is not provided."
+            )
 
     nats_to_bits = np.log2(np.e)
     chance_level = np.log(model.batch_size * num_sessions)
