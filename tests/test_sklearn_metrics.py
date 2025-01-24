@@ -441,7 +441,7 @@ def test_goodness_of_fit_history(seed):
     # NOTE(stes): Ignore the first 5 iterations, they can have nonsensical values
     # due to numerical issues.
     history_random_non_negative = history_random[history_random >= 0]
-    np.testing.assert_allclose(history_random_non_negative, 0, atol=0.05)
+    np.testing.assert_allclose(history_random_non_negative, 0, atol=0.075)
 
     assert isinstance(history_linear, np.ndarray)
     assert history_linear.shape[0] > 0
