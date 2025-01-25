@@ -71,7 +71,6 @@ class MetricCollection():
         return result
 
 
-#
 @dataclasses.dataclass
 class Metric():
     labels: Dict[Literal["train", "val"], torch.Tensor]
