@@ -102,9 +102,9 @@ class AttributionMap:
     def compute_attribution_score(self, attribution_map, ground_truth_map):
         assert attribution_map.shape == ground_truth_map.shape
         assert np.issubdtype(ground_truth_map.dtype, bool)
-        fpr, tpr, _ = sklearn.metrics.roc_curve(ground_truth_map.flatten(),
-                                                attribution_map.flatten())
-        auc = sklearn.metrics.auc(fpr, tpr)
+        fpr, tpr, _ = sklearn.metrics.roc_curve(  # noqa: codespell:ignore fpr, tpr
+            ground_truth_map.flatten(), attribution_map.flatten())
+        auc = sklearn.metrics.auc(fpr, tpr)  # noqa: codespell:ignore fpr, tpr
         return auc
 
     @staticmethod
@@ -175,9 +175,10 @@ class AttributionMap:
 
         identity = np.eye(matrix.shape[0])
         matrix_inverse = cp.Variable((matrix.shape[1], matrix.shape[0]))
-
+        # noqa: codespell
         objective = cp.Minimize(
-            cp.norm(matrix @ matrix_inverse - identity, "fro"))
+            cp.norm(matrix @ matrix_inverse - identity,
+                    "fro"))  # noqa: codespell:ignore fro
         prob = cp.Problem(objective)
         prob.solve(verbose=False, solver=solver)
 

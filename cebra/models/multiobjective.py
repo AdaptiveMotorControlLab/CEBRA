@@ -134,7 +134,7 @@ class MultiobjectiveModel(nn.Module):
 
         if max_slice_dim != self.num_output:
             raise ValueError(
-                f"The dimension of ouput {self.num_output} is different than the highest dimension of slices {max_slice_dim}."
+                f"The dimension of output {self.num_output} is different than the highest dimension of slices {max_slice_dim}."
                 f"They need to have the same dimension.")
 
         check_slices_for_gaps(self.feature_ranges)
