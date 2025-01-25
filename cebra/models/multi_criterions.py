@@ -4,7 +4,7 @@
 # Not licensed yet. Distribution for review.
 # Code will be open-sourced upon publication.
 #
-from typing import Optional, Tuple, Union
+from typing import Tuple
 
 import torch
 from torch import nn

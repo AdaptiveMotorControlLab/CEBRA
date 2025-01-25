@@ -5,14 +5,15 @@
 # Code will be open-sourced upon publication.
 #
 import dataclasses
-import sys
 import time
 
+import cvxpy as cp
 import numpy as np
 import scipy.linalg
 import sklearn.metrics
 import torch
 import torch.nn as nn
+import tqdm
 from captum.attr import NeuronFeatureAblation
 from captum.attr import NeuronGradient
 from captum.attr import NeuronGradientShap
@@ -172,10 +173,11 @@ class AttributionMap:
         matrix_param = cp.Parameter((matrix.shape[0], matrix.shape[1]))
         matrix_param.value = matrix
 
-        I = np.eye(matrix.shape[0])
+        identity = np.eye(matrix.shape[0])
         matrix_inverse = cp.Variable((matrix.shape[1], matrix.shape[0]))
 
-        objective = cp.Minimize(cp.norm(matrix @ matrix_inverse - I, "fro"))
+        objective = cp.Minimize(
+            cp.norm(matrix @ matrix_inverse - identity, "fro"))
         prob = cp.Problem(objective)
         prob.solve(verbose=False, solver=solver)
 

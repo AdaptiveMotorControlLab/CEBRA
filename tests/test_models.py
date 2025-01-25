@@ -23,7 +23,6 @@ import itertools
 
 import pytest
 import torch
-from torch import nn
 
 import cebra.models
 import cebra.models.model

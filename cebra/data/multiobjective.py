@@ -4,7 +4,6 @@
 # Not licensed yet. Distribution for review.
 # Code will be open-sourced upon publication.
 #
-from typing import List
 
 import literate_dataclasses as dataclasses
 

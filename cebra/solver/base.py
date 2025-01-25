@@ -34,10 +34,9 @@ import abc
 import logging
 import os
 import time
-from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Callable, Dict, List, Literal, Optional
 
 import literate_dataclasses as dataclasses
-import numpy as np
 import torch
 
 import cebra

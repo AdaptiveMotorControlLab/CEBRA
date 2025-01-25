@@ -6,7 +6,7 @@
 #
 """Regularized contrastive learning."""
 
-from typing import Callable, Dict, List, Literal, Optional, Union
+from typing import Dict, Optional
 
 import literate_dataclasses as dataclasses
 import torch
@@ -14,7 +14,6 @@ import torch
 import cebra
 import cebra.data
 import cebra.models
-import cebra.solver.multiobjective as abc_
 from cebra.solver import register
 from cebra.solver.single_session import SingleSessionSolver
 

@@ -6,25 +6,22 @@
 #
 """Multiobjective contrastive learning."""
 
-import abc
 import logging
-import os
 import time
 import warnings
-from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple
 
 import literate_dataclasses as dataclasses
 import numpy as np
 import torch
-import tqdm
 
 import cebra
 import cebra.data
 import cebra.io
 import cebra.models
-import cebra.solver.base as abc_
 from cebra.solver import register
 from cebra.solver.base import Solver
+from cebra.solver.schedulers import Scheduler
 from cebra.solver.util import Meter
 
 
@@ -43,9 +40,8 @@ class MultiObjectiveConfig:
     def _check_overwriting_key(self, key):
         if key in self.current_info:
             warnings.warn(
-                f"Configuration key already exists. Overwriting existing value. "
-                f"If you don't want to overwrite you should call push() before."
-            )
+                "Configuration key already exists. Overwriting existing value. "
+                "If you don't want to overwrite you should call push() before.")
 
     def _check_pushed_status(self):
         if "slice" not in self.current_info:
