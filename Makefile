@@ -1,4 +1,4 @@
-CEBRA_VERSION := 0.4.0
+CEBRA_VERSION := 0.4.0+regcl
 
 dist:
 	python3 -m pip install virtualenv
