@@ -1,45 +1,39 @@
 #
-# Regularized contrastive learning implementation.
+# CEBRA: Consistent EmBeddings of high-dimensional Recordings using Auxiliary variables
+# © Mackenzie W. Mathis & Steffen Schneider (v0.4.0+)
+# Source code:
+# https://github.com/AdaptiveMotorControlLab/CEBRA
 #
-# Not licensed yet. Distribution for review.
-# Code will be open-sourced upon publication.
+# Please see LICENSE.md for the full license document:
+# https://github.com/AdaptiveMotorControlLab/CEBRA/blob/main/LICENSE.md
 #
-"""
-Source: https://github.com/rpatrik96/nl-causal-representations/blob/master/care_nl_ica/dep_mat.py
-MIT License
-Copyright (c) 2022 Patrik Reizinger
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
+# Adapted from https://github.com/rpatrik96/nl-causal-representations/blob/master/care_nl_ica/dep_mat.py,
+# licensed under the following MIT License:
+#
+#   MIT License
+#
+#   Copyright (c) 2022 Patrik Reizinger
+#
+#   Permission is hereby granted, free of charge, to any person obtaining a copy
+#   of this software and associated documentation files (the "Software"), to deal
+#   in the Software without restriction, including without limitation the rights
+#   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#   copies of the Software, and to permit persons to whom the Software is
+#   furnished to do so, subject to the following conditions:
+#
+#   The above copyright notice and this permission notice shall be included in all
+#   copies or substantial portions of the Software.
+#
+#   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#   SOFTWARE.
+#
 
 import torch
-
-_FUNCTORCH_AVAILABLE = False
-try:
-    from functorch import jacfwd
-    from functorch import jacrev
-    from functorch import vmap
-
-    _FUNCTORCH_AVAILABLE = True
-except ModuleNotFoundError:
-    import warnings
-
-    warnings.warn("Could not import functorch. "
-                  "Jacobian computation will be limited "
-                  "to autograd mode.")
 
 
 def tensors_to_cpu_and_double(vars_):
@@ -103,15 +97,6 @@ def compute_jacobian(
 
         jacobian = torch.stack(jacob, dim=1)
 
-    elif mode == "functorch":
-        if not _FUNCTORCH_AVAILABLE:
-            raise ModuleNotFoundError("functorch")
-        else:
-            # TODO (if required in the future)
-            raise NotImplementedError
-
-    # jacobian_mean = jacobian.abs().mean(0).detach().cpu()
-    # jacobian_max = jacobian.abs().max(0)[0].detach().cpu()
     jacobian = jacobian.detach().cpu()
 
     if convert_to_numpy:
