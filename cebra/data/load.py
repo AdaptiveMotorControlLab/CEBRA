@@ -38,7 +38,6 @@ Currently available formats:
 
 import abc
 import pathlib
-import sys
 import warnings
 from typing import IO, List, Optional, Union
 
@@ -734,36 +733,4 @@ def read_hdf(filename, key=None):
         RuntimeError: If both pandas and h5py fail to load the file
     """
 
-    try:
-        if key is not None:
-            return pd.read_hdf(filename, key)
-        else:
-            return pd.read_hdf(filename)
-    except Exception as e:
-        with h5py.File(filename, "r") as f:
-            try:
-                if key is not None and key in f:
-                    hdf_key = key
-                else:
-                    hdf_key = list(f.keys())[0]
-
-                data = f[hdf_key][()]
-                column_names = f[hdf_key].attrs.get('column_names', None)
-
-                df = pd.DataFrame(data)
-                if column_names is not None:
-                    df.columns = column_names
-
-                df.columns = pd.MultiIndex.from_tuples(
-                    [tuple(col.split('/')) for col in df.columns],
-                    names=['scorer', 'bodyparts', 'coords'])
-
-                return df
-
-            except Exception as inner_e:
-                raise RuntimeError(
-                    f"Failed to load HDF5 file with both pandas and h5py: {str(e)} -> {str(inner_e)}"
-                    f"h5py version: {h5py.__version__}, "
-                    f"pandas version: {pd.__version__}, "
-                    f"numpy version: {np.__version__}, "
-                    f"python version: {sys.version}")
+    return pd.read_hdf(filename, key=key)
