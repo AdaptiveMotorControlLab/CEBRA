@@ -1445,14 +1445,14 @@ class CEBRA(TransformerMixin, BaseEstimator):
             filename: The path to the file in which to save the trained model.
             backend: A string identifying the used backend.
             weights_only: Indicates whether unpickler should be restricted to loading only tensors, primitive types,
-                dictionaries and any types added via `py:func:torch.serialization.add_safe_globals`.
-                See `py:func:torch.load` with ``weights_only=True`` for more details. It it recommended to leave this
+                dictionaries and any types added via :py:func:`torch.serialization.add_safe_globals`.
+                See :py:func:`torch.load` with ``weights_only=True`` for more details. It it recommended to leave this
                 at the default value of ``None``, which sets the argument to ``False`` for torch<2.6, and ``True`` for
-                 higher versions of torch. If you experience issues with loading custom models (specified outside
+                higher versions of torch. If you experience issues with loading custom models (specified outside
                 of the CEBRA package), you can try to set this to ``False`` if you trust the source of the model.
             kwargs: Optional keyword arguments passed directly to the loader.
 
-        Return:
+        Returns:
             The model to load.
 
         Note:
@@ -1462,7 +1462,6 @@ class CEBRA(TransformerMixin, BaseEstimator):
             For information about the file format please refer to :py:meth:`cebra.CEBRA.save`.
 
         Example:
-
             >>> import cebra
             >>> import numpy as np
             >>> import tempfile
@@ -1476,7 +1475,6 @@ class CEBRA(TransformerMixin, BaseEstimator):
             >>> loaded_model = cebra.CEBRA.load(tmp_file)
             >>> embedding = loaded_model.transform(dataset)
             >>> tmp_file.unlink()
-
         """
         supported_backends = ["auto", "sklearn", "torch"]
         if backend not in supported_backends:
