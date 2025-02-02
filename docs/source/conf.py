@@ -28,18 +28,13 @@
 
 # -- Path setup --------------------------------------------------------------
 
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
+import datetime
 import os
 import sys
 
 sys.path.insert(0, os.path.abspath("."))
 
-import datetime
-
-import cebra
+import cebra  # noqa: E402
 
 
 def get_years(start_year=2021):
@@ -156,11 +151,6 @@ html_theme_options = {
             "url": "https://twitter.com/cebraAI",
             "icon": "fab fa-twitter",
         },
-        # {
-        #     "name": "DockerHub",
-        #     "url": "https://hub.docker.com/r/stffsc/cebra",
-        #     "icon": "fab fa-docker",
-        # },
         {
             "name": "PyPI",
             "url": "https://pypi.org/project/cebra/",
@@ -247,6 +237,9 @@ rst_prolog = r"""
 
 # Download link for the notebook, see
 # https://nbsphinx.readthedocs.io/en/0.3.0/prolog-and-epilog.html
+
+# fmt: off
+# flake8: noqa: E501
 nbsphinx_prolog = r"""
 
 .. only:: html
@@ -269,3 +262,5 @@ nbsphinx_prolog = r"""
 
 ----
 """
+# fmt: on
+# flake8: enable=E501
