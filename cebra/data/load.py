@@ -275,11 +275,11 @@ class _H5pyLoader(_BaseLoader):
         """
         try:
             if ["_i_table", "table"] in df_keys:
-                df = pd.read_hdf(h5_file, key="table")
+                df = read_hdf(h5_file, key="table")
             else:
-                df = pd.read_hdf(h5_file, key=df_keys[0])
+                df = read_hdf(h5_file, key=df_keys[0])
         except KeyError:
-            df = pd.read_hdf(h5_file)
+            df = read_hdf(h5_file)
         return all(value in df.columns.names
                    for value in ["scorer", "bodyparts", "coords"])
 
@@ -348,7 +348,7 @@ class _PandasLoader(_BaseLoader):
         Returns:
             A :py:func:`numpy.array` containing the data of interest extracted from the :py:class:`pandas.DataFrame`.
         """
-        df = pd.read_hdf(file, key=key)
+        df = read_hdf(file, key=key)
         if columns is None:
             loaded_array = df.values
         elif isinstance(columns, list) and df.columns.nlevels == 1:
@@ -716,3 +716,50 @@ def _get_loader(file_ending: str) -> _BaseLoader:
     if file_ending not in __loaders.keys() or file_ending == "":
         raise OSError(f"File ending {file_ending} not supported.")
     return __loaders[file_ending]
+
+
+def read_hdf(filename, key=None):
+    """Read HDF5 file using pandas, with fallback to h5py if pandas fails.
+
+    Args:
+        filename: Path to HDF5 file
+        key: Optional key to read from HDF5 file. If None, tries "df_with_missing"
+             then falls back to first available key.
+
+    Returns:
+        pandas.DataFrame: The loaded data
+
+    Raises:
+        RuntimeError: If both pandas and h5py fail to load the file
+    """
+
+    try:
+        if key is not None:
+            return pd.read_hdf(filename, key)
+        else:
+            return pd.read_hdf(filename)
+    except Exception as e:
+        with h5py.File(filename, "r") as f:
+            try:
+                if key is not None and key in f:
+                    hdf_key = key
+                else:
+                    hdf_key = list(f.keys())[0]
+
+                data = f[hdf_key][()]
+                column_names = f[hdf_key].attrs.get('column_names', None)
+
+                df = pd.DataFrame(data)
+                if column_names is not None:
+                    df.columns = column_names
+
+                df.columns = pd.MultiIndex.from_tuples(
+                    [tuple(col.split('/')) for col in df.columns],
+                    names=['scorer', 'bodyparts', 'coords'])
+
+                return df
+
+            except Exception as inner_e:
+                raise RuntimeError(
+                    f"Failed to load HDF5 file with both pandas and h5py: {str(e)} -> {str(inner_e)}"
+                )

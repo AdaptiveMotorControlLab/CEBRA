@@ -29,6 +29,7 @@ import cebra.helper
 import cebra.integrations.deeplabcut as cebra_dlc
 from cebra import CEBRA
 from cebra import load_data
+from cebra.data.load import read_hdf
 
 # NOTE(stes): The original data URL is
 # https://github.com/DeepLabCut/DeepLabCut/blob/main/examples
@@ -54,11 +55,7 @@ def test_imports():
 
 
 def _load_dlc_dataframe(filename):
-    try:
-        df = pd.read_hdf(filename, "df_with_missing")
-    except KeyError:
-        df = pd.read_hdf(filename)
-    return df
+    return read_hdf(filename)
 
 
 def _get_annotated_data(url, keypoints):
