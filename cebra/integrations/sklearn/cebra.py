@@ -27,6 +27,7 @@ from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
 
 import numpy as np
 import numpy.typing as npt
+import packaging.version
 import pkg_resources
 import sklearn
 import sklearn.utils.validation as sklearn_utils_validation
@@ -54,8 +55,26 @@ CEBRA_LOAD_SAFE_GLOBALS = [
 def check_version(estimator):
     # NOTE(stes): required as a check for the old way of specifying tags
     # https://github.com/scikit-learn/scikit-learn/pull/29677#issuecomment-2334229165
-    from packaging import version
-    return version.parse(sklearn.__version__) < version.parse("1.6.dev")
+    return packaging.version.parse(
+        sklearn.__version__) < packaging.version.parse("1.6.dev")
+
+
+def _safe_torch_load(filename, weights_only, **kwargs):
+    if weights_only is None:
+        if packaging.version.parse(
+                torch.__version__) >= packaging.version.parse("2.6.0"):
+            weights_only = True
+        else:
+            weights_only = False
+
+    if not weights_only:
+        checkpoint = torch.load(filename, weights_only=False, **kwargs)
+    else:
+        # NOTE(stes): This is only supported for torch 2.6+
+        with torch.serialization.safe_globals(CEBRA_LOAD_SAFE_GLOBALS):
+            checkpoint = torch.load(filename, weights_only=True, **kwargs)
+
+    return checkpoint
 
 
 def _init_loader(
@@ -1418,7 +1437,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
     def load(cls,
              filename: str,
              backend: Literal["auto", "sklearn", "torch"] = "auto",
-             weights_only: bool = True,
+             weights_only: bool = None,
              **kwargs) -> "CEBRA":
         """Load a model from disk.
 
@@ -1428,7 +1447,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
             weights_only: Indicates whether unpickler should be restricted to loading only tensors, primitive types,
                 dictionaries and any types added via `py:func:torch.serialization.add_safe_globals`.
                 See `py:func:torch.load` with ``weights_only=True`` for more details. It it recommended to leave this
-                at the default value of ``True``. If you experience issues with loading custom models (specified outside
+                at the default value of ``None``, which sets the argument to ``False`` for torch<2.6, and ``True`` for
+                 higher versions of torch. If you experience issues with loading custom models (specified outside
                 of the CEBRA package), you can try to set this to ``False`` if you trust the source of the model.
             kwargs: Optional keyword arguments passed directly to the loader.
 
@@ -1464,11 +1484,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
                 f"Unsupported backend: '{backend}'. Supported backends are: {', '.join(supported_backends)}"
             )
 
-        if not weights_only:
-            checkpoint = torch.load(filename, weights_only=False, **kwargs)
-        else:
-            with torch.serialization.safe_globals(CEBRA_LOAD_SAFE_GLOBALS):
-                checkpoint = torch.load(filename, weights_only=True, **kwargs)
+        checkpoint = _safe_torch_load(filename, weights_only, **kwargs)
 
         if backend == "auto":
             backend = "sklearn" if isinstance(checkpoint, dict) else "torch"
