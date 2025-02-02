@@ -38,6 +38,7 @@ Currently available formats:
 
 import abc
 import pathlib
+import sys
 import warnings
 from typing import IO, List, Optional, Union
 
@@ -762,4 +763,7 @@ def read_hdf(filename, key=None):
             except Exception as inner_e:
                 raise RuntimeError(
                     f"Failed to load HDF5 file with both pandas and h5py: {str(e)} -> {str(inner_e)}"
-                )
+                    f"h5py version: {h5py.__version__}, "
+                    f"pandas version: {pd.__version__}, "
+                    f"numpy version: {np.__version__}, "
+                    f"python version: {sys.version}")
