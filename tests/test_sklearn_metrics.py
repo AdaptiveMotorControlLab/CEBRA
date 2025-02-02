@@ -493,13 +493,14 @@ def test_infonce_to_goodness_of_fit(seed):
                                                          num_sessions=1)
 
     # Test with unfitted model
-    unfitted_model = cebra_sklearn_cebra.CEBRA()
+    unfitted_model = cebra_sklearn_cebra.CEBRA(max_iterations=5)
     with pytest.raises(RuntimeError, match="Fit the CEBRA model first"):
         cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0,
                                                          model=unfitted_model)
 
     # Test with model having batch_size=None
-    none_batch_model = cebra_sklearn_cebra.CEBRA(batch_size=None)
+    none_batch_model = cebra_sklearn_cebra.CEBRA(batch_size=None,
+                                                 max_iterations=5)
     none_batch_model.fit(X)
     with pytest.raises(ValueError, match="Computing the goodness of fit"):
         cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0,

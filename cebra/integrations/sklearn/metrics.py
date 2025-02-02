@@ -116,7 +116,7 @@ def goodness_of_fit_score(cebra_model: cebra_sklearn_cebra.CEBRA,
     """Compute the goodness of fit score on a *single session* dataset on the model.
 
     This function uses the :func:`infonce_loss` function to compute the InfoNCE loss
-    for a given `cebra_model` and the :func:`infonce_to_goodness_of_fit` function 
+    for a given `cebra_model` and the :func:`infonce_to_goodness_of_fit` function
     to derive the goodness of fit from the InfoNCE loss.
 
     Args:
@@ -180,10 +180,11 @@ def goodness_of_fit_history(model: cebra_sklearn_cebra.CEBRA) -> np.ndarray:
     return infonce_to_goodness_of_fit(infonce, model)
 
 
-def infonce_to_goodness_of_fit(infonce: Union[float, np.ndarray],
-                               model: Optional[cebra_sklearn_cebra.CEBRA] = None,
-                               batch_size: Optional[int] = None,
-                               num_sessions: Optional[int] = None) -> Union[float, np.ndarray]:
+def infonce_to_goodness_of_fit(
+        infonce: Union[float, np.ndarray],
+        model: Optional[cebra_sklearn_cebra.CEBRA] = None,
+        batch_size: Optional[int] = None,
+        num_sessions: Optional[int] = None) -> Union[float, np.ndarray]:
     """Given a trained CEBRA model, return goodness of fit metric.
 
     The goodness of fit ranges from 0 (lowest meaningful value)
@@ -208,7 +209,7 @@ def infonce_to_goodness_of_fit(infonce: Union[float, np.ndarray],
 
     Args:
         infonce: The InfoNCE loss, either a single value or an iterable of values.
-        model: The trained CEBRA model. 
+        model: The trained CEBRA model.
         batch_size: The batch size used to train the model.
         num_sessions: The number of sessions used to train the model.
 
@@ -221,27 +222,32 @@ def infonce_to_goodness_of_fit(infonce: Union[float, np.ndarray],
     """
     if model is not None:
         if batch_size is not None or num_sessions is not None:
-            raise ValueError("batch_size and num_sessions should not be provided if model is provided.")
+            raise ValueError(
+                "batch_size and num_sessions should not be provided if model is provided."
+            )
         if not hasattr(model, "state_dict_"):
             raise RuntimeError("Fit the CEBRA model first.")
         if model.batch_size is None:
             raise ValueError(
                 "Computing the goodness of fit is not yet supported for "
-                "models trained on the full dataset (batchsize = None). " 
-            )
+                "models trained on the full dataset (batchsize = None). ")
         batch_size = model.batch_size
         num_sessions = model.num_sessions_
         if num_sessions is None:
             num_sessions = 1
+
+        if model.batch_size is None:
+            raise ValueError(
+                "Computing the goodness of fit is not yet supported for "
+                "models trained on the full dataset (batchsize = None). ")
     else:
         if batch_size is None or num_sessions is None:
             raise ValueError(
-                  f"batch_size ({batch_size}) and num_sessions ({num_sessions})"
-                  f"should be provided if model is not provided."
-            )
+                f"batch_size ({batch_size}) and num_sessions ({num_sessions})"
+                f"should be provided if model is not provided.")
 
     nats_to_bits = np.log2(np.e)
-    chance_level = np.log(model.batch_size * num_sessions)
+    chance_level = np.log(batch_size * num_sessions)
     return (chance_level - infonce) * nats_to_bits
 
 
