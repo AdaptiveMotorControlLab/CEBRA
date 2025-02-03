@@ -40,7 +40,7 @@ build() {
 
 package() {
     cd $srcdir/${_pkgname}-${pkgver}
-    pip install --ignore-installed --no-deps --root="${pkgdir}" dist/${_pkgname}-${pkgver}-py2.py3-none-any.whl
+    pip install --ignore-installed --no-deps --root="${pkgdir}" dist/${_pkgname}-${pkgver}-py3-none-any.whl
     find ${pkgdir} -iname __pycache__ -exec rm -r {} \; 2>/dev/null || echo
     install -Dm 644 LICENSE.md $pkgdir/usr/share/licenses/${pkgname}/LICENSE
 }

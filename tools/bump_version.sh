@@ -37,9 +37,13 @@ $SED_CMD "s/CEBRA_VERSION := .*/CEBRA_VERSION := ${version}/" Makefile
 $SED_CMD "s/pkgver=.*/pkgver=${version}/" PKGBUILD
 
 # Dockerfile
-$SED_CMD "s/ENV WHEEL=cebra-.*\.whl/ENV WHEEL=cebra-${version}-py2.py3-none-any.whl/" Dockerfile
+$SED_CMD "s/ENV WHEEL=cebra-.*\.whl/ENV WHEEL=cebra-${version}-py3-none-any.whl/" Dockerfile
+
+# build_docs.sh
+$SED_CMD "s/COPY dist\/cebra-.*-py3-none-any\.whl/COPY dist\/cebra-${version}-py3-none-any.whl/" tools/build_docs.sh
+$SED_CMD "s/RUN pip install 'cebra-.*-py3-none-any\.whl/RUN pip install 'cebra-${version}-py3-none-any.whl/" tools/build_docs.sh
 
 # Remove backup files
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    rm cebra/__init__.py.bkp reinstall.sh.bkp Makefile.bkp PKGBUILD.bkp Dockerfile.bkp
+    rm cebra/__init__.py.bkp reinstall.sh.bkp Makefile.bkp PKGBUILD.bkp Dockerfile.bkp tools/build_docs.sh.bkp
 fi
