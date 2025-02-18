@@ -15,7 +15,7 @@ pip uninstall -y cebra
 # Get version info after uninstalling --- this will automatically get the
 # most recent version based on the source code in the current directory.
 # $(tools/get_cebra_version.sh)
-VERSION=0.4.0
+VERSION=0.5.0rc1
 echo "Upgrading to CEBRA v${VERSION}"
 
 # Upgrade the build system (PEP517/518 compatible)
@@ -24,4 +24,4 @@ python3 -m pip install --upgrade build
 python3 -m build --sdist --wheel .
 
 # Reinstall the package with most recent version
-pip install --upgrade --no-cache-dir "dist/cebra-${VERSION}-py2.py3-none-any.whl[datasets,integrations]"
+pip install --upgrade --no-cache-dir "dist/cebra-${VERSION}-py3-none-any.whl[datasets,integrations]"

@@ -155,13 +155,13 @@ Enter the build environment and build the package:
     host $ make interact
     docker $ make build
     # ... outputs ...
-    Successfully built cebra-X.X.XaX-py2.py3-none-any.whl
+    Successfully built cebra-X.X.XaX-py3-none-any.whl
 
 The built package can be found in ``dist/`` and can be installed locally with
 
 .. code:: bash
 
-    pip install dist/cebra-X.X.XaX-py2.py3-none-any.whl
+    pip install dist/cebra-X.X.XaX-py3-none-any.whl
 
 **Please do not distribute this package prior to the public release of the CEBRA repository, because it also
 contains parts of the source code.**

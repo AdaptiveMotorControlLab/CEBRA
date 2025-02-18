@@ -248,7 +248,7 @@ def generate_h5_no_array(filename, dtype):
 def generate_h5_dataframe(filename, dtype):
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     loaded_A = cebra_load.load(filename, key="df_A")
     return A, loaded_A
 
@@ -258,7 +258,7 @@ def generate_h5_dataframe_columns(filename, dtype):
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     A_col = A[:, :2]
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     loaded_A = cebra_load.load(filename, key="df_A", columns=["a", "b"])
     return A_col, loaded_A
 
@@ -269,8 +269,8 @@ def generate_h5_multi_dataframe(filename, dtype):
     B = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
     df_B = pd.DataFrame(np.array(B), columns=["c", "d", "e"])
-    df_A.to_hdf(filename, "df_A")
-    df_B.to_hdf(filename, "df_B")
+    df_A.to_hdf(filename, key="df_A")
+    df_B.to_hdf(filename, key="df_B")
     loaded_A = cebra_load.load(filename, key="df_A")
     return A, loaded_A
 
@@ -279,7 +279,7 @@ def generate_h5_multi_dataframe(filename, dtype):
 def generate_h5_single_dataframe_no_key(filename, dtype):
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]).astype(dtype)
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     loaded_A = cebra_load.load(filename)
     return A, loaded_A
 
@@ -290,8 +290,8 @@ def generate_h5_multi_dataframe_no_key(filename, dtype):
     B = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]).astype(dtype)
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
     df_B = pd.DataFrame(np.array(B), columns=["c", "d", "e"])
-    df_A.to_hdf(filename, "df_A")
-    df_B.to_hdf(filename, "df_B")
+    df_A.to_hdf(filename, key="df_A")
+    df_B.to_hdf(filename, key="df_B")
     _ = cebra_load.load(filename)
 
 
@@ -304,7 +304,7 @@ def generate_h5_multicol_dataframe(filename, dtype):
     df_A = pd.DataFrame(A,
                         columns=pd.MultiIndex.from_product([animals,
                                                             keypoints]))
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     loaded_A = cebra_load.load(filename, key="df_A")
     return A, loaded_A
 
@@ -313,7 +313,7 @@ def generate_h5_multicol_dataframe(filename, dtype):
 def generate_h5_dataframe_invalid_key(filename, dtype):
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]).astype(dtype)
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     _ = cebra_load.load(filename, key="df_B")
 
 
@@ -321,7 +321,7 @@ def generate_h5_dataframe_invalid_key(filename, dtype):
 def generate_h5_dataframe_invalid_column(filename, dtype):
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]).astype(dtype)
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     _ = cebra_load.load(filename, key="df_A", columns=["d", "b"])
 
 
@@ -334,7 +334,7 @@ def generate_h5_multicol_dataframe_columns(filename, dtype):
     df_A = pd.DataFrame(A,
                         columns=pd.MultiIndex.from_product([animals,
                                                             keypoints]))
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     _ = cebra_load.load(filename, key="df_A", columns=["a", "b"])
 
 

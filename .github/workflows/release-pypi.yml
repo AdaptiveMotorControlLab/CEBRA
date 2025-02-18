@@ -28,6 +28,13 @@ jobs:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip
 
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install wheel
+          # NOTE(stes) see https://github.com/pypa/twine/issues/1216#issuecomment-2629069669
+          pip install "packaging>=24.2"
+
       - name: Checkout code
         uses: actions/checkout@v3
 
