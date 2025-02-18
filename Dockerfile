@@ -43,7 +43,7 @@ FROM cebra-base
 ENV WHEEL=cebra-0.5.0rc1-py3-none-any.whl
 WORKDIR /build
 COPY --from=wheel /build/dist/${WHEEL} .
-RUN pip install --no-cache-dir ${WHEEL}'[dev,integrations,datasets,regcl]'
+RUN pip install --no-cache-dir ${WHEEL}'[dev,integrations,datasets,xcebra]'
 RUN rm -rf /build
 
 # add the repository
