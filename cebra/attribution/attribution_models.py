@@ -35,7 +35,7 @@ from captum.attr import NeuronGradientShap
 from captum.attr import NeuronIntegratedGradients
 
 import cebra
-import cebra.attribution.jacobian
+import cebra.attribution._jacobian
 from cebra.attribution import register
 
 
@@ -229,7 +229,7 @@ class AttributionMap:
 class JFMethodBased(AttributionMap):
 
     def _compute_jacobian(self, input_data):
-        return cebra.attribution.jacobian.compute_jacobian(
+        return cebra.attribution._jacobian.compute_jacobian(
             self.model,
             input_vars=[input_data],
             mode="autograd",

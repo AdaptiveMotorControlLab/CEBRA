@@ -33,10 +33,21 @@
 #   SOFTWARE.
 #
 
+from typing import Union
+
+import numpy as np
 import torch
 
 
-def tensors_to_cpu_and_double(vars_):
+def tensors_to_cpu_and_double(vars_: list[torch.Tensor]) -> list[torch.Tensor]:
+    """Convert a list of tensors to CPU and double precision.
+
+    Args:
+        vars_: List of PyTorch tensors to convert
+
+    Returns:
+        List of tensors converted to CPU and double precision
+    """
     cpu_vars = []
     for v in vars_:
         if v.is_cuda:
@@ -45,7 +56,17 @@ def tensors_to_cpu_and_double(vars_):
     return cpu_vars
 
 
-def tensors_to_cuda(vars_, cuda_device):
+def tensors_to_cuda(vars_: list[torch.Tensor],
+                    cuda_device: str) -> list[torch.Tensor]:
+    """Convert a list of tensors to CUDA device.
+
+    Args:
+        vars_: List of PyTorch tensors to convert
+        cuda_device: CUDA device to move tensors to
+
+    Returns:
+        List of tensors moved to specified CUDA device
+    """
     cpu_vars = []
     for v in vars_:
         if not v.is_cuda:
@@ -55,15 +76,31 @@ def tensors_to_cuda(vars_, cuda_device):
 
 
 def compute_jacobian(
-    model,
-    input_vars,
-    mode="autograd",
-    cuda_device="cuda",
-    double_precision=False,
-    convert_to_numpy=True,
-    hybrid_solver=False,
-):
+    model: torch.nn.Module,
+    input_vars: list[torch.Tensor],
+    mode: str = "autograd",
+    cuda_device: str = "cuda",
+    double_precision: bool = False,
+    convert_to_numpy: bool = True,
+    hybrid_solver: bool = False,
+) -> Union[torch.Tensor, np.ndarray]:
+    """Compute the Jacobian matrix for a given model and input.
 
+    This function computes the Jacobian matrix using PyTorch's autograd functionality.
+    It supports both CPU and CUDA computation, as well as single and double precision.
+
+    Args:
+        model: PyTorch model to compute Jacobian for
+        input_vars: List of input tensors
+        mode: Computation mode, currently only "autograd" is supported
+        cuda_device: Device to use for CUDA computation
+        double_precision: If True, use double precision
+        convert_to_numpy: If True, convert output to numpy array
+        hybrid_solver: If True, concatenate multiple outputs along dimension 1
+
+    Returns:
+        Jacobian matrix as either PyTorch tensor or numpy array
+    """
     if double_precision:
         model = model.to("cpu").double()
         input_vars = tensors_to_cpu_and_double(input_vars)

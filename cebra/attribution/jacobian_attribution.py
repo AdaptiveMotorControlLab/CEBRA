@@ -27,7 +27,7 @@ import numpy as np
 import torch
 from torch import nn
 
-import cebra.attribution.jacobian
+import cebra.attribution._jacobian
 
 __all__ = ["get_attribution_map"]
 
@@ -67,7 +67,7 @@ def get_attribution_map(
     model = _prepare_model(model)
 
     # compute jacobian CEBRA model
-    jf = cebra.attribution.jacobian.compute_jacobian(
+    jf = cebra.attribution._jacobian.compute_jacobian(
         model,
         input_vars=[input_data],
         mode="autograd",
