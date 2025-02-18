@@ -442,7 +442,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                         self.decoding(loader, valid_loader))
                 if save_hook is not None:
                     save_hook(num_steps, self)
-                self.save(logdir, f"checkpoint_{num_steps:#07d}.pth")
+                if logdir is not None:
+                    self.save(logdir, f"checkpoint_{num_steps:#07d}.pth")
 
     def step(self, batch: cebra.data.Batch) -> dict:
         """Perform a single gradient update.
