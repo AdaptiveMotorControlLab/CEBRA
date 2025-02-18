@@ -360,15 +360,7 @@ class MixedDataLoader(cebra_data.Loader):
                 positive=self.distribution.sample_conditional(reference_idx),
             )
         else:
-            # taken from the DiscreteDataLoader get_indices function
-            reference_idx = self.distribution.sample_prior(num_samples * 2)
-            negative_idx = reference_idx[num_samples:]
-            reference_idx = reference_idx[:num_samples]
-            reference = self.discrete_index[reference_idx]
-            positive_idx = self.distribution.sample_conditional(reference)
-            return BatchIndex(reference=reference_idx,
-                            positive=positive_idx,
-                            negative=negative_idx)
+            return self.distribution.get_indices(num_samples)
 
 
 @dataclasses.dataclass
