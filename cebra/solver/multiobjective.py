@@ -455,6 +455,8 @@ class MultiobjectiveSolverBase(Solver):
         return outputs
 
 
+@register("supervised-solver-xcebra")
+@dataclasses.dataclass
 class SupervisedMultiobjectiveSolverxCEBRA(MultiobjectiveSolverBase):
     """Supervised neural network training with MSE loss"""
 

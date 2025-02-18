@@ -30,7 +30,7 @@ from cebra.distributions.continuous import Prior
 
 @dataclasses.dataclass
 class MultiObjectiveLoader(cebra_data.Loader):
-    """Baseclass of RegCL Data Loader. Yields batches of the specified size from the given dataset object.
+    """Baseclass of Multiobjective Data Loader. Yields batches of the specified size from the given dataset object.
     """
     dataset: int = dataclasses.field(
         default=None,
@@ -57,7 +57,7 @@ class MultiObjectiveLoader(cebra_data.Loader):
 
 @dataclasses.dataclass
 class SupervisedMultiObjectiveLoader(MultiObjectiveLoader):
-    """Supervised RegCL data Loader. Yields batches of the specified size from the given dataset object.
+    """Supervised Multiobjective data Loader. Yields batches of the specified size from the given dataset object.
     """
     sampling_mode_supervised: str = dataclasses.field(
         default="ref_shared",
@@ -95,7 +95,7 @@ class SupervisedMultiObjectiveLoader(MultiObjectiveLoader):
 
 @dataclasses.dataclass
 class ContrastiveMultiObjectiveLoader(MultiObjectiveLoader):
-    """Contrastive RegCL data Loader. Yields batches of the specified size from the given dataset object.
+    """Contrastive Multiobjective data Loader. Yields batches of the specified size from the given dataset object.
     """
 
     sampling_mode_contrastive: str = dataclasses.field(
