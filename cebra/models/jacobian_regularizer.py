@@ -45,26 +45,36 @@ import torch.nn as nn
 
 
 class JacobianReg(nn.Module):
-    '''
-    Loss criterion that computes the trace of the square of the Jacobian.
+    """Loss criterion that computes the trace of the square of the Jacobian.
 
-    Arguments:
-        n (int, optional): determines the number of random projections.
-            If n=-1, then it is set to the dimension of the output
-            space and projection is non-random and orthonormal, yielding
-            the exact result.  For any reasonable batch size, the default
-            (n=1) should be sufficient.
-    '''
+    Args:
+        n: Determines the number of random projections. If n=-1, then it is set to the dimension
+           of the output space and projection is non-random and orthonormal, yielding the exact
+           result. For any reasonable batch size, the default (n=1) should be sufficient.
+           |Default:| ``1``
 
-    def __init__(self, n=1):
+    Note:
+        This implementation is adapted from the Jacobian regularization described in [1].
+        [1] Judy Hoffman, Daniel A. Roberts, and Sho Yaida,
+            "Robust Learning with Jacobian Regularization," 2019.
+            [arxiv:1908.02729](https://arxiv.org/abs/1908.02729)
+    """
+
+    def __init__(self, n: int = 1):
         assert n == -1 or n > 0
         self.n = n
         super(JacobianReg, self).__init__()
 
-    def forward(self, x, y):
-        '''
-        computes (1/2) tr |dy/dx|^2
-        '''
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
+        """Computes (1/2) tr |dy/dx|^2.
+
+        Args:
+            x: Input tensor
+            y: Output tensor
+
+        Returns:
+            The computed regularization term
+        """
         B, C = y.shape
         if self.n == -1:
             num_proj = C
@@ -86,11 +96,18 @@ class JacobianReg(nn.Module):
         R = (1 / 2) * J2
         return R
 
-    def _random_vector(self, C, B):
-        '''
-        creates a random vector of dimension C with a norm of C^(1/2)
-        (as needed for the projection formula to work)
-        '''
+    def _random_vector(self, C: int, B: int) -> torch.Tensor:
+        """Creates a random vector of dimension C with a norm of C^(1/2).
+
+        This is needed for the projection formula to work.
+
+        Args:
+            C: Output dimension
+            B: Batch size
+
+        Returns:
+            A random normalized vector
+        """
         if C == 1:
             return torch.ones(B)
         v = torch.randn(B, C)
@@ -99,13 +116,26 @@ class JacobianReg(nn.Module):
         v = torch.addcdiv(arxilirary_zero, 1.0, v, vnorm)
         return v
 
-    def _jacobian_vector_product(self, y, x, v, create_graph=False):
-        '''
-        Produce jacobian-vector product dy/dx dot v.
+    def _jacobian_vector_product(self,
+                                 y: torch.Tensor,
+                                 x: torch.Tensor,
+                                 v: torch.Tensor,
+                                 create_graph: bool = False) -> torch.Tensor:
+        """Produce jacobian-vector product dy/dx dot v.
 
-        Note that if you want to differentiate it,
-        you need to make create_graph=True
-        '''
+        Args:
+            y: Output tensor
+            x: Input tensor
+            v: Vector to compute product with
+            create_graph: If True, graph of the derivative will be constructed, allowing
+                         to compute higher order derivative products. |Default:| ``False``
+
+        Returns:
+            The Jacobian-vector product
+
+        Note:
+            If you want to differentiate the result, you need to make create_graph=True
+        """
         flat_y = y.reshape(-1)
         flat_v = v.reshape(-1)
         grad_x, = torch.autograd.grad(flat_y,
