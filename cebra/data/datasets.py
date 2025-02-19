@@ -22,7 +22,7 @@
 """Pre-defined datasets."""
 
 import types
-from typing import List, Literal, Optional, Tuple, Union
+from typing import List, Literal, Optional, Tuple, TYPE_CHECKING, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -30,7 +30,13 @@ import torch
 
 import cebra.data as cebra_data
 import cebra.helper as cebra_helper
+import cebra.io as cebra_io
+from cebra.data.datatypes import Batch
+from cebra.data.datatypes import BatchIndex
 from cebra.data.datatypes import Offset
+
+if TYPE_CHECKING:
+    from cebra.models import Model
 
 
 class TensorDataset(cebra_data.SingleSessionDataset):
@@ -297,7 +303,7 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
         return (getattr(data, attr) for data in self.iter_sessions())
 
 
-class DatasetxCEBRA(cebra.io.HasDevice):
+class DatasetxCEBRA(cebra_io.HasDevice):
 
     def __init__(
         self,
@@ -316,7 +322,7 @@ class DatasetxCEBRA(cebra.io.HasDevice):
     def __len__(self):
         return len(self.neural)
 
-    def configure_for(self, model: "cebra.models.Model"):
+    def configure_for(self, model: "Model"):
         """Configure the dataset offset for the provided model.
 
         Call this function before indexing the dataset. This sets the
@@ -357,7 +363,8 @@ class DatasetxCEBRA(cebra.io.HasDevice):
 
     def load_batch_supervised(self, index: Batch,
                               labels_supervised) -> torch.tensor:
-        assert index.negative == index.positive == None
+        assert index.negative is None
+        assert index.positive is None
         labels = [
             self.labels[label].to(self.device) for label in labels_supervised
         ]

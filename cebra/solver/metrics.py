@@ -26,7 +26,7 @@ import sklearn
 import torch
 from sklearn.metrics import r2_score
 
-from cebra.datasets import DatasetxCEBRA
+from cebra.data.datasets import DatasetxCEBRA
 from cebra.solver import init
 from cebra.solver import register
 
