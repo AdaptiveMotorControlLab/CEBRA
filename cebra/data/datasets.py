@@ -305,6 +305,21 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
 
 # TODO(stes): This should be a single session dataset?
 class DatasetxCEBRA(cebra_io.HasDevice):
+    """Dataset class for xCEBRA models.
+
+    This class handles neural data and associated labels for xCEBRA models, providing
+    functionality for data loading and batch preparation.
+
+    Attributes:
+        neural: Neural data as a torch.Tensor or numpy array
+        labels: Labels associated with the data
+        offset: Offset for the dataset
+
+    Args:
+        neural: Neural data as a torch.Tensor or numpy array
+        device: Device to store the data on (default: "cpu")
+        **labels: Additional keyword arguments for labels associated with the data
+    """
 
     def __init__(
         self,
@@ -315,12 +330,23 @@ class DatasetxCEBRA(cebra_io.HasDevice):
         super().__init__(device)
         self.neural = neural
         self.labels = labels
+        self.offset = Offset(0, 1)
 
     @property
     def input_dimension(self) -> int:
+        """Get the input dimension of the neural data.
+
+        Returns:
+            The number of features in the neural data
+        """
         return self.neural.shape[1]
 
     def __len__(self):
+        """Get the length of the dataset.
+
+        Returns:
+            Number of samples in the dataset
+        """
         return len(self.neural)
 
     def configure_for(self, model: "Model"):
@@ -335,7 +361,8 @@ class DatasetxCEBRA(cebra_io.HasDevice):
         self.offset = model.get_offset()
 
     def expand_index(self, index: torch.Tensor) -> torch.Tensor:
-        """
+        """Expand indices based on the configured offset.
+
         Args:
             index: A one-dimensional tensor of type long containing indices
                 to select from the dataset.
@@ -359,11 +386,28 @@ class DatasetxCEBRA(cebra_io.HasDevice):
         return index[:, None] + offset[None, :]
 
     def __getitem__(self, index):
+        """Get item(s) from the dataset at the specified index.
+
+        Args:
+            index: Index or indices to retrieve
+
+        Returns:
+            The neural data at the specified indices, with dimensions transposed
+        """
         index = self.expand_index(index)
         return self.neural[index].transpose(2, 1)
 
     def load_batch_supervised(self, index: Batch,
                               labels_supervised) -> torch.tensor:
+        """Load a batch for supervised learning.
+
+        Args:
+            index: Batch indices for reference data
+            labels_supervised: Labels to load for supervised learning
+
+        Returns:
+            Batch containing reference data and corresponding labels
+        """
         assert index.negative is None
         assert index.positive is None
         labels = [
@@ -377,6 +421,14 @@ class DatasetxCEBRA(cebra_io.HasDevice):
         )
 
     def load_batch_contrastive(self, index: BatchIndex) -> Batch:
+        """Load a batch for contrastive learning.
+
+        Args:
+            index: BatchIndex containing reference, positive and negative indices
+
+        Returns:
+            Batch containing reference, positive and negative samples
+        """
         assert isinstance(index.positive, list)
         return Batch(
             reference=self[index.reference],
