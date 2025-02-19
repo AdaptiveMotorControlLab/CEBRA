@@ -41,6 +41,16 @@ from cebra.attribution import register
 
 @dataclasses.dataclass
 class AttributionMap:
+    """Base class for computing attribution maps for CEBRA models.
+
+    Args:
+        model: The trained CEBRA model to analyze
+        input_data: Input data tensor to compute attributions for
+        output_dimension: Output dimension to analyze. If ``None``, uses model's output dimension
+        num_samples: Number of samples to use for attribution. If ``None``, uses full dataset
+        seed: Random seed which is used to subsample the data. Only relevant if ``num_samples`` is not ``None``.
+    """
+
     model: nn.Module
     input_data: torch.Tensor
     output_dimension: int = None
@@ -78,10 +88,40 @@ class AttributionMap:
             self.input_data = input_data
 
     def compute_attribution_map(self):
+        """Compute the attribution map for the model.
+
+        Returns:
+            dict: Attribution maps and their variants
+
+        Raises:
+            NotImplementedError: Must be implemented by subclasses
+        """
         raise NotImplementedError
 
     def compute_metrics(self, attribution_map, ground_truth_map):
-        # Note: 0: nonconnected, 1: connected
+        """Compute metrics comparing attribution map to ground truth.
+
+        This function computes various statistical metrics to compare the attribution values
+        between connected and non-connected neurons based on a ground truth connectivity map.
+        It separates the attribution values into two groups based on the binary ground truth,
+        and calculates summary statistics and differences between these groups.
+
+        Args:
+            attribution_map: Computed attribution values representing the strength of connections
+                between neurons
+            ground_truth_map: Binary ground truth connectivity map where True indicates a
+                connected neuron and False indicates a non-connected neuron
+
+        Returns:
+            dict: Dictionary containing the following metrics:
+                - max/mean/min_nonconnected: Statistics for non-connected neurons
+                - max/mean/min_connected: Statistics for connected neurons
+                - gap_max: Difference between max connected and max non-connected values
+                - gap_mean: Difference between mean connected and mean non-connected values
+                - gap_min: Difference between min connected and min non-connected values
+                - gap_minmax: Difference between min connected and max non-connected values
+                - max/min_jacobian: Global max/min values across all neurons
+        """
         assert np.issubdtype(ground_truth_map.dtype, bool)
         connected_neurons = attribution_map[np.where(ground_truth_map)]
         non_connected_neurons = attribution_map[np.where(~ground_truth_map)]
@@ -115,6 +155,15 @@ class AttributionMap:
         return metrics
 
     def compute_attribution_score(self, attribution_map, ground_truth_map):
+        """Compute ROC AUC score between attribution map and ground truth.
+
+        Args:
+            attribution_map: Computed attribution values
+            ground_truth_map: Binary ground truth connectivity map
+
+        Returns:
+            float: ROC AUC score
+        """
         assert attribution_map.shape == ground_truth_map.shape
         assert np.issubdtype(ground_truth_map.dtype, bool)
         fpr, tpr, _ = sklearn.metrics.roc_curve(  # noqa: codespell:ignore fpr, tpr
@@ -125,6 +174,15 @@ class AttributionMap:
     @staticmethod
     def _check_moores_penrose_conditions(
             matrix: np.ndarray, matrix_inverse: np.ndarray) -> np.ndarray:
+        """Check Moore-Penrose conditions for a single matrix pair.
+
+        Args:
+            matrix: Input matrix
+            matrix_inverse: Putative pseudoinverse matrix
+
+        Returns:
+            np.ndarray: Boolean array indicating which conditions are satisfied
+        """
         matrix_inverse = matrix_inverse.T
         condition_1 = np.allclose(matrix @ matrix_inverse @ matrix, matrix)
         condition_2 = np.allclose(matrix_inverse @ matrix @ matrix_inverse,
@@ -139,14 +197,14 @@ class AttributionMap:
     def check_moores_penrose_conditions(
             self, jacobian: np.ndarray,
             jacobian_pseudoinverse: np.ndarray) -> np.ndarray:
-        """
-        Checks the four conditions for the Moore-Penrose conditions for the
-        pseudo-inverse of a matrix.
+        """Check Moore-Penrose conditions for Jacobian matrices.
+
         Args:
-            jacobian: The Jacobian matrix of dhape (num samples, output_dim, num_neurons).
-            jacobian_pseudoinverse: The pseudo-inverse of the Jacobian matrix of shape (num samples, num_neurons, output_dim).
+            jacobian: Jacobian matrices of shape (num samples, output_dim, num_neurons)
+            jacobian_pseudoinverse: Pseudoinverse matrices of shape (num samples, num_neurons, output_dim)
+
         Returns:
-            moores_penrose_conditions: A boolean array of shape (num samples, 4) where each row corresponds to a sample and each column to a condition.
+            Boolean array of shape (num samples, 4) indicating satisfied conditions
         """
         # check the four conditions
         conditions = np.zeros((jacobian.shape[0], 4))
@@ -157,6 +215,15 @@ class AttributionMap:
         return conditions
 
     def _inverse(self, jacobian, method="lsq"):
+        """Compute inverse/pseudoinverse of Jacobian matrices.
+
+        Args:
+            jacobian: Input Jacobian matrices
+            method: Inversion method ('lsq_cvxpy', 'lsq', or 'svd')
+
+        Returns:
+            (Inverse matrices, computation time)
+        """
         # NOTE(stes): Before we used "np.linalg.pinv" here, which
         # is numerically not stable for the Jacobian matrices we
         # need to compute.
@@ -179,10 +246,14 @@ class AttributionMap:
     @staticmethod
     def _inverse_lsq_cvxpy(matrix: np.ndarray,
                            solver: str = 'SCS') -> np.ndarray:
-        """
-        Solves the least squares problem
-        min ||A @ X - I||_2 = (A @ X - I, A @ X - I) = (A @ X)**2 - 2 * (A @ X, I) + (I, I) =
-        = (A @ X)**2 - 2 * (A @ X, I) + const -> min quadratic function of X
+        """Compute least squares inverse using CVXPY.
+
+        Args:
+            matrix: Input matrix
+            solver: CVXPY solver to use
+
+        Returns:
+            np.ndarray: Least squares inverse matrix
         """
 
         matrix_param = cp.Parameter((matrix.shape[0], matrix.shape[1]))
@@ -201,13 +272,37 @@ class AttributionMap:
 
     @staticmethod
     def _inverse_lsq_scipy(jacobian):
+        """Compute least squares inverse using scipy.linalg.lstsq.
+
+        Args:
+            jacobian: Input Jacobian matrix
+
+        Returns:
+            np.ndarray: Least squares inverse matrix
+        """
         return scipy.linalg.lstsq(jacobian, np.eye(jacobian.shape[0]))[0]
 
     @staticmethod
     def _inverse_svd(jacobian):
+        """Compute pseudoinverse using SVD.
+
+        Args:
+            jacobian: Input Jacobian matrix
+
+        Returns:
+            np.ndarray: Pseudoinverse matrix
+        """
         return scipy.linalg.pinv(jacobian)
 
     def _reduce_attribution_map(self, attribution_maps):
+        """Reduce attribution maps by averaging across dimensions.
+
+        Args:
+            attribution_maps: Dictionary of attribution maps to reduce
+
+        Returns:
+            dict: Reduced attribution maps
+        """
 
         def _reduce(full_jacobian):
             if full_jacobian.ndim == 4:
@@ -227,6 +322,7 @@ class AttributionMap:
 @dataclasses.dataclass
 @register("jacobian-based")
 class JFMethodBased(AttributionMap):
+    """Compute the attribution map using the Jacobian of the model encoder."""
 
     def _compute_jacobian(self, input_data):
         return cebra.attribution._jacobian.compute_jacobian(
@@ -261,6 +357,11 @@ class JFMethodBased(AttributionMap):
 @dataclasses.dataclass
 @register("jacobian-based-batched")
 class JFMethodBasedBatched(JFMethodBased):
+    """Compute an attribution map based on the Jacobian using mini-batches.
+
+    See also:
+        :py:class:`JFMethodBased`
+    """
 
     def compute_attribution_map(self, batch_size=1024):
         if batch_size > self.input_data.shape[0]:
@@ -285,7 +386,6 @@ class JFMethodBasedBatched(JFMethodBased):
                 result[f"{key}-inv-{method}"], result[
                     f'time_inversion_{method}'] = self._inverse(value,
                                                                 method=method)
-                # result[f"{key}-inv-{method}-conditions"] = self.check_moores_penrose_conditions(value, result[f"{key}-inv-{method}"])
 
         return result
 
@@ -293,6 +393,12 @@ class JFMethodBasedBatched(JFMethodBased):
 @dataclasses.dataclass
 @register("neuron-gradient")
 class NeuronGradientMethod(AttributionMap):
+    """Compute the attribution map using the neuron gradient from Captum.
+
+    Note:
+        This method is equivalent to Jacobian-based attributions, but
+        uses a different backend implementation.
+    """
 
     def __post_init__(self):
         super().__post_init__()
@@ -330,6 +436,11 @@ class NeuronGradientMethod(AttributionMap):
 @dataclasses.dataclass
 @register("neuron-gradient-batched")
 class NeuronGradientMethodBatched(NeuronGradientMethod):
+    """As :py:class:`NeuronGradientMethod`, but using mini-batches.
+
+    See also:
+        :py:class:`NeuronGradientMethod`
+    """
 
     def compute_attribution_map(self,
                                 attribute_to_neuron_input=False,
@@ -361,6 +472,7 @@ class NeuronGradientMethodBatched(NeuronGradientMethod):
 @dataclasses.dataclass
 @register("feature-ablation")
 class FeatureAblationMethod(AttributionMap):
+    """Compute the attribution map using the feature ablation method from Captum."""
 
     def __post_init__(self):
         super().__post_init__()
@@ -393,6 +505,11 @@ class FeatureAblationMethod(AttributionMap):
 @dataclasses.dataclass
 @register("feature-ablation-batched")
 class FeatureAblationMethodBAtched(FeatureAblationMethod):
+    """As :py:class:`FeatureAblationMethod`, but using mini-batches.
+
+    See also:
+        :py:class:`FeatureAblationMethod`
+    """
 
     def compute_attribution_map(self,
                                 baselines=None,
@@ -428,6 +545,7 @@ class FeatureAblationMethodBAtched(FeatureAblationMethod):
 @dataclasses.dataclass
 @register("integrated-gradients")
 class IntegratedGradientsMethod(AttributionMap):
+    """Compute the attribution map using the integrated gradients method from Captum."""
 
     def __post_init__(self):
         super().__post_init__()
@@ -465,6 +583,11 @@ class IntegratedGradientsMethod(AttributionMap):
 @dataclasses.dataclass
 @register("integrated-gradients-batched")
 class IntegratedGradientsMethodBatched(IntegratedGradientsMethod):
+    """As :py:class:`IntegratedGradientsMethod`, but using mini-batches.
+
+    See also:
+        :py:class:`IntegratedGradientsMethod`
+    """
 
     def compute_attribution_map(self,
                                 n_steps=50,
@@ -504,6 +627,7 @@ class IntegratedGradientsMethodBatched(IntegratedGradientsMethod):
 @dataclasses.dataclass
 @register("neuron-gradient-shap")
 class NeuronGradientShapMethod(AttributionMap):
+    """Compute the attribution map using the neuron gradient SHAP method from Captum."""
 
     def __post_init__(self):
         super().__post_init__()
@@ -548,6 +672,11 @@ class NeuronGradientShapMethod(AttributionMap):
 @dataclasses.dataclass
 @register("neuron-gradient-shap-batched")
 class NeuronGradientShapMethodBatched(NeuronGradientShapMethod):
+    """As :py:class:`NeuronGradientShapMethod`, but using mini-batches.
+
+    See also:
+        :py:class:`NeuronGradientShapMethod`
+    """
 
     def compute_attribution_map(self,
                                 baselines: str,

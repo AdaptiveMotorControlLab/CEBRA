@@ -19,6 +19,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Attribution methods for CEBRA.
+
+This module was added in v0.6.0 and contains attribution methods described and benchmarked
+in :cite:`schneider2025xcebra`:
+
+.. [schneider2025xcebra] Schneider, S., González Laiz, R., Filippova, A., Frey, M., & Mathis, M. W. (2025).
+    Time-series attribution maps with regularized contrastive learning.
+    The 28th International Conference on Artificial Intelligence and Statistics.
+    https://openreview.net/forum?id=aGrCXoTB4P
+"""
 import cebra.registry
 
 cebra.registry.add_helper_functions(__name__)

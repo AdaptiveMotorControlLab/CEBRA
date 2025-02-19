@@ -303,6 +303,7 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
         return (getattr(data, attr) for data in self.iter_sessions())
 
 
+# TODO(stes): This should be a single session dataset?
 class DatasetxCEBRA(cebra_io.HasDevice):
 
     def __init__(

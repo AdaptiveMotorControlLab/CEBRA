@@ -28,6 +28,69 @@ from cebra.data.datatypes import Batch
 
 
 class MultiCriterions(nn.Module):
+    """A module for handling multiple loss functions with different criteria.
+
+    This module allows combining multiple loss functions, each operating on specific
+    slices of the input data. It supports both supervised and contrastive learning modes.
+
+    Args:
+        losses: A list of dictionaries containing loss configurations. Each dictionary should have:
+            - 'indices': Tuple of (start, end) indices for the data slice
+            - 'supervised_loss': Dict with loss config for supervised mode
+            - 'contrastive_loss': Dict with loss config for contrastive mode
+            Loss configs should contain:
+            - 'name': Name of the loss function
+            - 'kwargs': Optional parameters for the loss function
+        mode: Either "supervised" or "contrastive" to specify the training mode
+
+    The loss functions can be from torch.nn or custom implementations from cebra.models.criterions.
+    Each criterion is applied to its corresponding slice of the input data during forward pass.
+
+    Example:
+        >>> import torch
+        >>> from cebra.data.datatypes import Batch
+        >>> # Define loss configurations for a hybrid model with both contrastive and supervised losses
+        >>> losses = [
+        ...     {
+        ...         'indices': (0, 10),  # First 10 dimensions
+        ...         'contrastive_loss': {
+        ...             'name': 'InfoNCE',  # Using CEBRA's InfoNCE loss
+        ...             'kwargs': {'temperature': 1.0}
+        ...         },
+        ...         'supervised_loss': {
+        ...             'name': 'nn.MSELoss',  # Using PyTorch's MSE loss
+        ...             'kwargs': {}
+        ...         }
+        ...     },
+        ...     {
+        ...         'indices': (10, 20),  # Next 10 dimensions
+        ...         'contrastive_loss': {
+        ...             'name': 'InfoNCE',  # Using CEBRA's InfoNCE loss
+        ...             'kwargs': {'temperature': 0.5}
+        ...         },
+        ...         'supervised_loss': {
+        ...             'name': 'nn.L1Loss',  # Using PyTorch's L1 loss
+        ...             'kwargs': {}
+        ...         }
+        ...     }
+        ... ]
+        >>> # Create sample predictions (2 batches of 32 samples each with 10 features)
+        >>> ref1 = torch.randn(32, 10)
+        >>> pos1 = torch.randn(32, 10)
+        >>> neg1 = torch.randn(32, 10)
+        >>> ref2 = torch.randn(32, 10)
+        >>> pos2 = torch.randn(32, 10)
+        >>> neg2 = torch.randn(32, 10)
+        >>> predictions = (
+        ...     Batch(reference=ref1, positive=pos1, negative=neg1),
+        ...     Batch(reference=ref2, positive=pos2, negative=neg2)
+        ... )
+        >>> # Create multi-criterion module in contrastive mode
+        >>> multi_loss = MultiCriterions(losses, mode="contrastive")
+        >>> # Forward pass with multiple predictions
+        >>> losses = multi_loss(predictions)  # Returns list of loss values
+        >>> assert len(losses) == 2  # One loss per criterion
+    """
 
     def __init__(self, losses, mode):
         super(MultiCriterions, self).__init__()
