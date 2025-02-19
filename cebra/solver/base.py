@@ -120,7 +120,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 to partially load the state for all given keys.
         """
 
-        def _contains(key):
+        def _contains(key, strict=strict):
             if key in state_dict:
                 return True
             elif strict:
@@ -146,7 +146,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             self.decode_history = _get("decode")
         if _contains("log"):
             self.log = _get("log")
-        if _contains("metadata"):
+        # NOTE(stes): Added in CEBRA 0.6.0
+        if _contains("metadata", strict=False):
             self.metadata = _get("metadata")
 
     @property
@@ -405,7 +406,7 @@ class MultiobjectiveSolver(Solver):
     def __post_init__(self):
         super().__post_init__()
         self._check_dimensions()
-        self.model = cebra.models.MultiobjectiveModel(
+        self.model = cebra.models.LegacyMultiobjectiveModel(
             self.model,
             dimensions=(self.num_behavior_features, self.model.num_output),
             renormalize=self.renormalize_features,
