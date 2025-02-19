@@ -52,12 +52,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install torch==${{ matrix.torch-version }} --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install '.[dev,datasets,integrations]'
+          pip install '.[dev,datasets,integrations,xcebra]'
 
       - name: Check sklearn legacy version
         if: matrix.sklearn-version == 'legacy'
         run: |
-          pip install scikit-learn==1.4.2 '.[dev,datasets,integrations]'
+          pip install scikit-learn==1.4.2 '.[dev,datasets,integrations,xcebra]'
 
       - name: Run the formatter
         run: |
