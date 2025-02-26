@@ -1203,14 +1203,17 @@ Putting all previous snippet examples together, we obtain the following pipeline
      import cebra
      from numpy.random import uniform, randint
      from sklearn.model_selection import train_test_split
+     import os
+     import tempfile
+     from pathlib import Path
 
      # 1. Define a CEBRA model
      cebra_model = cebra.CEBRA(
          model_architecture = "offset10-model",
          batch_size = 512,
          learning_rate = 1e-4,
-         max_iterations = 10, # TODO(user): to change to at least 10'000
-         max_adapt_iterations = 10, # TODO(user): to change to ~100-500
+         max_iterations = 10, # TODO(user): to change to ~5000-10000
+         #max_adapt_iterations = 10, # TODO(user): use and to change to ~100-500 if adapting
          time_offsets = 10,
          output_dimension = 8,
          verbose = False
@@ -1244,7 +1247,7 @@ Putting all previous snippet examples together, we obtain the following pipeline
      # time contrastive learning
      cebra_model.fit(train_data)
      # discrete behavior contrastive learning
-     cebra_model.fit(train_data, train_discrete_label,)
+     cebra_model.fit(train_data, train_discrete_label)
      # continuous behavior contrastive learning
      cebra_model.fit(train_data, train_continuous_label)
      # mixed behavior contrastive learning
@@ -1258,10 +1261,10 @@ Putting all previous snippet examples together, we obtain the following pipeline
      cebra_model = cebra.CEBRA.load(tmp_file)
      train_embedding = cebra_model.transform(train_data)
      valid_embedding = cebra_model.transform(valid_data)
-     assert train_embedding.shape == (70, 8)
-     assert valid_embedding.shape == (30, 8)
+     assert train_embedding.shape == (70, 8) # TODO(user): change to split ration & output dim
+     assert valid_embedding.shape == (30, 8) # TODO(user): change to split ration & output dim
 
-     # 7. Evaluate the model performances
+     # 7. Evaluate the model performance (you can also check the train_data)
      goodness_of_fit = cebra.sklearn.metrics.infonce_loss(cebra_model,
                                                           valid_data,
                                                           valid_discrete_label,
