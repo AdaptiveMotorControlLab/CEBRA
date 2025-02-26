@@ -179,7 +179,7 @@ We provide a set of pre-defined models. You can access (and search) a list of av
 
 Then, you can choose the one that fits best with your needs and provide it to the CEBRA model as the :py:attr:`~.CEBRA.model_architecture` parameter.
 
-As an indication the table below presents the model architecture we used to train CEBRA on the datasets presented in our paper (Schneider, Lee, Mathis, 2022).
+As an indication the table below presents the model architecture we used to train CEBRA on the datasets presented in our paper (Schneider, Lee, Mathis. Nature 2023).
 
 .. list-table::
     :widths: 25 25 20 30
@@ -1186,9 +1186,10 @@ Improve model performance
 🧐 Below is a (non-exhaustive) list of actions you can try if your embedding looks different from what you were expecting.
 
 #. Assess that your model `converged <https://machine-learning.paperspace.com/wiki/convergence>`_. For that, observe if the training loss stabilizes itself around the end of the training or still seems to be decreasing. Refer to `Visualize the training loss`_ for more details on how to display the training loss.
-#. Increase the number of iterations. It should be at least 10,000.
+#. Increase the number of iterations. It typically should be at least 10,000.
 #. Make sure the batch size is big enough. It should be at least 512.
 #. Fine-tune the model's hyperparameters, namely ``learning_rate``, ``output_dimension``, ``num_hidden_units`` and eventually ``temperature`` (by setting ``temperature_mode`` back to ``constant``). Refer to `Grid search`_ for more details on performing hyperparameters tuning.
+#. To note, you should still be mindful of performing train/validation splits and shuffle controls to avoid `overfitting <https://developers.google.com/machine-learning/crash-course/overfitting/overfitting>`_.
 
 
 
