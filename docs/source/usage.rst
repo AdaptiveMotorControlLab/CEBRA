@@ -265,7 +265,7 @@ For standard usage we recommend the default values (i.e., ``InfoNCE`` and ``cosi
 
 .. rubric:: Temperature :py:attr:`~.CEBRA.temperature`
 
-:py:attr:`~.CEBRA.temperature` has the largest effect on *visualization* of the embedding (see :py:doc:`cebra-figures/figures/ExtendedDataFigure2`). Hence, it is important that it is fitted to your specific data. A more smooth embedding will be achieved with a temperature set to 0.1, while 1.0 will be more "clustered".
+:py:attr:`~.CEBRA.temperature` has the largest effect on *visualization* of the embedding (see :py:doc:`cebra-figures/figures/ExtendedDataFigure2`). Hence, it is important that it is fitted to your specific data. Lower temperatures (e.g. around 0.1) will result in a more dispersed embedding, higher temperatures (larger than 1) will concentrate the embedding.
 
 
 🚀 For advance usage, you might need to find the optimal :py:attr:`~.CEBRA.temperature`. For that we recommend to perform a grid-search.
