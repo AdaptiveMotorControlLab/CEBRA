@@ -319,7 +319,7 @@ Here is an example of a CEBRA model initialization:
 .. testoutput::
 
     CEBRA(batch_size=1024, learning_rate=0.001, max_iterations=10,
-          model_architecture='offset10-model',
+          model_architecture='offset10-model', temperature_model = 'constant', temperature = 0.1,
           time_offsets=10)
 
 .. admonition:: See API docs
