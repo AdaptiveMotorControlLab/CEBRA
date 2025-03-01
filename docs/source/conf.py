@@ -75,7 +75,6 @@ extensions = [
     "sphinx_togglebutton",
     "sphinx.ext.doctest",
     "sphinx_gallery.load_style",
-    "sphinx.ext.plotly_directive",  # Added Plotly extension
 ]
 
 
