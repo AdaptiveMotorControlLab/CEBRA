@@ -1211,6 +1211,8 @@ Putting all previous snippet examples together, we obtain the following pipeline
          model_architecture = "offset10-model",
          batch_size = 512,
          learning_rate = 1e-4,
+         temperature_mode='constant',
+         temperature = 0.1,
          max_iterations = 10, # TODO(user): to change to ~500-10000 depending on dataset size
          #max_adapt_iterations = 10, # TODO(user): use and to change to ~100-500 if adapting
          time_offsets = 10,
