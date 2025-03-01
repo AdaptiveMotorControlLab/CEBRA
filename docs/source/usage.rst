@@ -1184,7 +1184,7 @@ Improve model performance
 🧐 Below is a (non-exhaustive) list of actions you can try if your embedding looks different from what you were expecting.
 
 #. Assess that your model `converged <https://machine-learning.paperspace.com/wiki/convergence>`_. For that, observe if the training loss stabilizes itself around the end of the training or still seems to be decreasing. Refer to `Visualize the training loss`_ for more details on how to display the training loss.
-#. Increase the number of iterations. It typically should be at least 10,000.
+#. Increase the number of iterations. It typically should be at least 10,000. On small datasets, it can make sense to stop training earlier to avoid overfitting effects.
 #. Make sure the batch size is big enough. It should be at least 512.
 #. Fine-tune the model's hyperparameters, namely ``learning_rate``, ``output_dimension``, ``num_hidden_units`` and eventually ``temperature`` (by setting ``temperature_mode`` back to ``constant``). Refer to `Grid search`_ for more details on performing hyperparameters tuning.
 #. To note, you should still be mindful of performing train/validation splits and shuffle controls to avoid `overfitting <https://developers.google.com/machine-learning/crash-course/overfitting/overfitting>`_.
