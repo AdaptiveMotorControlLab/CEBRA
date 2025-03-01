@@ -1213,7 +1213,7 @@ Putting all previous snippet examples together, we obtain the following pipeline
          model_architecture = "offset10-model",
          batch_size = 512,
          learning_rate = 1e-4,
-         max_iterations = 10, # TODO(user): to change to ~5000-10000
+         max_iterations = 10, # TODO(user): to change to ~500-10000 depending on dataset size
          #max_adapt_iterations = 10, # TODO(user): use and to change to ~100-500 if adapting
          time_offsets = 10,
          output_dimension = 8,
@@ -1262,8 +1262,8 @@ Putting all previous snippet examples together, we obtain the following pipeline
      cebra_model = cebra.CEBRA.load(tmp_file)
      train_embedding = cebra_model.transform(train_data)
      valid_embedding = cebra_model.transform(valid_data)
-     assert train_embedding.shape == (70, 8) # TODO(user): change to split ration & output dim
-     assert valid_embedding.shape == (30, 8) # TODO(user): change to split ration & output dim
+     assert train_embedding.shape == (70, 8) # TODO(user): change to split ratio & output dim
+     assert valid_embedding.shape == (30, 8) # TODO(user): change to split ratio & output dim
 
      # 7. Evaluate the model performance (you can also check the train_data)
      goodness_of_fit = cebra.sklearn.metrics.infonce_loss(cebra_model,
