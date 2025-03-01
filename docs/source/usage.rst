@@ -818,7 +818,7 @@ It takes a CEBRA model and returns a 2D plot of the loss against the number of i
 Displaying the temperature
 """"""""""""""""""""""""""
 
-:py:attr:`~.CEBRA.temperature` has the largest effect on the visualization of the embedding. Hence it might be interesting to check its evolution when ``temperature_mode=auto``. We recommend only using `auto` if you have first explored the `constant` setting.
+:py:attr:`~.CEBRA.temperature` has the largest effect on the visualization of the embedding. Hence it might be interesting to check its evolution when ``temperature_mode=auto``. We recommend only using `auto` if you have first explored the `constant` setting. If you use the ``auto`` mode, please always check the time evolution of the temperature over time alongside the loss curve.
 
 To that extend, you can use the function :py:func:`~.plot_temperature`.
 
