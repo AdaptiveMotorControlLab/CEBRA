@@ -265,9 +265,8 @@ For standard usage we recommend the default values (i.e., ``InfoNCE`` and ``cosi
 
 .. rubric:: Temperature :py:attr:`~.CEBRA.temperature`
 
-:py:attr:`~.CEBRA.temperature` has the largest effect on visualization of the embedding (see :py:doc:`cebra-figures/figures/ExtendedDataFigure2`). Hence, it is important that it is fitted to your specific data.
+:py:attr:`~.CEBRA.temperature` has the largest effect on *visualization* of the embedding (see :py:doc:`cebra-figures/figures/ExtendedDataFigure2`). Hence, it is important that it is fitted to your specific data. A more smooth embedding will be achieved with a temperature set to 0.1, while 1.0 will be more "clustered".
 
-The simplest way to handle it is to use a *learnable temperature*. For that, set :py:attr:`~.CEBRA.temperature_mode` to ``auto``. :py:attr:`~.CEBRA.temperature` will be trained alongside the model.
 
 🚀 For advance usage, you might need to find the optimal :py:attr:`~.CEBRA.temperature`. For that we recommend to perform a grid-search.
 
@@ -307,7 +306,8 @@ Here is an example of a CEBRA model initialization:
     cebra_model = CEBRA(
         model_architecture = "offset10-model",
         batch_size = 1024,
-        temperature_mode="auto",
+        temperature_mode='constant',
+        temperature=0.1, 
         learning_rate = 0.001,
         max_iterations = 10,
         time_offsets = 10,
@@ -321,7 +321,7 @@ Here is an example of a CEBRA model initialization:
 .. testoutput::
 
     CEBRA(batch_size=1024, learning_rate=0.001, max_iterations=10,
-          model_architecture='offset10-model', temperature_mode='auto',
+          model_architecture='offset10-model',
           time_offsets=10)
 
 .. admonition:: See API docs
@@ -568,7 +568,8 @@ We provide a simple hyperparameters sweep to compare CEBRA models with different
         learning_rate = [0.001],
         time_offsets = 5,
         max_iterations = 5,
-        temperature_mode = "auto",
+        temperature_mode='constant',
+        temperature = 0.1,
         verbose = False)
 
     # 2. Define the datasets to iterate over
@@ -820,7 +821,7 @@ It takes a CEBRA model and returns a 2D plot of the loss against the number of i
 Displaying the temperature
 """"""""""""""""""""""""""
 
-:py:attr:`~.CEBRA.temperature` has the largest effect on the visualization of the embedding. Hence it might be interesting to check its evolution when ``temperature_mode=auto``.
+:py:attr:`~.CEBRA.temperature` has the largest effect on the visualization of the embedding. Hence it might be interesting to check its evolution when ``temperature_mode=auto``. We recommend only using `auto` if you have first explored the `constant` setting.
 
 To that extend, you can use the function :py:func:`~.plot_temperature`.
 
