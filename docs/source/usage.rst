@@ -1,7 +1,7 @@
 Using CEBRA
 ===========
 
-This page covers a standard CEBRA usage. We recommend checking out the :py:doc:`demos` for in-depth CEBRA usage examples as well. Here we present a quick overview on how to use CEBRA on various datasets. Note that we provide two ways to interact with the code:
+This page covers a standard CEBRA usage. We recommend checking out the :py:doc:`demos` for CEBRA usage examples as well. Here we present a quick overview on how to use CEBRA on various datasets. Note that we provide two ways to interact with the code:
 
 * For regular usage, we recommend leveraging the **high-level interface**, adhering to ``scikit-learn`` formatting.
 * Upon specific needs, advanced users might consider diving into the **low-level interface** that adheres to ``PyTorch`` formatting.
@@ -12,7 +12,7 @@ Firstly, why use CEBRA?
 
 CEBRA is primarily designed for producing robust, consistent extractions of latent factors from time-series data. It supports three modes, and is a self-supervised representation learning algorithm that uses our modified contrastive learning approach designed for multi-modal time-series data. In short, it is a type of non-linear dimensionality reduction, like `tSNE <https://www.jmlr.org/papers/v9/vandermaaten08a.html>`_ and `UMAP <https://arxiv.org/abs/1802.03426>`_. We show in our original paper that it outperforms tSNE and UMAP at producing closer-to-ground-truth latents and is more consistent.
 
-That being said, CEBRA can be used on non-time-series data and it does not strictly require multi-modal data. In general, we recommend considering using CEBRA for measuring changes in consistency across conditions (brain areas, cells, animals), for hypothesis-guided decoding, and for topological exploration of the resulting embedding spaces. It can also be used for visualization and considering dynamics within the embedding space. For examples of how CEBRA can be used to map space, decode natural movies, and make hypotheses for neural coding of sensorimotor systems, see our paper (Schneider, Lee, Mathis, 2023).
+That being said, CEBRA can be used on non-time-series data and it does not strictly require multi-modal data. In general, we recommend considering using CEBRA for measuring changes in consistency across conditions (brain areas, cells, animals), for hypothesis-guided decoding, and for topological exploration of the resulting embedding spaces. It can also be used for visualization and considering dynamics within the embedding space. For examples of how CEBRA can be used to map space, decode natural movies, and make hypotheses for neural coding of sensorimotor systems, see `Schneider, Lee, Mathis. Nature 2023 <https://www.nature.com/articles/s41586-023-06031-6>`_.
 
 The CEBRA workflow
 ------------------
@@ -22,7 +22,7 @@ We recommend to start with running CEBRA-Time (unsupervised) and look both at th
 
 (1) Use CEBRA-Time for unsupervised data exploration.
 (2) Consider running a hyperparameter sweep on the inputs to the model, such as :py:attr:`cebra.CEBRA.model_architecture`, :py:attr:`cebra.CEBRA.time_offsets`, :py:attr:`cebra.CEBRA.output_dimension`, and set :py:attr:`cebra.CEBRA.batch_size` to be as high as your GPU allows. You want to see clear structure in the 3D plot (the first 3 latents are shown by default).
-(3) Use CEBRA-Behavior with many different labels and combinations, then look at the InfoNCE loss - the lower the loss value, the better the fit (see :py:doc:`cebra-figures/figures/ExtendedDataFigure5`), and visualize the embeddings. The goal is to understand which labels are contributing to the structure you see in CEBRA-Time, and improve this structure. Again, you should consider a hyperparameter sweep.
+(3) Use CEBRA-Behavior with many different labels and combinations, then look at the InfoNCE loss - the lower the loss value, the better the fit (see :py:doc:`cebra-figures/figures/ExtendedDataFigure5`), and visualize the embeddings. The goal is to understand which labels are contributing to the structure you see in CEBRA-Time, and improve this structure. Again, you should consider a hyperparameter sweep (and avoid overfitting by performing the proper train/validation split (see Step 3 in our quick start guide below).
 (4) Interpretability: now you can use these latents in downstream tasks, such as measuring consistency, decoding, and determining the dimensionality of your data with topological data analysis.
 
 All the steps to do this are described below. Enjoy using CEBRA! 🔥🦓
@@ -179,7 +179,7 @@ We provide a set of pre-defined models. You can access (and search) a list of av
 
 Then, you can choose the one that fits best with your needs and provide it to the CEBRA model as the :py:attr:`~.CEBRA.model_architecture` parameter.
 
-As an indication the table below presents the model architecture we used to train CEBRA on the datasets presented in our paper (Schneider, Lee, Mathis, 2022).
+As an indication the table below presents the model architecture we used to train CEBRA on the datasets presented in our paper (Schneider, Lee, Mathis. Nature 2023).
 
 .. list-table::
     :widths: 25 25 20 30
@@ -265,9 +265,8 @@ For standard usage we recommend the default values (i.e., ``InfoNCE`` and ``cosi
 
 .. rubric:: Temperature :py:attr:`~.CEBRA.temperature`
 
-:py:attr:`~.CEBRA.temperature` has the largest effect on visualization of the embedding (see :py:doc:`cebra-figures/figures/ExtendedDataFigure2`). Hence, it is important that it is fitted to your specific data.
+:py:attr:`~.CEBRA.temperature` has the largest effect on *visualization* of the embedding (see :py:doc:`cebra-figures/figures/ExtendedDataFigure2`). Hence, it is important that it is fitted to your specific data. Lower temperatures (e.g. around 0.1) will result in a more dispersed embedding, higher temperatures (larger than 1) will concentrate the embedding.
 
-The simplest way to handle it is to use a *learnable temperature*. For that, set :py:attr:`~.CEBRA.temperature_mode` to ``auto``. :py:attr:`~.CEBRA.temperature` will be trained alongside the model.
 
 🚀 For advance usage, you might need to find the optimal :py:attr:`~.CEBRA.temperature`. For that we recommend to perform a grid-search.
 
@@ -307,7 +306,6 @@ Here is an example of a CEBRA model initialization:
     cebra_model = CEBRA(
         model_architecture = "offset10-model",
         batch_size = 1024,
-        temperature_mode="auto",
         learning_rate = 0.001,
         max_iterations = 10,
         time_offsets = 10,
@@ -321,8 +319,7 @@ Here is an example of a CEBRA model initialization:
 .. testoutput::
 
     CEBRA(batch_size=1024, learning_rate=0.001, max_iterations=10,
-          model_architecture='offset10-model', temperature_mode='auto',
-          time_offsets=10)
+          model_architecture='offset10-model', time_offsets=10)
 
 .. admonition:: See API docs
     :class: dropdown
@@ -568,7 +565,8 @@ We provide a simple hyperparameters sweep to compare CEBRA models with different
         learning_rate = [0.001],
         time_offsets = 5,
         max_iterations = 5,
-        temperature_mode = "auto",
+        temperature_mode='constant',
+        temperature = 0.1,
         verbose = False)
 
     # 2. Define the datasets to iterate over
@@ -820,7 +818,7 @@ It takes a CEBRA model and returns a 2D plot of the loss against the number of i
 Displaying the temperature
 """"""""""""""""""""""""""
 
-:py:attr:`~.CEBRA.temperature` has the largest effect on the visualization of the embedding. Hence it might be interesting to check its evolution when ``temperature_mode=auto``.
+:py:attr:`~.CEBRA.temperature` has the largest effect on the visualization of the embedding. Hence it might be interesting to check its evolution when ``temperature_mode=auto``. We recommend only using `auto` if you have first explored the `constant` setting. If you use the ``auto`` mode, please always check the time evolution of the temperature over time alongside the loss curve.
 
 To that extend, you can use the function :py:func:`~.plot_temperature`.
 
@@ -1186,9 +1184,10 @@ Improve model performance
 🧐 Below is a (non-exhaustive) list of actions you can try if your embedding looks different from what you were expecting.
 
 #. Assess that your model `converged <https://machine-learning.paperspace.com/wiki/convergence>`_. For that, observe if the training loss stabilizes itself around the end of the training or still seems to be decreasing. Refer to `Visualize the training loss`_ for more details on how to display the training loss.
-#. Increase the number of iterations. It should be at least 10,000.
+#. Increase the number of iterations. It typically should be at least 10,000. On small datasets, it can make sense to stop training earlier to avoid overfitting effects.
 #. Make sure the batch size is big enough. It should be at least 512.
 #. Fine-tune the model's hyperparameters, namely ``learning_rate``, ``output_dimension``, ``num_hidden_units`` and eventually ``temperature`` (by setting ``temperature_mode`` back to ``constant``). Refer to `Grid search`_ for more details on performing hyperparameters tuning.
+#. To note, you should still be mindful of performing train/validation splits and shuffle controls to avoid `overfitting <https://developers.google.com/machine-learning/crash-course/overfitting/overfitting>`_.
 
 
 
@@ -1202,14 +1201,19 @@ Putting all previous snippet examples together, we obtain the following pipeline
      import cebra
      from numpy.random import uniform, randint
      from sklearn.model_selection import train_test_split
+     import os
+     import tempfile
+     from pathlib import Path
 
      # 1. Define a CEBRA model
      cebra_model = cebra.CEBRA(
          model_architecture = "offset10-model",
          batch_size = 512,
          learning_rate = 1e-4,
-         max_iterations = 10, # TODO(user): to change to at least 10'000
-         max_adapt_iterations = 10, # TODO(user): to change to ~100-500
+         temperature_mode='constant',
+         temperature = 0.1,
+         max_iterations = 10, # TODO(user): to change to ~500-10000 depending on dataset size
+         #max_adapt_iterations = 10, # TODO(user): use and to change to ~100-500 if adapting
          time_offsets = 10,
          output_dimension = 8,
          verbose = False
@@ -1243,7 +1247,7 @@ Putting all previous snippet examples together, we obtain the following pipeline
      # time contrastive learning
      cebra_model.fit(train_data)
      # discrete behavior contrastive learning
-     cebra_model.fit(train_data, train_discrete_label,)
+     cebra_model.fit(train_data, train_discrete_label)
      # continuous behavior contrastive learning
      cebra_model.fit(train_data, train_continuous_label)
      # mixed behavior contrastive learning
@@ -1257,10 +1261,10 @@ Putting all previous snippet examples together, we obtain the following pipeline
      cebra_model = cebra.CEBRA.load(tmp_file)
      train_embedding = cebra_model.transform(train_data)
      valid_embedding = cebra_model.transform(valid_data)
-     assert train_embedding.shape == (70, 8)
-     assert valid_embedding.shape == (30, 8)
+     assert train_embedding.shape == (70, 8) # TODO(user): change to split ratio & output dim
+     assert valid_embedding.shape == (30, 8) # TODO(user): change to split ratio & output dim
 
-     # 7. Evaluate the model performances
+     # 7. Evaluate the model performance (you can also check the train_data)
      goodness_of_fit = cebra.sklearn.metrics.infonce_loss(cebra_model,
                                                           valid_data,
                                                           valid_discrete_label,
