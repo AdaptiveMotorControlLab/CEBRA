@@ -69,6 +69,8 @@ jobs:
           pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
           pip install '.[docs]'
           pip install plotly
+          pip install nbsphinx
+
 
       - name: Build docs
         run: |
