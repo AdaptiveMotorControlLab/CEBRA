@@ -57,6 +57,9 @@ release = cebra.__version__
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+import plotly.io as pio
+pio.renderers.default = "sphinx_gallery"
+
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
@@ -68,12 +71,13 @@ extensions = [
     "sphinx_tabs.tabs",
     "sphinx.ext.mathjax",
     "IPython.sphinxext.ipython_console_highlighting",
-    # "sphinx_panels", # Note: package to avoid: no longer maintained.
     "sphinx_design",
     "sphinx_togglebutton",
     "sphinx.ext.doctest",
     "sphinx_gallery.load_style",
+    "sphinx.ext.plotly_directive",  # Added Plotly extension
 ]
+
 
 coverage_show_missing_items = True
 panels_add_bootstrap_css = False
