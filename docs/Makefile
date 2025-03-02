@@ -18,6 +18,11 @@ help:
 html:
 	PYTHONPATH=.. $(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
+# Build multiple versions
+html_versions:
+	for v in latest v0.2.0 v0.3.0 v0.4.0; do \
+		PYTHONPATH=.. $(SPHINXBUILD) -b html "$(SOURCEDIR)" "$(BUILDDIR)/$$v"; \
+	done
 # Remove the current temp folder and page build
 clean:
 	rm -rf build

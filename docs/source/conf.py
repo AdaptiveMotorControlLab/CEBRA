@@ -47,8 +47,8 @@ def get_years(start_year=2021):
 
 # -- Project information -----------------------------------------------------
 project = "cebra"
-copyright = f"""{get_years(2021)}, Steffen Schneider, Jin H Lee, Mackenzie Mathis"""
-author = "Steffen Schneider, Jin H Lee, Mackenzie Mathis"
+copyright = f"""{get_years(2021)}"""
+author = "See AUTHORS.md"
 # The full version, including alpha/beta/rc tags
 release = cebra.__version__
 
@@ -57,6 +57,13 @@ release = cebra.__version__
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+
+#https://github.com/spatialaudio/nbsphinx/issues/128#issuecomment-1158712159
+html_js_files = [
+    "require.min.js",  # Add to your _static
+    "custom.js",
+]
+
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
@@ -68,12 +75,12 @@ extensions = [
     "sphinx_tabs.tabs",
     "sphinx.ext.mathjax",
     "IPython.sphinxext.ipython_console_highlighting",
-    # "sphinx_panels", # Note: package to avoid: no longer maintained.
     "sphinx_design",
     "sphinx_togglebutton",
     "sphinx.ext.doctest",
     "sphinx_gallery.load_style",
 ]
+
 
 coverage_show_missing_items = True
 panels_add_bootstrap_css = False
@@ -136,6 +143,21 @@ exclude_patterns = [
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 html_theme = "pydata_sphinx_theme"
+
+html_context = {
+    "default_mode": "light",
+    "switcher": {
+        "version_match": "latest",  # Adjust this dynamically per version
+        "versions": [
+            ("latest", "/latest/"),
+            ("v0.2.0", "/v0.2.0/"),
+            ("v0.3.0", "/v0.3.0/"),
+            ("v0.4.0", "/v0.4.0/"),
+            ("v0.5.0rc1", "/v0.5.0rc1/"),
+        ],
+    },
+    "navbar_start": ["version-switcher", "navbar-logo"],  # Place the dropdown above the logo
+}
 
 # More info on theme options:
 # https://pydata-sphinx-theme.readthedocs.io/en/latest/user_guide/configuring.html
