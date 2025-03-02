@@ -144,6 +144,20 @@ exclude_patterns = [
 # a list of builtin themes.
 html_theme = "pydata_sphinx_theme"
 
+html_context = {
+    "default_mode": "light",
+    "switcher": {
+        "version_match": "latest",  # Adjust this dynamically per version
+        "versions": [
+            ("latest", "/latest/"),
+            ("v0.2.0", "/v0.2.0/"),
+            ("v0.3.0", "/v0.3.0/"),
+            ("v0.4.0", "/v0.4.0/"),
+            ("v0.5.0rc1", "/v0.5.0rc1/"),
+        ],
+    },
+}
+
 # More info on theme options:
 # https://pydata-sphinx-theme.readthedocs.io/en/latest/user_guide/configuring.html
 html_theme_options = {
