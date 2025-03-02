@@ -1230,18 +1230,19 @@ Putting all previous snippet examples together, we obtain the following pipeline
      assert discrete_label.shape == (100, )
      assert continuous_label.shape == (100, 3)
 
-     # 3. Split data and labels
-     (
-         train_data,
-         valid_data,
-         train_discrete_label,
-         valid_discrete_label,
-         train_continuous_label,
-         valid_continuous_label,
-     ) = train_test_split(neural_data,
-                         discrete_label,
-                         continuous_label,
-                         test_size=0.3)
+     # 3. Split data and labels into train/validation
+
+    from sklearn.model_selection import train_test_split
+
+    split_idx = int(0.8 * len(neural_data)) 
+    #suggest: 5%-20% depending on your dataset size; note this also split 
+             early/late, which might not be ideal for your data/expt!
+
+    train_data = neural_data[:split_idx]
+    valid_data = neural_data[split_idx:]
+
+    train_continuous_label = neural_data.continuous_index.numpy()[:split_idx]
+    valid_continuous_label = neural_data.continuous_index.numpy()[split_idx:]
 
      # 4. Fit the model
      # time contrastive learning
