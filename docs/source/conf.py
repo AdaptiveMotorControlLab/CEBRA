@@ -64,9 +64,6 @@ html_js_files = [
     "custom.js",
 ]
 
-def setup(app):
-    app.add_javascript('https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js')
-
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
