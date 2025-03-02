@@ -4,7 +4,7 @@ Installation Guide
 System Requirements
 -------------------
 
-CEBRA is written in Python (3.8+) and PyTorch. CEBRA is most effective when used with a GPU, but CPU-only support is provided. We provide instructions to run CEBRA on your system directly.  The instructions below were tested on different compute setups with Ubuntu 18.04 or 20.04, using Nvidia GTX 2080, A4000, and V100 cards. Other setups are possible (including Windows), as long as CUDA 10.2+ support is guaranteed.
+CEBRA is written in Python (3.9+) and PyTorch. CEBRA is most effective when used with a GPU, but CPU-only support is provided. We provide instructions to run CEBRA on your system directly.  The instructions below were tested on different compute setups with Ubuntu 18.04 or 20.04, using Nvidia GTX 2080, A4000, and V100 cards. Other setups are possible (including Windows), as long as CUDA 10.2+ support is guaranteed.
 
 - Software dependencies and operating systems:
     - Linux or MacOS
@@ -93,11 +93,11 @@ we outline different options below.
 
         * 🚀 For more advanced users, CEBRA has different extra install options that you can select based on your usecase:
 
-            * ``[integrations]``: This will install (experimental) support for our streamlit and jupyter integrations.
+            * ``[integrations]``: This will install (experimental) support for integrations, such as plotly.
             * ``[docs]``: This will install additional dependencies for building the package documentation.
             * ``[dev]``: This will install additional dependencies for development, unit and integration testing,
               code formatting, etc. Install this extension if you want to work on a pull request.
-            * ``[demos]``: This will install additional dependencies for running our demo notebooks.
+            * ``[demos]``: This will install additional dependencies for running our demo notebooks in Jupyter.
             * ``[datasets]``: This extension will install additional dependencies to use the pre-installed datasets
               in ``cebra.datasets``.
 
