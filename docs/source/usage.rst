@@ -1231,7 +1231,6 @@ Putting all previous snippet examples together, we obtain the following pipeline
      assert continuous_label.shape == (100, 3)
 
      # 3. Split data and labels into train/validation
-
      from sklearn.model_selection import train_test_split
 
      split_idx = int(0.8 * len(neural_data)) 
@@ -1267,11 +1266,10 @@ Putting all previous snippet examples together, we obtain the following pipeline
      assert valid_embedding.shape == (30, 8) # TODO(user): change to split ratio & output dim
 
      # 7. Evaluate the model performance (you can also check the train_data)
-     goodness_of_fit = cebra.sklearn.metrics.infonce_loss(cebra_model,
-                                                          valid_data,
+     goodness_of_fit = cebra.sklearn.metrics.goodness_of_fit_score(cebra_model, 
+                                                          valid_data, 
                                                           valid_discrete_label,
-                                                          valid_continuous_label,
-                                                          num_batches=5)
+                                                          valid_continuous_label)
 
      # 8. Adapt the model to a new session
      cebra_model.fit(new_neural_data, adapt = True)
