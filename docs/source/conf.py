@@ -156,6 +156,7 @@ html_context = {
             ("v0.5.0rc1", "/v0.5.0rc1/"),
         ],
     },
+    "navbar_start": ["version-switcher", "navbar-logo"],  # Place the dropdown above the logo
 }
 
 # More info on theme options:
