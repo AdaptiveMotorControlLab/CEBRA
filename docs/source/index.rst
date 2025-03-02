@@ -34,27 +34,18 @@ Please support the development of CEBRA by starring and/or watching the project 
 Installation and Setup
 ----------------------
 
-Please see the dedicated :doc:`Installation Guide </installation>` for information on installation options using ``conda``, ``pip`` and ``docker``.
-
-Have fun! 😁
+Please see the dedicated :doc:`Installation Guide </installation>` for information on installation options using ``conda``, ``pip`` and ``docker``. Have fun! 😁
 
 Usage
 -----
 
 Please head over to the :doc:`Usage </usage>` tab to find step-by-step instructions to use CEBRA on your data. For example use cases, see the :doc:`Demos </demos>` tab.
 
-Integrations
-------------
-
-CEBRA can be directly integrated with existing libraries commonly used in data analysis. The ``cebra.integrations`` module
-is getting actively extended. Right now, we offer integrations for ``scikit-learn``-like usage of CEBRA, a package making use of ``matplotlib`` to plot the CEBRA model results, as well as the
-possibility to compute CEBRA embeddings on DeepLabCut_ outputs directly.
-
 
 Licensing
 ---------
-
-Since version 0.4.0, CEBRA is open source software under an Apache 2.0 license.
+The ideas presented in our package are currently patent pending (Patent No. WO2023143843).
+Since version 0.4.0, CEBRA's source is licenced under an Apache 2.0 license.
 Prior versions 0.1.0 to 0.3.1 were released for academic use only.
 
 Please see the full license file on Github_ for further information.
@@ -65,12 +56,18 @@ Contributing
 
 Please refer to the :doc:`Contributing </contributing>` tab to find our guidelines on contributions.
 
-Code contributors
+Code Contributors
 -----------------
 
-The CEBRA code was originally developed by Steffen Schneider, Jin H. Lee, and Mackenzie Mathis (up to internal version 0.0.2). As of March 2023, it is being actively extended and maintained by `Steffen Schneider`_, `Célia Benquet`_, and `Mackenzie Mathis`_.
+The CEBRA code was originally developed by Steffen Schneider, Jin H. Lee, and Mackenzie Mathis (up to internal version 0.0.2). Please see our AUTHORS file for more information.
 
-References
+Integrations
+------------
+
+CEBRA can be directly integrated with existing libraries commonly used in data analysis. Namely, we provide a ``scikit-learn`` style interface to use CEBRA. Additionally, we offer integrations with our ``scikit-learn``-style of using CEBRA, a package making use of ``matplotlib`` and ``plotly`` to plot the CEBRA model results, as well as the possibility to compute CEBRA embeddings on DeepLabCut_ outputs directly. If you have another suggestion, please head over to Discussions_ on GitHub_!
+
+
+Key References
 ----------
 .. code::
 
@@ -82,14 +79,22 @@ References
     year = {2023},
   }
 
+  @article{xCEBRA2025,
+    author={Steffen Schneider and Rodrigo Gonz{\'a}lez Laiz and Anastasiia Filippova and Markus Frey and Mackenzie W Mathis},
+    title = {Time-series attribution maps with regularized contrastive learning},
+    journal = {AISTATS},
+    url = {https://openreview.net/forum?id=aGrCXoTB4P},
+    year = {2025},
+  }
+
 This documentation is based on the `PyData Theme`_.
 
 
 .. _`Twitter`: https://twitter.com/cebraAI
 .. _`PyData Theme`: https://github.com/pydata/pydata-sphinx-theme
 .. _`DeepLabCut`: https://deeplabcut.org
+.. _`Discissions`: https://github.com/AdaptiveMotorControlLab/CEBRA/discussions
 .. _`Github`: https://github.com/AdaptiveMotorControlLab/cebra
 .. _`email`: mailto:mackenzie.mathis@epfl.ch
 .. _`Steffen Schneider`: https://github.com/stes
-.. _`Célia Benquet`: https://github.com/CeliaBenquet
 .. _`Mackenzie Mathis`: https://github.com/MMathisLab
