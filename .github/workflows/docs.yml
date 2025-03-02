@@ -9,6 +9,12 @@ on:
       - main
       - public
       - dev
+    paths:
+      - '**.py'
+      - '**.ipynb'
+      - '**.js'
+      - '**.rst'
+      - '**.md'
 
 jobs:
   build:
