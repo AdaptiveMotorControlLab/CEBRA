@@ -68,7 +68,7 @@ CEBRA can be directly integrated with existing libraries commonly used in data a
 
 
 Key References
-----------
+--------------
 .. code::
 
   @article{schneider2023cebra,
@@ -93,7 +93,7 @@ This documentation is based on the `PyData Theme`_.
 .. _`Twitter`: https://twitter.com/cebraAI
 .. _`PyData Theme`: https://github.com/pydata/pydata-sphinx-theme
 .. _`DeepLabCut`: https://deeplabcut.org
-.. _`Discissions`: https://github.com/AdaptiveMotorControlLab/CEBRA/discussions
+.. _`Discussions`: https://github.com/AdaptiveMotorControlLab/CEBRA/discussions
 .. _`Github`: https://github.com/AdaptiveMotorControlLab/cebra
 .. _`email`: mailto:mackenzie.mathis@epfl.ch
 .. _`Steffen Schneider`: https://github.com/stes
