@@ -1232,18 +1232,18 @@ Putting all previous snippet examples together, we obtain the following pipeline
 
      # 3. Split data and labels into train/validation
 
-    from sklearn.model_selection import train_test_split
+     from sklearn.model_selection import train_test_split
 
-    split_idx = int(0.8 * len(neural_data)) 
-    # suggestion: 5%-20% depending on your dataset size; note that this splits the
-    # into an early and late part, which might not be ideal for your data/experiment!
-    # As a more involved alternative, consider e.g. a nested time-series split.
+     split_idx = int(0.8 * len(neural_data)) 
+     # suggestion: 5%-20% depending on your dataset size; note that this splits the
+     # into an early and late part, which might not be ideal for your data/experiment!
+     # As a more involved alternative, consider e.g. a nested time-series split.
 
-    train_data = neural_data[:split_idx]
-    valid_data = neural_data[split_idx:]
+     train_data = neural_data[:split_idx]
+     valid_data = neural_data[split_idx:]
 
-    train_continuous_label = neural_data.continuous_index.numpy()[:split_idx]
-    valid_continuous_label = neural_data.continuous_index.numpy()[split_idx:]
+     train_continuous_label = neural_data.continuous_index.numpy()[:split_idx]
+     valid_continuous_label = neural_data.continuous_index.numpy()[split_idx:]
 
      # 4. Fit the model
      # time contrastive learning
