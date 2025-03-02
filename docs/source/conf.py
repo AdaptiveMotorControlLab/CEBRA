@@ -47,8 +47,8 @@ def get_years(start_year=2021):
 
 # -- Project information -----------------------------------------------------
 project = "cebra"
-copyright = f"""{get_years(2021)}, Steffen Schneider, Jin H Lee, Mackenzie Mathis"""
-author = "Steffen Schneider, Jin H Lee, Mackenzie Mathis"
+copyright = f"""{get_years(2021)}"""
+author = "See CEBRA.ai"
 # The full version, including alpha/beta/rc tags
 release = cebra.__version__
 
@@ -59,6 +59,9 @@ release = cebra.__version__
 # ones.
 import plotly.io as pio
 pio.renderers.default = "sphinx_gallery"
+
+def setup(app):
+    app.add_javascript('https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js')
 
 extensions = [
     "sphinx.ext.autodoc",
