@@ -48,7 +48,7 @@ def get_years(start_year=2021):
 # -- Project information -----------------------------------------------------
 project = "cebra"
 copyright = f"""{get_years(2021)}"""
-author = "See CEBRA.ai"
+author = "See AUTHORS.md"
 # The full version, including alpha/beta/rc tags
 release = cebra.__version__
 
@@ -162,6 +162,11 @@ html_context = {
 # https://pydata-sphinx-theme.readthedocs.io/en/latest/user_guide/configuring.html
 html_theme_options = {
     "icon_links": [
+        {
+            "name": "Home",
+            "url": "https://cebra.ai/",
+            "icon": "fa-solid fa-house",
+        },
         {
             "name": "Github",
             "url": "https://github.com/AdaptiveMotorControlLab/CEBRA",
