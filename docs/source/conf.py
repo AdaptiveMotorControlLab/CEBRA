@@ -163,11 +163,6 @@ html_context = {
 html_theme_options = {
     "icon_links": [
         {
-            "name": "Home",
-            "url": "https://cebra.ai/",
-            "icon": "fa-solid fa-house",
-        },
-        {
             "name": "Github",
             "url": "https://github.com/AdaptiveMotorControlLab/CEBRA",
             "icon": "fab fa-github",
