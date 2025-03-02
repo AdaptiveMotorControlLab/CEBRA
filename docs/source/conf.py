@@ -57,8 +57,12 @@ release = cebra.__version__
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-import plotly.io as pio
-pio.renderers.default = "sphinx_gallery"
+
+#https://github.com/spatialaudio/nbsphinx/issues/128#issuecomment-1158712159
+html_js_files = [
+    "require.min.js",  # Add to your _static
+    "custom.js",
+]
 
 def setup(app):
     app.add_javascript('https://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.10/require.min.js')
