@@ -1,7 +1,7 @@
 Figures
 =======
 
-CEBRA was introduced in `Schneider, Lee and Mathis (2022)`_ and applied to various datasets across
+CEBRA was introduced in `Schneider, Lee and Mathis (2023)`_ and applied to various datasets across
 animals and recording modalities.
 
 In this section, we provide reference code for reproducing the figures and experiments. Since especially
@@ -56,4 +56,4 @@ differ in minor typographic details.
 
 
 
-.. _Schneider, Lee and Mathis (2022): https://arxiv.org/abs/2204.00673
+.. _Schneider, Lee and Mathis (2023): https://www.nature.com/articles/s41586-023-06031-6
