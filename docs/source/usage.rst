@@ -1241,8 +1241,9 @@ Putting all previous snippet examples together, we obtain the following pipeline
      train_data = neural_data[:split_idx]
      valid_data = neural_data[split_idx:]
 
-     train_continuous_label = neural_data.continuous_index.numpy()[:split_idx]
-     valid_continuous_label = neural_data.continuous_index.numpy()[split_idx:]
+     train_continuous_label = continuous_labels[:split_idx]
+     valid_continuous_label = continuous_labels[split_idx:]
+
 
      # 4. Fit the model
      # time contrastive learning
