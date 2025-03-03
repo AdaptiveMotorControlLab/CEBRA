@@ -90,6 +90,10 @@ def test_offset_models(model_name, batch_size, input_length):
 
 def test_multiobjective():
 
+    # NOTE(stes): This test is deprecated and will be removed in a future version.
+    # As of CEBRA 0.6.0, the multi objective models are tested separately in
+    # test_multiobjective.py.
+
     class TestModel(cebra.models.Model):
 
         def __init__(self):
@@ -105,12 +109,12 @@ def test_multiobjective():
 
     model = TestModel()
 
-    multi_model_overlap = cebra.models.MultiobjectiveModel(
+    multi_model_overlap = cebra.models.LegacyMultiobjectiveModel(
         model,
         dimensions=(4, 6),
         output_mode="overlapping",
         append_last_dimension=True)
-    multi_model_separate = cebra.models.MultiobjectiveModel(
+    multi_model_separate = cebra.models.LegacyMultiobjectiveModel(
         model,
         dimensions=(4, 6),
         output_mode="separate",
