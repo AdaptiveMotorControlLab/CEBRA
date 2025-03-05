@@ -1,11 +1,14 @@
 {% extends "pydata_sphinx_theme/layout.html" %}
 
-{% block fonts %}
+{% block extrahead %}
+    <!-- Load require.js locally from _static -->
+    <script src="{{ pathto('_static/js/require.js', 1) }}"></script>
+{% endblock %}
 
+{% block fonts %}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300&display=swap" rel="stylesheet">
-
 {% endblock %}
 
 {% block docs_sidebar %}
