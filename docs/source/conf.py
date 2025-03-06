@@ -219,6 +219,8 @@ nitpick_ignore = [
 ]
 
 nbsphinx_thumbnails = {
+    "demo_notebooks/CEBRA_best_practices":
+    "_static/thumbnails/cebra-best.png",
     "demo_notebooks/Demo_primate_reaching":
         "_static/thumbnails/ForelimbS1.png",
     "demo_notebooks/Demo_hippocampus":
