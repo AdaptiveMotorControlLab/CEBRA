@@ -165,9 +165,23 @@
                             Video file not supported in this web browser.
                         </video>
 
-                        <p>Application of CEBRA-Behavior to rat hippocampus data (Grosmark and Buzsáki, 2016), showing position/neural activity (left), overlayed with decoding obtained by CEBRA. The current point in embedding space is highlighted (right). CEBRA obtains a median absolute error of 5cm (total track length: 160cm; see pre-print for details). Video is played at 2x real-time speed.</p>
+                        <p>Application of CEBRA-Behavior to rat hippocampus data (Grosmark and Buzsáki, 2016), showing position/neural activity (left), overlayed with decoding obtained by CEBRA. The current point in embedding space is highlighted (right). CEBRA obtains a median absolute error of 5cm (total track length: 160cm; see Schneider et al. 2023 for details). Video is played at 2x real-time speed.</p>
                     </div>
 
+                    <div class="col-md-6 mb-2">
+                        <!-- Embedding the Plotly figure using iframe -->
+                        <div style="position: relative; height: 315px; overflow: hidden; margin-bottom: 1rem;">
+                            <iframe src="static/img/hippocampus_posdir3_full.html" 
+                                    style="position: absolute; top: -140px; left: -5%; width: 110%; height: 150%; border: none; transform: scale(0.85); transform-origin: top center;"
+                                    scrolling="no">
+                            </iframe>
+                        </div>
+                        
+                        <p style="margin-top: -70px;">Interactive visualization of the CEBRA embedding for the rat hippocampus data. This 3D plot shows how neural activity is mapped to a lower-dimensional space that correlates with the animal's position and movement direction. <a href="https://colab.research.google.com/github/AdaptiveMotorControlLab/CEBRA-demos/blob/main/Demo_hippocampus.ipynb" target="_blank" style="color: #6235E0;"><i class="fas fa-external-link-alt"></i> Open In Colaboratory</a></p>
+                    </div>
+                </div>
+
+                <div class="row">
                     <div class="col-md-6 mb-2">
                         <video width="100%" autoplay loop muted preload="auto">
                             <source src="static/videos/allen.mp4" type="video/mp4">
@@ -176,6 +190,16 @@
 
                         <p>CEBRA applied to mouse primary visual cortex, collected at the Allen Institute (de Vries et al. 2020, Siegle et al. 2021). 2-photon and Neuropixels recordings are embedded with CEBRA using DINO frame features as labels.
                         The embedding is used to decode the video frames using a kNN decoder on the CEBRA-Behavior embedding from the test set.</p>
+                    </div>
+                    
+                    <div class="col-md-6 mb-2">
+                        <!-- YouTube embed for CEBRA on M1 and S1 neural data with cleaner styling -->
+                        <video width="100%" autoplay loop muted preload="auto">
+                            <source src="static/videos/cebra_s1m1.mp4" type="video/mp4">
+                            Video file not supported in this web browser.
+                        </video>
+
+                        <p>CEBRA applied to M1 and S1 neural data, demonstrating how neural activity from primary motor and somatosensory cortices can be effectively embedded and analyzed. See <a href="https://www.biorxiv.org/content/10.1101/2024.09.11.612513v2" target="_blank" style="color: #6235E0;">DeWolf et al. 2024</a> for details.</p>
                     </div>
                 </div>
 
