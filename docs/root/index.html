@@ -36,7 +36,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.1/css/all.min.css" rel="stylesheet">
 
     <style>
-
         :root {
             --cebra-c: #1D29B8;
             --cebra-e: #6235E0;
@@ -46,7 +45,7 @@
         }
 
         .main {
-            font-family: 'IBM Plex Sans Condensed', sans-serif;
+            font-family: Helvetica, Arial, sans-serif;
             color: gainsboro;
         }
 
@@ -62,15 +61,20 @@
 
         h3 {
             color: var(--cebra-r);
+            font-family: Helvetica, Arial, sans-serif;
+            margin-top: 2rem;
+            margin-bottom: 1.5rem;
         }
 
         a {
             color: var(--cebra-r);
-            font-family: 'IBM Plex Sans Condensed', sans-serif;
+            font-family: Helvetica, Arial, sans-serif;
+            text-decoration: none;
         }
 
         a:hover {
             color: var(--cebra-b);
+            text-decoration: underline;
         }
 
         .muted-link {
@@ -80,6 +84,25 @@
         .paper-thumbnail {
             background-color: white;
             border-radius: 5%;
+        }
+
+        .paper-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .paper-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .paper-title {
+            color: var(--cebra-e);
+            font-weight: bold;
+            margin-bottom: 10px;
         }
     </style>
 
@@ -96,55 +119,23 @@
                     <h1><span style="color: var(--cebra-c)">C</span><span style="color: var(--cebra-e)">E</span><span style="color: var(--cebra-b)">B</span><span style="color: var(--cebra-r)">R</span><span style="color: var(--cebra-a)">A</span>: a self-supervised learning algorithm for obtaining interpretable, <span style="color: var(--cebra-c)">C</span>onsistent <span style="color: var(--cebra-e)">Em</span><span style="color: var(--cebra-b)">B</span>eddings of high-dimensional <span style="color: var(--cebra-r)">R</span>ecordings using <span style="color: var(--cebra-a)">A</span>uxiliary variables</h1>
                 </div>
 
-                <!-- Begin author list-->
-                <div class="row text-center mb-4">
-                    <div class="col-md-3 mb-4"></div>
-                    <div class="col-md-2 mb-4">
-                        Steffen Schneider*</br>
-                        EPFL & <nobr>IMPRS-IS</nobr>
-                        <a href="mailto:stes@hey.com"><i class="far fa-envelope"></i></a>
-                        <a href="https://stes.io" target="_blank"><i class="fas fa-link"></i></a>
-                    </div>
-                    <div class="col-md-2 mb-4">
-                        Jin Hwa Lee*</br>
-                        EPFL
-                        <a href="https://jinhl9.github.io/" target="_blank"><i class="fas fa-link"></i></a>
-                    </div>
-                    <div class="col-md-2  mb-4">
-                        Mackenzie Mathis</br>
-                        EPFL
-                        <a href="mailto:mackenzie.mathis@epfl.ch"><i class="far fa-envelope"></i></a>
-                        <a href="https://www.mackenziemathislab.org/mackenziemathis" target="_blank"><i class="fas fa-link"></i></a>
-                    </div>
-                </div>
-                <!-- End author list-->
-
                 <div class="row text-center">
-                    <div class="col-md-2 mb-4"></div>
-                    <div class="col-sm-2 mb-2">
+                    <div class="col-sm-4 mb-2">
                         <h4>
                             <a href="https://doi.org/10.1038/s41586-023-06031-6" target="_blank">
                             <i class="fas fa-file-alt"></i>
-                            Paper
+                            Nature 2023 Paper
                         </a>
                         </h4>
                     </div>
-                    <div class="col-sm-2 mb-2">
-                        <h4>
-                            <a href="https://arxiv.org/abs/2204.00673" target="_blank">
-                            <i class="fas fa-file-alt"></i>
-                            Preprint
-                        </a>
-                        </h4>
-                    </div>
-                    <div class="col-sm-2 mb-2">
+                    <div class="col-sm-4 mb-2">
                         <h4>
                             <a href="/docs"> <i class="fas fa-book"></i>
-                                Docs
+                                Documentation
                             </a>
                         </h4>
                     </div>
-                    <div class="col-sm-2 mb-2">
+                    <div class="col-sm-4 mb-2">
                         <h4>
                             <a href="https://github.com/AdaptiveMotorControlLab/cebra" target="_blank"> <i class="fab fa-github"></i>
                                 Code
@@ -153,22 +144,12 @@
                     </div>
                 </div>
 
-                <div class="row mb-5 mt-2">
-                    CEBRA is a machine-learning
-                    method that can be used to
-                    compress time series in a way
-                    that reveals otherwise hidden
-                    structures in the variability of
-                    the data. It excels on behavioural
-                    and neural data recorded
-                    simultaneously, and it can
-                    decode activity from the visual
-                    cortex of the mouse brain to
-                    reconstruct a viewed video.
+                <div class="row mb-5 mt-4">
+                    <p>CEBRA is a machine-learning method that can be used to compress time series in a way that reveals otherwise hidden structures in the variability of the data. It excels on behavioural and neural data recorded simultaneously. We have shown it can be used  and it can decode activity from the visual cortex of the mouse brain to reconstruct a viewed video, to decode trajectories from the sensoirmot cortex of primates, and for decoding position during navigation. For this and other demos, see below!</p>
                 </div>
 
                 <div class="row">
-
+                    <h3><i class="fas fa-play-circle"></i> Demo Applications</h3>
                     <div class="col-md-6 mb-2">
                         <video width="100%" autoplay loop muted preload="auto">
                             <source src="static/videos/rat.mp4" type="video/mp4">
@@ -179,22 +160,45 @@
                     </div>
 
                     <div class="col-md-6 mb-2">
-                            <video width="100%" autoplay loop muted preload="auto">
-                                <source src="static/videos/allen.mp4" type="video/mp4">
-                                Video file not supported in this web browser.
-                            </video>
+                        <video width="100%" autoplay loop muted preload="auto">
+                            <source src="static/videos/allen.mp4" type="video/mp4">
+                            Video file not supported in this web browser.
+                        </video>
 
-                            <p>CEBRA applied to mouse primary visual cortex, collected at the Allen Institute (de Vries et al. 2020, Siegle et al. 2021). 2-photon and Neuropixels recordings are embedded with CEBRA using DINO frame features as labels.
-                            The embedding is used to decode the video frames using a kNN decoder on the CEBRA-Behavior embedding from the test set.</p>
-
+                        <p>CEBRA applied to mouse primary visual cortex, collected at the Allen Institute (de Vries et al. 2020, Siegle et al. 2021). 2-photon and Neuropixels recordings are embedded with CEBRA using DINO frame features as labels.
+                        The embedding is used to decode the video frames using a kNN decoder on the CEBRA-Behavior embedding from the test set.</p>
                     </div>
+                </div>
 
+                <div class="row mt-4">
+                    <h3><i class="fas fa-newspaper"></i> Publications</h3>
+                    
+                    <div class="col-12">
+                        <div class="paper-card">
+                            <div class="paper-title">Learnable latent embeddings for joint behavioural and neural analysis</div>
+                            <p>Steffen Schneider*, Jin Hwa Lee*, Mackenzie W. Mathis. Nature 2023</p>
+                            <p>A comprehensive introduction to CEBRA, demonstrating its capabilities in joint behavioral and neural analysis across various datasets and species.</p>
+                            <a href="https://doi.org/10.1038/s41586-023-06031-6" target="_blank" class="btn btn-link" style="color: #6235E0;"><i class="fas fa-external-link-alt"></i> Read Paper</a>
+                            <a href="https://arxiv.org/abs/2204.00673" target="_blank" class="btn btn-link" style="color: #6235E0;"><i class="fas fa-file-alt"></i> Preprint</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <h3><i class="fas fa-certificate"></i> Patent Information</h3>
+                    
+                    <div class="col-12">
+                        <div class="paper-card">
+                            <div class="paper-title">Patent Pending</div>
+                            <p>Please note EPFL has filed a patent titled "Dimensionality reduction of time-series data, and systems and devices that use the resultant embeddings" (<a href="https://patents.google.com/patent/WO2023143843A1" target="_blank" style="color: #6235E0;">https://patents.google.com/patent/WO2023143843A1</a>) so if this does not work for your non-academic use case, please contact the TTO Office at EPFL.</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="row pt-4">
                     <h3>
                         <i class="fas fa-file"></i>
-                        Abstract
+                        Overview
                     </h3>
                 </div>
 
@@ -207,31 +211,6 @@
                     <p>
                       Mapping behavioural actions to neural activity is a fundamental goal of neuroscience. As our ability to record large neural and behavioural data increases, there is growing interest in modeling neural dynamics during adaptive behaviors to probe neural representations. In particular, neural latent embeddings can reveal underlying correlates of behavior, yet, we lack non-linear techniques that can explicitly and flexibly leverage joint behavior and neural data to uncover neural dynamics. Here, we fill this gap with a novel encoding method, CEBRA, that jointly uses behavioural and neural data in a (supervised) hypothesis- or (self-supervised) discovery-driven manner to produce both consistent and high-performance latent spaces. We show that consistency can be used as a metric for uncovering meaningful differences, and the inferred latents can be used for decoding. We validate its accuracy and demonstrate our tool's utility for both calcium and electrophysiology datasets, across sensory and motor tasks, and in simple or complex behaviors across species. It allows for single and multi-session datasets to be leveraged for hypothesis testing or can be used label-free. Lastly, we show that CEBRA can be used for the mapping of space, uncovering complex kinematic features, produces consistent latent spaces across 2-photon and Neuropixels data, and can provide rapid, high-accuracy decoding of natural movies from visual cortex.
                     </p>
-                </div>
-
-                <div class="row pt-4">
-                    <h3>
-                        <i class="fas fa-file-alt"></i>
-                        Pre-Print
-                    </h3>
-                </div>
-
-                <div class="row">
-                    <p>
-                        The pre-print is available on arxiv at <a href="https://arxiv.org/abs/2204.00673">arxiv.org/abs/2204.00673</a>.
-                    </p>
-                    <!---div class="col-lg-8 mb-1">
-                        <div class="row">
-                            <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_1.pdf.png" width="100%" /></div>
-                            <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_2.pdf.png" width="100%" /></div>
-                            <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_3.pdf.png" width="100%" /></div>
-                            <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_4.pdf.png" width="100%" /></div>
-                            <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_5.pdf.png" width="100%" /></div>
-                            <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_6.pdf.png" width="100%" /></div>
-                            <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_7.pdf.png" width="100%" /></div>
-                            <div class="col-3 mb-1"><img class="paper-thumbnail" src="static/img/thumb/thumb_8.pdf.png" width="100%" /></div>
-                        </div>
-                    </div--->
                 </div>
 
                 <div class="row pt-4">
@@ -258,7 +237,7 @@
                     BibTeX</h3>
                 </div>
                 <div class="row">
-                    <p>Please cite our paper as follows:</p>
+                    <p>Please cite our papers as follows:</p>
                 </div>
                 <div class="row justify-content-md-center">
                     <div class="col-sm-10 rounded p-3 m-2" style="background-color: rgb(20,20,20);">
@@ -275,6 +254,19 @@
                             &nbsp;&nbsp;url={https://doi.org/10.1038/s41586-023-06031-6}<br/>
                             }
                         </small>
+                    </div>
+                </div>
+
+                <div class="row justify-content-center mt-5 mb-3">
+                    <div class="col-md-12 text-center">
+                        <a href="https://www.epfl.ch/" target="_blank">
+                            <img src="https://images.squarespace-cdn.com/content/v1/57f6d51c9f74566f55ecf271/00b1fa45-9246-4914-86ee-4a01bb3fb60b/logo.png?format=2500w" 
+                                alt="MLAI Logo" 
+                                style="max-width: 600px;">
+                        </a>
+                        <div class="mt-3">
+                            <small class="text-muted">© 2021 - present | EPFL Mathis Laboratory</small>
+                        </div>
                     </div>
                 </div>
 
