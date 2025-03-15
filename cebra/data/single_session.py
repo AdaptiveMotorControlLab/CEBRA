@@ -172,9 +172,10 @@ class ContinuousDataLoader(cebra_data.Loader):
     * auxiliary variables, using the empirical distribution of how behavior various across
       ``time_offset`` timesteps (``time_delta``). Sampling for this setting is implemented
       in :py:class:`cebra.distributions.continuous.TimedeltaDistribution`.
-    * alternatively, the distribution can be selected to be a Gaussian distribution
+    * alternatively, the distribution can be selected to be a Gaussian or von Mises-Fisher distribution
       parametrized by a fixed ``delta`` around the reference sample, using the implementation in
-      :py:class:`cebra.distributions.continuous.DeltaNormalDistribution`.
+      :py:class:`cebra.distributions.continuous.DeltaNormalDistribution` and
+      :py:class:`cebra.distributions.continuous.DeltaVMFDistribution`.
 
     Args:
         See dataclass fields.
@@ -224,6 +225,11 @@ class ContinuousDataLoader(cebra_data.Loader):
                         DeprecationWarning)
 
                 self.distribution = cebra.distributions.DeltaNormalDistribution(
+                    self.dataset.continuous_index,
+                    self.delta,
+                    device=self.device)
+            elif self.conditional == "delta_vmf":
+                self.distribution = cebra.distributions.DeltaVMFDistribution(
                     self.dataset.continuous_index,
                     self.delta,
                     device=self.device)
@@ -334,6 +340,7 @@ class HybridDataLoader(cebra_data.Loader):
     """
 
     conditional: str = dataclasses.field(default="time_delta")
+    time_distribution: str = dataclasses.field(default="time")
     time_offset: int = dataclasses.field(default=10)
     delta: float = dataclasses.field(default=0.1)
 
@@ -351,17 +358,55 @@ class HybridDataLoader(cebra_data.Loader):
         #            e.g. integrating the FAISS dataloader back in.
         super().__post_init__()
 
-        if self.conditional != "time_delta":
-            raise NotImplementedError(
-                "Hybrid training is currently only implemented using the ``time_delta`` "
-                "continual distribution.")
+        # BEHAVIOR DISTRIBUTION
 
-        self.time_distribution = cebra.distributions.TimeContrastive(
-            time_offset=self.time_offset,
-            num_samples=len(self.dataset.neural),
-            device=self.device)
-        self.behavior_distribution = cebra.distributions.TimedeltaDistribution(
-            self.dataset.continuous_index, self.time_offset, device=self.device)
+        if self.conditional == "time":
+            self.behavior_distribution = cebra.distributions.TimeContrastive(
+                time_offset=self.time_offset,
+                num_samples=len(self.dataset.neural),
+                device=self.device,
+            )
+
+        if self.conditional == "time_delta":
+            self.behavior_distribution = cebra.distributions.TimedeltaDistribution(
+                self.dataset.continuous_index,
+                self.time_offset,
+                device=self.device)
+
+        elif self.conditional == "delta_normal":
+            self.behavior_distribution = cebra.distributions.DeltaNormalDistribution(
+                self.dataset.continuous_index, self.delta, device=self.device)
+
+        elif self.conditional == "time":
+            self.behavior_distribution = cebra.distributions.TimeContrastive(
+                time_offset=self.time_offset,
+                num_samples=len(self.dataset.neural),
+                device=self.device,
+            )
+
+        # TIME DISTRIBUTION
+        if self.time_distribution == "time":
+            self.time_distribution = cebra.distributions.TimeContrastive(
+                time_offset=self.time_offset,
+                num_samples=len(self.dataset.neural),
+                device=self.device,
+            )
+
+        elif self.time_distribution == "time_delta":
+            self.time_distribution = cebra.distributions.TimedeltaDistribution(
+                self.dataset.continuous_index,
+                self.time_offset,
+                device=self.device)
+
+        elif self.time_distribution == "delta_normal":
+            self.time_distribution = cebra.distributions.DeltaNormalDistribution(
+                self.dataset.continuous_index, self.delta, device=self.device)
+
+        elif self.time_distribution == "delta_vmf":
+            self.time_distribution = cebra.distributions.DeltaVMFDistribution(
+                self.dataset.continuous_index, self.delta, device=self.device)
+        else:
+            raise ValueError
 
     def get_indices(self, num_samples: int) -> BatchIndex:
         """Samples indices for reference, positive and negative examples.
