@@ -28,6 +28,7 @@ import numpy as np
 import numpy.typing as npt
 import plotly.graph_objects
 import torch
+import plotly.graph_objects as go
 
 from cebra.integrations.matplotlib import _EmbeddingPlot
 
@@ -154,7 +155,7 @@ class _EmbeddingInteractivePlot(_EmbeddingPlot):
 def plot_embedding_interactive(
     embedding: Union[npt.NDArray, torch.Tensor],
     embedding_labels: Optional[Union[npt.NDArray, torch.Tensor, str]] = "grey",
-    axis: Optional[plotly.graph_objects.Figure] = None,
+    axis: Optional["go.Figure"] = None,
     markersize: float = 1,
     idx_order: Optional[Tuple[int]] = None,
     alpha: float = 0.4,
@@ -163,7 +164,7 @@ def plot_embedding_interactive(
     figsize: Tuple[int] = (5, 5),
     dpi: int = 100,
     **kwargs,
-) -> plotly.graph_objects.Figure:
+) -> "go.Figure":
     """Plot embedding in a 3D dimensional space.
 
     This is supposing that the dimensions provided to ``idx_order`` are in the range of the number of
