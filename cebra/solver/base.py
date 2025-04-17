@@ -157,15 +157,17 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             "tqdm" if self.tqdm_on else "off",
         )
 
-    def fit(self,
-            loader: cebra.data.Loader,
-            valid_loader: cebra.data.Loader = None,
-            *,
-            save_frequency: int = None,
-            valid_frequency: int = None,
-            decode: bool = False,
-            logdir: str = None,
-            save_hook: Callable[[int, "Solver"], None] = None):
+    def fit(
+        self,
+        loader: cebra.data.Loader,
+        valid_loader: cebra.data.Loader = None,
+        *,
+        save_frequency: int = None,
+        valid_frequency: int = None,
+        decode: bool = False,
+        logdir: str = None,
+        save_hook: Callable[[int, "Solver"], None] = None,
+    ):
         """Train model for the specified number of steps.
 
         Args:
