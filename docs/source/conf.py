@@ -250,7 +250,7 @@ nbsphinx_thumbnails = {
         "_static/thumbnails/openScope_demo.png",
     "demo_notebooks/Demo_dandi_NeuroDataReHack_2023":
         "_static/thumbnails/dandi_demo_monkey.png",
-    "demo_notebooks/Demo_dandi_NeuroDataReHack_2023":
+    "demo_notebooks/Demo_xCEBRA_scd":
         "_static/thumbnails/xCEBRA.png",
 }
 
