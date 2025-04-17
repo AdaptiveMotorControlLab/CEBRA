@@ -11,7 +11,7 @@ docker run -u $(id -u):$(id -g) \
   -v /tmp/.cache/fontconfig:/.cache/fontconfig \
   -e MPLCONFIGDIR=/tmp/.cache/matplotlib \
   -w /app \
-  --env HOST=0.0.0.0 \
-  --env PORT=8000 \
+  --env SPHINXBUILD="sphinx-autobuild" \
+  --env SPHINXOPTS="-W --keep-going -n --port 8000 --host 0.0.0.0" \
   -it cebra-docs \
   make docs

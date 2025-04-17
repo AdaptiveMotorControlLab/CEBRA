@@ -4,11 +4,9 @@
 # You can set these variables from the command line, and also
 # from the environment for the first two.
 SPHINXOPTS    ?= -W --keep-going -n
-SPHINXBUILD   ?= sphinx-autobuild
+SPHINXBUILD   ?= sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = build
-PORT          ?= 8000
-HOST          ?= 127.0.0.1
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -18,7 +16,7 @@ help:
 
 # Build the API documentation using sphinx
 html:
-	PYTHONPATH=.. $(SPHINXBUILD) --port $(PORT) --host $(HOST) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	PYTHONPATH=.. $(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # Build multiple versions
 html_versions:
