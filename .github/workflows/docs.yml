@@ -74,20 +74,20 @@ jobs:
           # old pandoc version (2.9.). We will hence install the latest version manually.
           # previou: sudo apt-get install -y pandoc
           # NOTE(stes): Updated to latest version as of 17/04/2025, v3.6.4.
-          wget https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-1-amd64.deb
+          wget -q https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-1-amd64.deb
           sudo dpkg -i pandoc-3.6.4-1-amd64.deb
           rm pandoc-3.6.4-1-amd64.deb
           pip install -r docs/requirements.txt
 
       - name: Check software versions
         run: |
-          sphinx --version
+          sphinx-build --version
           pandoc --version
 
       - name: Build docs
         run: |
           ls docs/source/cebra-figures
-          # later also add the -n option to check for broken links
+          export SPHINXBUILD="sphinx-build"
           export SPHINXOPTS="-W --keep-going -n"
           make docs
 
