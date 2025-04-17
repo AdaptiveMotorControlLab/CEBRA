@@ -19,7 +19,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
 
     steps:
       - name: Cache dependencies
@@ -56,7 +55,11 @@ jobs:
         with:
           repository: AdaptiveMotorControlLab/cebra-demos
           path: docs/source/demo_notebooks
-          ref: main
+          # NOTE(stes): This is a temporary branch to add the xCEBRA demo notebooks
+          # to the docs. Once the notebooks are merged into main, we can remove this
+          # branch and change the ref to main.
+          # ref: main
+          ref: stes/add-xcebra
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -70,19 +73,22 @@ jobs:
           # as of 29/10/23. Ubuntu 22.04 which is used for ubuntu-latest only has an
           # old pandoc version (2.9.). We will hence install the latest version manually.
           # previou: sudo apt-get install -y pandoc
-          wget https://github.com/jgm/pandoc/releases/download/3.1.9/pandoc-3.1.9-1-amd64.deb
-          sudo dpkg -i pandoc-3.1.9-1-amd64.deb
-          rm pandoc-3.1.9-1-amd64.deb
-          pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install '.[docs]'
+          # NOTE(stes): Updated to latest version as of 17/04/2025, v3.6.4.
+          wget https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-1-amd64.deb
+          sudo dpkg -i pandoc-3.6.4-1-amd64.deb
+          rm pandoc-3.6.4-1-amd64.deb
           pip install -r docs/requirements.txt
+
+      - name: Check software versions
+        run: |
+          sphinx --version
+          pandoc --version
 
       - name: Build docs
         run: |
           ls docs/source/cebra-figures
           # later also add the -n option to check for broken links
           export SPHINXOPTS="-W --keep-going -n"
-          export SPHINXBUILD="sphinx"
           make docs
 
       # NOTE(stes): To avoid issues as observed in
