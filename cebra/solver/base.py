@@ -453,7 +453,6 @@ class MultiobjectiveSolver(Solver):
         loss.backward()
         self.optimizer.step()
         self.history.append(loss.item())
-
         return dict(
             behavior_pos=behavior_align.item(),
             behavior_neg=behavior_uniform.item(),
