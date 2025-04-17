@@ -1218,36 +1218,36 @@ Putting all previous snippet examples together, we obtain the following pipeline
         output_dimension = 8,
         verbose = False
      )
-    
+
      # 2. Load example data
      neural_data = cebra.load_data(file="neural_data.npz", key="neural")
      new_neural_data = cebra.load_data(file="neural_data.npz", key="new_neural")
      continuous_label = cebra.load_data(file="auxiliary_behavior_data.h5", key="auxiliary_variables", columns=["continuous1", "continuous2", "continuous3"])
      discrete_label = cebra.load_data(file="auxiliary_behavior_data.h5", key="auxiliary_variables", columns=["discrete"]).flatten()
-    
-    
+
+
      assert neural_data.shape == (100, 3)
      assert new_neural_data.shape == (100, 4)
      assert discrete_label.shape == (100, )
      assert continuous_label.shape == (100, 3)
-    
+
      # 3. Split data and labels into train/validation
      from sklearn.model_selection import train_test_split
-    
+
      split_idx = int(0.8 * len(neural_data))
      # suggestion: 5%-20% depending on your dataset size; note that this splits the
      # into an early and late part, which might not be ideal for your data/experiment!
      # As a more involved alternative, consider e.g. a nested time-series split.
-    
+
      train_data = neural_data[:split_idx]
      valid_data = neural_data[split_idx:]
-    
+
      train_continuous_label = continuous_label[:split_idx]
      valid_continuous_label = continuous_label[split_idx:]
-    
+
      train_discrete_label = discrete_label[:split_idx]
      valid_discrete_label = discrete_label[split_idx:]
-    
+
      # 4. Fit the model
      # time contrastive learning
      cebra_model.fit(train_data)
@@ -1257,29 +1257,29 @@ Putting all previous snippet examples together, we obtain the following pipeline
      cebra_model.fit(train_data, train_continuous_label)
      # mixed behavior contrastive learning
      cebra_model.fit(train_data, train_discrete_label, train_continuous_label)
-    
-    
+
+
      # 5. Save the model
      tmp_file = Path(tempfile.gettempdir(), 'cebra.pt')
      cebra_model.save(tmp_file)
-    
+
      # 6. Load the model and compute an embedding
      cebra_model = cebra.CEBRA.load(tmp_file)
      train_embedding = cebra_model.transform(train_data)
      valid_embedding = cebra_model.transform(valid_data)
-    
+
      assert train_embedding.shape == (80, 8) # TODO(user): change to split ratio & output dim
      assert valid_embedding.shape == (20, 8) # TODO(user): change to split ratio & output dim
-    
+
      # 7. Evaluate the model performance (you can also check the train_data)
      goodness_of_fit = cebra.sklearn.metrics.goodness_of_fit_score(cebra_model,
                                                           valid_data,
                                                           valid_discrete_label,
                                                           valid_continuous_label)
-    
+
      # 8. Adapt the model to a new session
      cebra_model.fit(new_neural_data, adapt = True)
-    
+
      # 9. Decode discrete labels behavior from the embedding
      decoder = cebra.KNNDecoder()
      decoder.fit(train_embedding, train_discrete_label)

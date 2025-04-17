@@ -62,8 +62,8 @@ FROM python:3.9
 RUN python -m pip install --upgrade pip setuptools wheel \
     && apt-get update -y && apt-get install -y pandoc git
 RUN pip install torch --extra-index-url=https://download.pytorch.org/whl/cpu
-COPY dist/cebra-0.5.0rc1-py3-none-any.whl .
-RUN pip install 'cebra-0.5.0rc1-py3-none-any.whl[docs]'
+COPY dist/cebra-0.5.0-py3-none-any.whl .
+RUN pip install 'cebra-0.5.0-py3-none-any.whl[docs]'
 EOF
 
 checkout_cebra_figures
