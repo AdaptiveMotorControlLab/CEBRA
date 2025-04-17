@@ -73,12 +73,16 @@ jobs:
           # as of 29/10/23. Ubuntu 22.04 which is used for ubuntu-latest only has an
           # old pandoc version (2.9.). We will hence install the latest version manually.
           # previou: sudo apt-get install -y pandoc
-          wget https://github.com/jgm/pandoc/releases/download/3.1.9/pandoc-3.1.9-1-amd64.deb
-          sudo dpkg -i pandoc-3.1.9-1-amd64.deb
-          rm pandoc-3.1.9-1-amd64.deb
-          pip install torch --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install '.[docs]'
+          # NOTE(stes): Updated to latest version as of 17/04/2025, v3.6.4.
+          wget https://github.com/jgm/pandoc/releases/download/3.6.4/pandoc-3.6.4-1-amd64.deb
+          sudo dpkg -i pandoc-3.6.4-1-amd64.deb
+          rm pandoc-3.6.4-1-amd64.deb
           pip install -r docs/requirements.txt
+
+      - name: Check software versions
+        run: |
+          sphinx --version
+          pandoc --version
 
       - name: Build docs
         run: |
