@@ -16,16 +16,21 @@ from cebra.solver.schedulers import LinearRampUp
 
 @pytest.fixture
 def synthetic_data():
-    import os
+    import tempfile
     import urllib.request
+    from pathlib import Path
 
     url = "https://cebra.fra1.digitaloceanspaces.com/xcebra_synthetic_data.pkl"
-    filepath = "/tmp/synthetic_data.pkl"
 
-    if not os.path.exists(filepath):
+    # Create a persistent temp directory specific to this test
+    temp_dir = Path(tempfile.gettempdir()) / "cebra_test_data"
+    temp_dir.mkdir(exist_ok=True)
+    filepath = temp_dir / "synthetic_data.pkl"
+
+    if not filepath.exists():
         urllib.request.urlretrieve(url, filepath)
 
-    with open(filepath, 'rb') as file:
+    with filepath.open('rb') as file:
         return pickle.load(file)
 
 
