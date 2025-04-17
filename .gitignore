@@ -7,6 +7,7 @@ experiments/sweeps
 exports/
 demo_notebooks/
 assets/
+.remove
 
 # demo run
 .vscode/
