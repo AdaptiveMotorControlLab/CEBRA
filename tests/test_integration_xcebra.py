@@ -16,7 +16,16 @@ from cebra.solver.schedulers import LinearRampUp
 
 @pytest.fixture
 def synthetic_data():
-    with open('examples/synthetic_data.pkl', 'rb') as file:
+    import os
+    import urllib.request
+
+    url = "https://cebra.fra1.digitaloceanspaces.com/xcebra_synthetic_data.pkl"
+    filepath = "/tmp/synthetic_data.pkl"
+
+    if not os.path.exists(filepath):
+        urllib.request.urlretrieve(url, filepath)
+
+    with open(filepath, 'rb') as file:
         return pickle.load(file)
 
 
