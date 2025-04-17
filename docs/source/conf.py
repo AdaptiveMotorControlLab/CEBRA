@@ -26,8 +26,6 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Path setup --------------------------------------------------------------
-
 import datetime
 import os
 import sys
@@ -60,8 +58,7 @@ release = cebra.__version__
 
 #https://github.com/spatialaudio/nbsphinx/issues/128#issuecomment-1158712159
 html_js_files = [
-    "require.min.js",  # Add to your _static
-    "custom.js",
+    "https://cdn.plot.ly/plotly-latest.min.js",  # Add Plotly.js
 ]
 
 extensions = [
@@ -133,8 +130,11 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    "**/todo", "**/src", "cebra-figures/figures.rst", "cebra-figures/*.rst",
-    "*/cebra-figures/*.rst", "demo_notebooks/README.rst"
+    "**/todo",
+    "**/src",
+    "cebra-figures/figures.rst",
+    "cebra-figures/*.rst",
+    "*/cebra-figures/*.rst"  #, "demo_notebooks/README.rst"
 ]
 
 # -- Options for HTML output -------------------------------------------------
@@ -185,23 +185,26 @@ html_theme_options = {
             "icon": "fas fa-graduation-cap",
         },
     ],
-    "external_links": [
-        # {"name": "Mathis Lab", "url": "http://www.mackenziemathislab.org/"},
-    ],
     "collapse_navigation": False,
-    "navigation_depth": 4,
+    "navigation_depth": 1,
     "show_nav_level": 2,
     "navbar_align": "content",
     "show_prev_next": False,
+    "navbar_end": ["theme-switcher", "navbar-icon-links.html"],
+    "navbar_persistent": [],
+    "header_links_before_dropdown": 7
 }
 
-html_context = {"default_mode": "dark"}
+html_context = {"default_mode": "light"}
 html_favicon = "_static/img/logo_small.png"
 html_logo = "_static/img/logo_large.png"
 
-# Remove the search field for now
+# Replace with this configuration to enable "on this page" navigation
 html_sidebars = {
-    "**": ["search-field.html", "sidebar-nav-bs.html"],
+    "**": ["search-field.html", "sidebar-nav-bs", "page-toc.html"],
+    "demos": ["search-field.html", "sidebar-nav-bs"],
+    "api": ["search-field.html", "sidebar-nav-bs"],
+    "figures": ["search-field.html", "sidebar-nav-bs"],
 }
 
 # Disable links for embedded images
@@ -289,3 +292,12 @@ nbsphinx_prolog = r"""
 """
 # fmt: on
 # flake8: enable=E501
+
+# Configure nbsphinx to properly render Plotly plots
+nbsphinx_execute = 'auto'
+nbsphinx_allow_errors = True
+nbsphinx_requirejs_path = 'https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.7/require.js'
+nbsphinx_execute_arguments = [
+    "--InlineBackend.figure_formats={'png', 'svg', 'pdf'}",
+    "--InlineBackend.rc=figure.dpi=96",
+]
