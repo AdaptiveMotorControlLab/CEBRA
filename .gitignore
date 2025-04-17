@@ -8,6 +8,15 @@ exports/
 demo_notebooks/
 assets/
 
+# demo run
+.vscode/
+auxiliary_behavior_data.h5
+cebra_model.pt
+data.npz
+grid_search_models/
+neural_data.npz
+saved_models/
+
 # Binary files
 *.png
 *.jpg
