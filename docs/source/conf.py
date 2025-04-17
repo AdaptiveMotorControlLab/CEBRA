@@ -28,11 +28,10 @@
 
 import datetime
 import os
+import pathlib
 import sys
 
 sys.path.insert(0, os.path.abspath("."))
-
-import cebra  # noqa: E402
 
 
 def get_years(start_year=2021):
@@ -47,8 +46,17 @@ def get_years(start_year=2021):
 project = "cebra"
 copyright = f"""{get_years(2021)}"""
 author = "See AUTHORS.md"
-# The full version, including alpha/beta/rc tags
-release = cebra.__version__
+version_file = pathlib.Path(
+    __file__).parent.parent.parent / "cebra" / "__init__.py"
+assert version_file.exists(), f"Could not find version file: {version_file}"
+with version_file.open("r") as f:
+    for line in f:
+        if line.startswith("__version__"):
+            version = line.split("=")[1].strip().strip('"').strip("'")
+            print("Building docs for version:", version)
+            break
+    else:
+        raise ValueError("Could not find version in __init__.py")
 
 # -- General configuration ---------------------------------------------------
 
@@ -119,7 +127,8 @@ copybutton_only_copy_prompt_lines = True
 
 autodoc_member_order = "bysource"
 autodoc_mock_imports = [
-    "torch", "nlb_tools", "tqdm", "h5py", "pandas", "matplotlib", "plotly"
+    "torch", "nlb_tools", "tqdm", "h5py", "pandas", "matplotlib", "plotly",
+    "joblib", "scikit-learn", "scipy", "requests", "sklearn"
 ]
 # autodoc_typehints = "none"
 
