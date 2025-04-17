@@ -82,6 +82,7 @@ jobs:
           ls docs/source/cebra-figures
           # later also add the -n option to check for broken links
           export SPHINXOPTS="-W --keep-going -n"
+          export SPHINXBUILD="sphinx"
           make docs
 
       # NOTE(stes): To avoid issues as observed in
