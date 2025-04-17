@@ -52,14 +52,30 @@ def get_attribution_map(
     convert_to_numpy: bool = True,
     aggregate: Literal["mean", "sum", "max"] = "mean",
     transform: Literal["none", "abs"] = "none",
-    hybrid_solver=False,
+    hybrid_solver: bool = False,
 ):
-    """Estimate attribution maps.
+    """Estimate attribution maps using the Jacobian pseudo-inverse.
+
     The function estimates Jacobian matrices for each point in the model,
-    computes the pseudo-inverse (for every sample), applies the `transform`
-    function point-wise, and then aggregates with the `aggregate` function
-    over the sample dimension.
-    The result is a `(num_inputs, num_features)` attribution map.
+    computes the pseudo-inverse (for every sample) and then aggregates
+    the resulting matrices to compute an attribution map.
+
+    Args:
+        model: The neural network model for which to compute attributions.
+        input_data: Input tensor or numpy array to compute attributions for.
+        double_precision: If ``True``, use double precision for computation.
+        convert_to_numpy: If ``True``, convert the output to numpy arrays.
+        aggregate: Method to aggregate attribution values across samples.
+            Options are ``"mean"``, ``"sum"``, or ``"max"``.
+        transform: Transformation to apply to attribution values.
+            Options are ``"none"`` or ``"abs"``.
+        hybrid_solver: If ``True``, handle multi-objective models differently.
+
+    Returns:
+        A tuple containing:
+            - jf: The Jacobian matrix of shape (num_samples, output_dim, input_dim)
+            - jhatg: The pseudo-inverse of the Jacobian matrix
+        The result is effectively a ``(num_inputs, num_features)`` attribution map.
     """
     assert aggregate in ["mean", "sum", "max"]
 

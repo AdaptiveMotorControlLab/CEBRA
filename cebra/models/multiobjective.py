@@ -283,13 +283,14 @@ class MultiobjectiveModel(nn.Module):
 
         if max_slice_dim != self.num_output:
             raise ValueError(
-                f"The dimension of output {self.num_output} is different than the highest dimension of slices {max_slice_dim}."
-                f"They need to have the same dimension.")
+                f"The dimension of output {self.num_output} is different than the highest dimension of the slices ({max_slice_dim})."
+                f"The output dimension and slice dimension need to have the same dimension."
+            )
 
         check_slices_for_gaps(self.feature_ranges)
 
         if check_overlapping_feature_ranges(self.feature_ranges):
-            print("Computing renormalize ranges...")
+            print("Computing renormalized ranges...")
             self.renormalize_ranges = compute_renormalize_ranges(
                 self.feature_ranges, sort=True)
             print("New ranges:", self.renormalize_ranges)
@@ -327,9 +328,12 @@ class MultiobjectiveModel(nn.Module):
 
         if self.renormalize:
             if hasattr(self, "renormalize_ranges"):
-                #TODO: does the order of the renormalize ranges matter??
-                # I think it does, imagine that the renormalize ranges are (5, 10), (0, 5), then
-                # when we do torch.cat() output will be wrong --> Renormalize ranges need to be ordered.
+                if not all(self.renormalize_ranges[i].start <=
+                           self.renormalize_ranges[i + 1].start
+                           for i in range(len(self.renormalize_ranges) - 1)):
+                    raise ValueError(
+                        "The renormalize_ranges must be sorted by start index.")
+
                 output = [
                     self._norm(output[:, slice_features])
                     for slice_features in self.renormalize_ranges
