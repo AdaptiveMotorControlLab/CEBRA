@@ -4,9 +4,11 @@
 # You can set these variables from the command line, and also
 # from the environment for the first two.
 SPHINXOPTS    ?=
-SPHINXBUILD   ?= sphinx-build
+SPHINXBUILD   ?= sphinx-autobuild
 SOURCEDIR     = source
 BUILDDIR      = build
+PORT          ?= 8000
+HOST          ?= 127.0.0.1
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -16,7 +18,7 @@ help:
 
 # Build the API documentation using sphinx
 html:
-	PYTHONPATH=.. $(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	PYTHONPATH=.. $(SPHINXBUILD) --port $(PORT) --host $(HOST) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 # Build multiple versions
 html_versions:
@@ -33,12 +35,26 @@ clean:
 source/cebra-figures:
 	git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-figures.git source/cebra-figures
 
+source/demo_notebooks:
+	git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-demos.git source/demo_notebooks
+
 # Update the figures. Note that this might prompt you for an SSH key
 figures: source/cebra-figures
 	cd source/cebra-figures &&	git pull --ff-only origin main
 
+demos: source/demo_notebooks
+	cd source/demo_notebooks &&	git pull --ff-only origin main
+
+source/assets:
+	git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-assets.git source/assets
+
+assets: source/assets
+	cd source/assets && git pull --ff-only origin main
+	cp -r source/assets/docs/* .
+	#rm -rf source/assets
+
 # Build the page with pre-built figures
-page: source/cebra-figures html
+page: source/cebra-figures source/demo_notebooks html
 	mkdir -p page/
 	mkdir -p page/docs
 	mkdir -p page/staging/docs
