@@ -81,7 +81,6 @@ extensions = [
     "sphinx_gallery.load_style",
 ]
 
-
 coverage_show_missing_items = True
 panels_add_bootstrap_css = False
 
@@ -147,7 +146,8 @@ html_theme = "pydata_sphinx_theme"
 html_context = {
     "default_mode": "light",
     "switcher": {
-        "version_match": "latest",  # Adjust this dynamically per version
+        "version_match":
+            "latest",  # Adjust this dynamically per version
         "versions": [
             ("latest", "/latest/"),
             ("v0.2.0", "/v0.2.0/"),
@@ -156,7 +156,8 @@ html_context = {
             ("v0.5.0rc1", "/v0.5.0rc1/"),
         ],
     },
-    "navbar_start": ["version-switcher", "navbar-logo"],  # Place the dropdown above the logo
+    "navbar_start": ["version-switcher",
+                     "navbar-logo"],  # Place the dropdown above the logo
 }
 
 # More info on theme options:
@@ -220,7 +221,7 @@ nitpick_ignore = [
 
 nbsphinx_thumbnails = {
     "demo_notebooks/CEBRA_best_practices":
-    "_static/thumbnails/cebra-best.png",
+        "_static/thumbnails/cebra-best.png",
     "demo_notebooks/Demo_primate_reaching":
         "_static/thumbnails/ForelimbS1.png",
     "demo_notebooks/Demo_hippocampus":
