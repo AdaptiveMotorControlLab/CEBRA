@@ -22,9 +22,10 @@
 """Attribution methods for CEBRA.
 
 This module was added in v0.6.0 and contains attribution methods described and benchmarked
-in :cite:`schneider2025xcebra`:
+in [Schneider2025]_.
 
-.. [schneider2025xcebra] Schneider, S., González Laiz, R., Filippova, A., Frey, M., & Mathis, M. W. (2025).
+
+.. [Schneider2025] Schneider, S., González Laiz, R., Filippova, A., Frey, M., & Mathis, M. W. (2025).
     Time-series attribution maps with regularized contrastive learning.
     The 28th International Conference on Artificial Intelligence and Statistics.
     https://openreview.net/forum?id=aGrCXoTB4P
