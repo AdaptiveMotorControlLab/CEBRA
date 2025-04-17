@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+      - stes/upgrade-docs-rebased
 
 jobs:
   build:
