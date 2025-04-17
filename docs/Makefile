@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-SPHINXOPTS    ?=
+SPHINXOPTS    ?= -W --keep-going -n
 SPHINXBUILD   ?= sphinx-autobuild
 SOURCEDIR     = source
 BUILDDIR      = build
@@ -33,10 +33,10 @@ clean:
 # Checkout the source repository for CEBRA figures. Note that this requires SSH access
 # and might prompt you for an SSH key.
 source/cebra-figures:
-	git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-figures.git source/cebra-figures
+	cd $(dir $(realpath $(firstword $(MAKEFILE_LIST)))) && git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-figures.git source/cebra-figures
 
 source/demo_notebooks:
-	git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-demos.git source/demo_notebooks
+	cd $(dir $(realpath $(firstword $(MAKEFILE_LIST)))) && git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-demos.git source/demo_notebooks
 
 # Update the figures. Note that this might prompt you for an SSH key
 figures: source/cebra-figures
@@ -46,7 +46,7 @@ demos: source/demo_notebooks
 	cd source/demo_notebooks &&	git pull --ff-only origin main
 
 source/assets:
-	git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-assets.git source/assets
+	cd $(dir $(realpath $(firstword $(MAKEFILE_LIST)))) && git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-assets.git source/assets
 
 assets: source/assets
 	cd source/assets && git pull --ff-only origin main

@@ -38,6 +38,7 @@ these components in other contexts and research code bases.
    api/pytorch/distributions
    api/pytorch/models
    api/pytorch/helpers
+   api/pytorch/attribution
 
 .. toctree::
    :hidden:

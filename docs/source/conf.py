@@ -119,7 +119,8 @@ copybutton_only_copy_prompt_lines = True
 
 autodoc_member_order = "bysource"
 autodoc_mock_imports = [
-    "torch", "nlb_tools", "tqdm", "h5py", "pandas", "matplotlib", "plotly"
+    "torch", "nlb_tools", "tqdm", "h5py", "pandas", "matplotlib", "plotly",
+    "cvxpy", "captum"
 ]
 # autodoc_typehints = "none"
 
@@ -130,9 +131,18 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    "**/todo", "**/src", "cebra-figures/figures.rst", "cebra-figures/*.rst",
-    "*/cebra-figures/*.rst", "*/demo_notebooks/README.rst",
-    "demo_notebooks/README.rst"
+    "**/todo",
+    "**/src",
+    "cebra-figures/figures.rst",
+    "cebra-figures/*.rst",
+    "*/cebra-figures/*.rst",
+    "*/demo_notebooks/README.rst",
+    "demo_notebooks/README.rst",
+    # TODO(stes): Remove this from the assets repo, then remove here
+    "_static/figures_usage.ipynb",
+    "*/_static/figures_usage.ipynb",
+    "assets/**/*.ipynb",
+    "*/assets/**/*.ipynb"
 ]
 
 # -- Options for HTML output -------------------------------------------------
