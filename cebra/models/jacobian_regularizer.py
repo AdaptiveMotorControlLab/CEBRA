@@ -37,6 +37,14 @@
 #   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 #   SOFTWARE.
 #
+"""Jacobian Regularization for CEBRA.
+
+This implementation is adapted from the Jacobian regularization described in [1]_.
+
+.. [1] Judy Hoffman, Daniel A. Roberts, and Sho Yaida,
+       "Robust Learning with Jacobian Regularization," 2019.
+       `arxiv:1908.02729 <https://arxiv.org/abs/1908.02729>`_
+"""
 
 from __future__ import division
 
@@ -52,12 +60,6 @@ class JacobianReg(nn.Module):
            of the output space and projection is non-random and orthonormal, yielding the exact
            result. For any reasonable batch size, the default (n=1) should be sufficient.
            |Default:| ``1``
-
-    Note:
-        This implementation is adapted from the Jacobian regularization described in [1].
-        [1] Judy Hoffman, Daniel A. Roberts, and Sho Yaida,
-            "Robust Learning with Jacobian Regularization," 2019.
-            [arxiv:1908.02729](https://arxiv.org/abs/1908.02729)
     """
 
     def __init__(self, n: int = 1):
@@ -66,7 +68,7 @@ class JacobianReg(nn.Module):
         super(JacobianReg, self).__init__()
 
     def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        """Computes (1/2) tr |dy/dx|^2.
+        """Computes (1/2) tr \\|dy/dx\\|^2.
 
         Args:
             x: Input tensor

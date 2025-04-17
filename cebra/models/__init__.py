@@ -36,7 +36,7 @@ from cebra.models.model import *
 from cebra.models.multiobjective import *
 from cebra.models.layers import *
 from cebra.models.criterions import *
-from cebra.models.multi_criterions import *
+from cebra.models.multicriterions import *
 from cebra.models.jacobian_regularizer import *
 
 cebra.registry.add_docstring(__name__)

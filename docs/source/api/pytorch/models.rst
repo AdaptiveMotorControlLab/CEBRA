@@ -42,13 +42,5 @@ Layers and model building blocks
    :members:
    :show-inheritance:
 
-Multi-objective models
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. automodule:: cebra.models.multiobjective
-   :members:
-   :private-members:
-   :show-inheritance:
-
 ..
    - projector

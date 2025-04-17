@@ -19,6 +19,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+"""Support for training CEBRA with multiple criteria.
+
+.. note::
+   This module was introduced in CEBRA 0.6.0.
+
+"""
 from typing import Tuple
 
 import torch

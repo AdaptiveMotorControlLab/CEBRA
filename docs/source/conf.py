@@ -203,7 +203,7 @@ html_theme_options = {
     ],
     "collapse_navigation": False,
     "navigation_depth": 1,
-    "show_nav_level": 2,
+    "show_nav_level": 1,
     "navbar_align": "content",
     "show_prev_next": False,
     "navbar_end": ["theme-switcher", "navbar-icon-links.html"],
