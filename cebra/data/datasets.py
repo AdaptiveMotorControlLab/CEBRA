@@ -398,7 +398,7 @@ class DatasetxCEBRA(cebra_io.HasDevice):
         return self.neural[index].transpose(2, 1)
 
     def load_batch_supervised(self, index: Batch,
-                              labels_supervised) -> torch.tensor:
+                              labels_supervised) -> torch.Tensor:
         """Load a batch for supervised learning.
 
         Args:
