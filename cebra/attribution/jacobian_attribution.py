@@ -72,10 +72,9 @@ def get_attribution_map(
         hybrid_solver: If ``True``, handle multi-objective models differently.
 
     Returns:
-        A tuple containing:
-            - jf: The Jacobian matrix of shape (num_samples, output_dim, input_dim)
-            - jhatg: The pseudo-inverse of the Jacobian matrix
-        The result is effectively a ``(num_inputs, num_features)`` attribution map.
+        A tuple containing the Jacobian matrix of shape (num_samples, output_dim, input_dim)
+        and the pseudo-inverse of the Jacobian matrix.
+
     """
     assert aggregate in ["mean", "sum", "max"]
 

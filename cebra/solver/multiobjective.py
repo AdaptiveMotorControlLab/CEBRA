@@ -19,7 +19,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Multiobjective contrastive learning."""
+"""Multiobjective contrastive learning.
+
+Starting in CEBRA 0.6.0, we have added support for subspace contrastive learning.
+This is a method for training models that are able to learn multiple subspaces of the
+feature space simultaneously.
+
+Subspace contrastive learning requires to use specialized models and criterions.
+This module specifies a test of classes required for training CEBRA models with multiple objectives.
+The objectives are defined by the wrapper class :py:class:`cebra.models.multicriterions.MultiCriterions`.
+
+Two solvers are currently implemented:
+
+- :py:class:`cebra.solver.multiobjective.ContrastiveMultiobjectiveSolverxCEBRA`
+- :py:class:`cebra.solver.multiobjective.SupervisedMultiobjectiveSolverxCEBRA`
+
+See Also:
+    :py:class:`cebra.solver.multiobjective.SupervisedMultiobjectiveSolverxCEBRA`
+    :py:class:`cebra.solver.multiobjective.MultiObjectiveConfig`
+    :py:class:`cebra.models.multicriterions.MultiCriterions`
+"""
 
 import logging
 import time
@@ -42,6 +61,8 @@ from cebra.solver.util import Meter
 
 class MultiObjectiveConfig:
     """Configuration class for setting up multi-objective learning with Cebra.
+
+
 
     Args:
         loader: Data loader used for configurations.
@@ -458,7 +479,11 @@ class MultiobjectiveSolverBase(Solver):
 @register("supervised-solver-xcebra")
 @dataclasses.dataclass
 class SupervisedMultiobjectiveSolverxCEBRA(MultiobjectiveSolverBase):
-    """Supervised neural network training with MSE loss"""
+    """Supervised neural network training using the MSE loss.
+
+    This solver can be used as a baseline variant instead of the contrastive solver,
+    :py:class:`cebra.solver.multiobjective.ContrastiveMultiobjectiveSolverxCEBRA`.
+    """
 
     _variant_name = "supervised-solver-xcebra"
 
@@ -477,6 +502,15 @@ class SupervisedMultiobjectiveSolverxCEBRA(MultiobjectiveSolverBase):
 @register("multiobjective-solver")
 @dataclasses.dataclass
 class ContrastiveMultiobjectiveSolverxCEBRA(MultiobjectiveSolverBase):
+    """Multi-objective solver for CEBRA.
+
+    This solver is used for training CEBRA models with multiple objectives.
+
+    See Also:
+        :py:class:`cebra.solver.multiobjective.SupervisedMultiobjectiveSolverxCEBRA`
+        :py:class:`cebra.solver.multiobjective.MultiObjectiveConfig`
+        :py:class:`cebra.models.multicriterions.MultiCriterions`
+    """
 
     _variant_name = "contrastive-solver-xcebra"
 
