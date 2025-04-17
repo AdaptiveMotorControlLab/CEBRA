@@ -130,11 +130,9 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    "**/todo",
-    "**/src",
-    "cebra-figures/figures.rst",
-    "cebra-figures/*.rst",
-    "*/cebra-figures/*.rst"  #, "demo_notebooks/README.rst"
+    "**/todo", "**/src", "cebra-figures/figures.rst", "cebra-figures/*.rst",
+    "*/cebra-figures/*.rst", "*/demo_notebooks/README.rst"
+    "demo_notebooks/README.rst"
 ]
 
 # -- Options for HTML output -------------------------------------------------
