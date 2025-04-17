@@ -5,7 +5,7 @@ This directory contains the documentation for CEBRA.
 To build the docs, head to *the root folder of the repository* and run:
 
 ```bash
-./build_docs.sh
+./tools/build_docs.sh
 ```
 
 This will build the docker container in [Dockerfile](Dockerfile) and run the `make docs` command from the root repo.

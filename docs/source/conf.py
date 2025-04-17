@@ -131,7 +131,7 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
     "**/todo", "**/src", "cebra-figures/figures.rst", "cebra-figures/*.rst",
-    "*/cebra-figures/*.rst", "*/demo_notebooks/README.rst"
+    "*/cebra-figures/*.rst", "*/demo_notebooks/README.rst",
     "demo_notebooks/README.rst"
 ]
 
