@@ -38,6 +38,9 @@ these components in other contexts and research code bases.
    api/pytorch/distributions
    api/pytorch/models
    api/pytorch/helpers
+   api/xcebra/multiobjective
+   api/xcebra/regularized
+   api/xcebra/attribution
 
 .. toctree::
    :hidden:

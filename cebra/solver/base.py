@@ -384,7 +384,7 @@ class MultiobjectiveSolver(Solver):
     def __post_init__(self):
         super().__post_init__()
         self._check_dimensions()
-        self.model = cebra.models.MultiobjectiveModel(
+        self.model = cebra.models.LegacyMultiobjectiveModel(
             self.model,
             dimensions=(self.num_behavior_features, self.model.num_output),
             renormalize=self.renormalize_features,
