@@ -1,1 +1,1 @@
-.. include:: demo_notebooks/README.rst
+demo_notebooks/README.rst

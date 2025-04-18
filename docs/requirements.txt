@@ -1,0 +1,23 @@
+sphinx==7.4.7
+nbsphinx==0.9.6
+pydata-sphinx-theme==0.16.1
+pytest-sphinx==0.6.3
+sphinx-autobuild==2024.10.3
+sphinx-autodoc-typehints==1.19.0
+sphinx-copybutton==0.5.2
+sphinx-gallery==0.19.0
+sphinx-tabs==3.4.7
+sphinx-togglebutton==0.3.2
+sphinx_design==0.6.0
+sphinx_pydata_theme==0.1.0
+sphinxcontrib-applehelp==2.0.0
+sphinxcontrib-devhelp==2.0.0
+sphinxcontrib-htmlhelp==2.1.0
+sphinxcontrib-jsmath==1.0.1
+sphinxcontrib-qthelp==2.0.0
+sphinxcontrib-serializinghtml==2.0.0
+
+literate_dataclasses
+# For IPython.sphinxext.ipython_console_highlighting extension
+ipython
+numpy
