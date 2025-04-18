@@ -36,6 +36,9 @@ source/cebra-figures:
 source/demo_notebooks:
 	cd $(dir $(realpath $(firstword $(MAKEFILE_LIST)))) && git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-demos.git source/demo_notebooks
 
+source/demo_notebooks:
+	git clone --depth 1 git@github.com:AdaptiveMotorControlLab/cebra-demos.git source/demo_notebooks
+
 # Update the figures. Note that this might prompt you for an SSH key
 figures: source/cebra-figures
 	cd source/cebra-figures &&	git pull --ff-only origin main
