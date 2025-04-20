@@ -68,6 +68,10 @@ jobs:
         run: |
           make codespell
 
+      - name: Check the documentation coverage
+        run: |
+          make interrogate
+
       - name: Check CITATION.cff validity
         run: |
           cffconvert --validate
