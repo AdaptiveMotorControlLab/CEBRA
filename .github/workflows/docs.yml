@@ -7,14 +7,6 @@ on:
   pull_request:
     branches:
       - main
-      - public
-      - dev
-    paths:
-      - '**.py'
-      - '**.ipynb'
-      - '**.js'
-      - '**.rst'
-      - '**.md'
 
 jobs:
   build:
