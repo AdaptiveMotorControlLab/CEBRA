@@ -9,7 +9,6 @@ on:
       - main
       - public
       - dev
-      - stes/upgrade-docs-rebased
     paths:
       - '**.py'
       - '**.ipynb'

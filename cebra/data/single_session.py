@@ -359,8 +359,10 @@ class HybridDataLoader(cebra_data.Loader):
         #            e.g. integrating the FAISS dataloader back in.
         super().__post_init__()
 
-        # BEHAVIOR DISTRIBUTION
+        self._init_behavior_distribution()
+        self._init_time_distribution()
 
+    def _init_behavior_distribution(self):
         if self.conditional == "time":
             self.behavior_distribution = cebra.distributions.TimeContrastive(
                 time_offset=self.time_offset,
@@ -385,7 +387,8 @@ class HybridDataLoader(cebra_data.Loader):
                 device=self.device,
             )
 
-        # TIME DISTRIBUTION
+    def _init_time_distribution(self):
+
         if self.time_distribution == "time":
             self.time_distribution = cebra.distributions.TimeContrastive(
                 time_offset=self.time_offset,
@@ -403,9 +406,10 @@ class HybridDataLoader(cebra_data.Loader):
             self.time_distribution = cebra.distributions.DeltaNormalDistribution(
                 self.dataset.continuous_index, self.delta, device=self.device)
 
-        elif self.time_distribution == "delta_vmf":
-            self.time_distribution = cebra.distributions.DeltaVMFDistribution(
-                self.dataset.continuous_index, self.delta, device=self.device)
+        # TODO(stes): Add this distribution from internal xCEBRA codebase at a later point
+        #elif self.time_distribution == "delta_vmf":
+        #    self.time_distribution = cebra.distributions.DeltaVMFDistribution(
+        #        self.dataset.continuous_index, self.delta, device=self.device)
         else:
             raise ValueError
 

@@ -109,12 +109,12 @@ def test_multiobjective():
 
     model = TestModel()
 
-    multi_model_overlap = cebra.models.LegacyMultiobjectiveModel(
+    multi_model_overlap = cebra.models.MultiobjectiveModel(
         model,
         dimensions=(4, 6),
         output_mode="overlapping",
         append_last_dimension=True)
-    multi_model_separate = cebra.models.LegacyMultiobjectiveModel(
+    multi_model_separate = cebra.models.MultiobjectiveModel(
         model,
         dimensions=(4, 6),
         output_mode="separate",

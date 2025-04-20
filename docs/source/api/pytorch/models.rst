@@ -42,5 +42,9 @@ Layers and model building blocks
    :members:
    :show-inheritance:
 
-..
-   - projector
+Multi-objective models
+~~~~~~~~~~~~~~~~~~~~~~
+
+The multi-objective interface was moved to a separate section beginning with CEBRA 0.6.0.
+Please see the :doc:`Multi-objective models </api/pytorch/multiobjective>` section
+for all details, both on the old and new API interface.

@@ -287,10 +287,6 @@ def add_helper_functions(module: Union[types.ModuleType, str]):
         raise RuntimeError(
             f"Registry could not be successfully registered: {module}.")
 
-    # NOTE(stes): Used in xCEBRA initially. If you see this note past 0.6.0, please remove it
-    # as the functionality is no longer needed.
-    #return register, parametrize, init, get_options
-
 
 def add_docstring(module: Union[types.ModuleType, str]):
     """Apply additional information about configuration options to registry modules.

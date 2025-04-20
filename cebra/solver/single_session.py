@@ -22,7 +22,6 @@
 """Single session solvers embed a single pair of time series."""
 
 import copy
-from typing import Dict
 
 import literate_dataclasses as dataclasses
 import torch
@@ -130,16 +129,6 @@ class SingleSessionAuxVariableSolver(abc_.Solver):
 @dataclasses.dataclass
 class SingleSessionHybridSolver(abc_.MultiobjectiveSolver):
     """Single session training, contrasting neural data against behavior."""
-
-    log: Dict = dataclasses.field(default_factory=lambda: ({
-        "behavior_pos": [],
-        "behavior_neg": [],
-        "behavior_total": [],
-        "time_pos": [],
-        "time_neg": [],
-        "time_total": [],
-        "temperature": []
-    }))
 
     _variant_name = "single-session-hybrid"
 

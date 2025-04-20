@@ -29,12 +29,13 @@ import cebra.models
 import cebra.models.model as cebra_models_base
 
 
-def create_multiobjective_model(module, **kwargs) -> "MultiobjectiveModel":
+def create_multiobjective_model(module,
+                                **kwargs) -> "SubspaceMultiobjectiveModel":
     assert isinstance(module, cebra_models_base.Model)
     if isinstance(module, cebra.models.ConvolutionalModelMixin):
-        return MultiobjectiveConvolutionalModel(module=module, **kwargs)
+        return SubspaceMultiobjectiveConvolutionalModel(module=module, **kwargs)
     else:
-        return MultiobjectiveModel(module=module, **kwargs)
+        return SubspaceMultiobjectiveModel(module=module, **kwargs)
 
 
 def check_slices_for_gaps(slice_list):
@@ -106,7 +107,7 @@ class _Norm(nn.Module):
         return inp / torch.norm(inp, dim=1, keepdim=True)
 
 
-class LegacyMultiobjectiveModel(nn.Module):
+class MultiobjectiveModel(nn.Module):
     """Wrapper around contrastive learning models to all training with multiple objectives
 
     Multi-objective training splits the last layer's feature representation into multiple
@@ -128,6 +129,13 @@ class LegacyMultiobjectiveModel(nn.Module):
 
     TODO:
         - Update nn.Module type annotation for ``module`` to cebra.models.Model
+
+    Note:
+        This model will be deprecated in a future version. Please use the functionality in
+        :py:mod:`cebra.models.multiobjective` instead, which provides more versatile
+        multi-objective training capabilities. Instantiation of this model will raise a
+        deprecation warning. The new model is :py:class:`cebra.models.multiobjective.SubspaceMultiobjectiveModel`
+        which allows for unlimited subspaces and better configuration of the feature ranges.
     """
 
     class Mode:
@@ -240,7 +248,7 @@ class LegacyMultiobjectiveModel(nn.Module):
         return tuple(outputs)
 
 
-class MultiobjectiveModel(nn.Module):
+class SubspaceMultiobjectiveModel(nn.Module):
     """Wrapper around contrastive learning models to all training with multiple objectives
 
     Multi-objective training splits the last layer's feature representation into multiple
@@ -354,7 +362,6 @@ class MultiobjectiveModel(nn.Module):
             return output
 
 
-class MultiobjectiveConvolutionalModel(MultiobjectiveModel,
-                                       cebra_models_base.ConvolutionalModelMixin
-                                      ):
+class SubspaceMultiobjectiveConvolutionalModel(
+        SubspaceMultiobjectiveModel, cebra_models_base.ConvolutionalModelMixin):
     pass
