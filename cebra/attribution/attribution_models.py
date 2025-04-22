@@ -432,13 +432,39 @@ class JFMethodBased(AttributionMap):
 @dataclasses.dataclass
 @register("jacobian-based-batched")
 class JFMethodBasedBatched(JFMethodBased):
-    """Compute an attribution map based on the Jacobian using mini-batches.
+    """Batched version of the Jacobian-based attribution method.
+
+    This class extends JFMethodBased to compute attribution maps using mini-batches,
+    which is useful for handling large datasets that don't fit in memory. It processes
+    the input data in smaller chunks and combines the results.
+
+    Args:
+        model: The trained CEBRA model to analyze
+        input_data: Input data tensor to compute attributions for
+        output_dimension: Output dimension to analyze. If ``None``, uses model's output dimension
+        num_samples: Number of samples to use for attribution. If ``None``, uses full dataset
+        seed: Random seed which is used to subsample the data
 
     See also:
-        :py:class:`JFMethodBased`
+        :py:class:`JFMethodBased`: The base class for Jacobian-based attribution
     """
 
     def compute_attribution_map(self, batch_size=1024):
+        """Compute the attribution map using batched Jacobian method.
+
+        This method processes the input data in mini-batches to handle large datasets
+        that don't fit in memory. It computes the Jacobian for each batch and combines
+        the results.
+
+        Args:
+            batch_size: Size of each mini-batch. Default is 1024.
+
+        Returns:
+            dict: Dictionary containing attribution maps and their variants
+
+        Raises:
+            ValueError: If batch_size is larger than the number of samples
+        """
         if batch_size > self.input_data.shape[0]:
             raise ValueError(
                 f"Batch size ({batch_size}) is bigger than data ({self.input_data.shape[0]})"
@@ -457,7 +483,6 @@ class JFMethodBasedBatched(JFMethodBased):
         }).items():
             result[key] = value
             for method in ['lsq', 'svd']:
-
                 result[f"{key}-inv-{method}"], result[
                     f'time_inversion_{method}'] = self._inverse(value,
                                                                 method=method)
@@ -545,9 +570,9 @@ class NeuronGradientMethodBatched(NeuronGradientMethod):
             attribution_map.append(attribution_map_batch)
 
         attribution_map = np.vstack(attribution_map)
-        return self._reduce_attribution_map({
-            'neuron-gradient': attribution_map,
-            #'neuron-gradient-invsvd': self._inverse_svd(attribution_map)
+        return self._reduce_attribution_map(
+            {'neuron-gradient': attribution_map,
+             #'neuron-gradient-invsvd': self._inverse_svd(attribution_map)
         })
 
 
