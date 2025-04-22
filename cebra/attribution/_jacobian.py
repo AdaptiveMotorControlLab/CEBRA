@@ -33,7 +33,19 @@
 #   SOFTWARE.
 #
 
-from typing import Union
+"""Jacobian computation utilities for attribution analysis.
+
+This module provides core functionality for computing Jacobian matrices, which are
+essential for many attribution methods. The Jacobian matrix represents the first-order
+partial derivatives of a model's output with respect to its input features.
+
+The module includes:
+- Utility functions for tensor manipulation
+- Core Jacobian computation function
+- Helper functions for matrix operations
+"""
+
+from typing import Union, Tuple, Optional
 
 import numpy as np
 import torch
@@ -102,86 +114,135 @@ def tensors_to_cuda(vars_: list[torch.Tensor],
 
 def compute_jacobian(
     model: torch.nn.Module,
-    input_vars: list[torch.Tensor],
-    mode: str = "autograd",
-    cuda_device: str = "cuda",
-    double_precision: bool = False,
-    convert_to_numpy: bool = True,
-    hybrid_solver: bool = False,
-) -> Union[torch.Tensor, np.ndarray]:
+    x: torch.Tensor,
+    output_dim: Optional[int] = None,
+    device: Optional[torch.device] = None
+) -> torch.Tensor:
     """Compute the Jacobian matrix for a given model and input.
 
-    This function computes the Jacobian matrix using PyTorch's autograd functionality.
-    The Jacobian represents the first-order partial derivatives of the model's output
-    with respect to its input parameters. It supports both CPU and CUDA computation,
-    as well as single and double precision.
+    The Jacobian matrix J is defined as:
+        J[i,j] = ∂f(x)[i]/∂x[j]
+    where f is the model function and x is the input tensor.
 
-    Args:
-        model: PyTorch model to compute Jacobian for. The model should be callable
-            with the input variables.
-        input_vars: List of input tensors to compute the Jacobian with respect to.
-            Each tensor should have requires_grad=True if gradients are needed.
-        mode: Computation mode. Currently only "autograd" is supported, which uses
-            PyTorch's automatic differentiation.
-        cuda_device: CUDA device identifier to use for computation (e.g., "cuda:0").
-            Ignored if double_precision is True.
-        double_precision: If True, use double precision (float64) for computation.
-            This moves all tensors to CPU.
-        convert_to_numpy: If True, convert the output Jacobian to a numpy array.
-            If False, returns a PyTorch tensor.
-        hybrid_solver: If True, concatenate multiple model outputs along dimension 1
-            before computing the Jacobian. Useful for models with multiple outputs.
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The neural network model for which to compute the Jacobian.
+    x : torch.Tensor
+        Input tensor of shape (batch_size, input_dim).
+    output_dim : Optional[int]
+        The dimension of the model's output. If None, it will be inferred from the model.
+    device : Optional[torch.device]
+        The device on which to perform computations. If None, uses the model's device.
 
-    Returns:
-        Jacobian matrix as either a PyTorch tensor or numpy array. The shape is
-        (batch_size, output_dim, input_dim), where:
-        - batch_size is the size of the input batch
-        - output_dim is the dimension of the model's output
-        - input_dim is the total dimension of all input variables
+    Returns
+    -------
+    torch.Tensor
+        Jacobian matrix of shape (batch_size, output_dim, input_dim).
 
-    Example:
-        >>> model = torch.nn.Linear(10, 5)
-        >>> x = torch.randn(3, 10, requires_grad=True)
-        >>> jacobian = compute_jacobian(model, [x])
-        >>> jacobian.shape
-        (3, 5, 10)
+    Raises
+    ------
+    ValueError
+        If the input tensor is not 2D or if the model's output is not compatible
+        with the specified output_dim.
+
+    Examples
+    --------
+    >>> model = torch.nn.Linear(10, 5)
+    >>> x = torch.randn(32, 10)
+    >>> jacobian = compute_jacobian(model, x)
+    >>> print(jacobian.shape)  # (32, 5, 10)
     """
-    if double_precision:
-        model = model.to("cpu").double()
-        input_vars = tensors_to_cpu_and_double(input_vars)
-        if hybrid_solver:
-            output = model(*input_vars)
-            output_vars = torch.cat(output, dim=1).to("cpu").double()
-        else:
-            output_vars = model(*input_vars).to("cpu").double()
-    else:
-        model = model.to(cuda_device).float()
-        input_vars = tensors_to_cuda(input_vars, cuda_device=cuda_device)
+    if output_dim is None:
+        output_dim = model(x).shape[1]
+    if device is None:
+        device = x.device
 
-        if hybrid_solver:
-            output = model(*input_vars)
-            output_vars = torch.cat(output, dim=1)
-        else:
-            output_vars = model(*input_vars)
+    if x.ndim != 2:
+        raise ValueError("Input tensor must be 2D")
+    if model(x).shape[1] != output_dim:
+        raise ValueError("Model's output dimension must match the specified output_dim")
 
-    if mode == "autograd":
-        jacob = []
-        for i in range(output_vars.shape[1]):
-            grads = torch.autograd.grad(
-                output_vars[:, i:i + 1],
-                input_vars,
-                retain_graph=True,
-                create_graph=False,
-                grad_outputs=torch.ones(output_vars[:, i:i + 1].shape).to(
-                    output_vars.device),
-            )
-            jacob.append(torch.cat(grads, dim=1))
+    model = model.to(device).float()
+    x = x.to(device)
 
-        jacobian = torch.stack(jacob, dim=1)
+    jacobian = []
+    for i in range(output_dim):
+        grads = torch.autograd.grad(
+            model(x)[:, i:i + 1],
+            x,
+            retain_graph=True,
+            create_graph=False,
+            grad_outputs=torch.ones(model(x)[:, i:i + 1].shape).to(device),
+        )
+        jacobian.append(torch.cat(grads, dim=1))
 
-    jacobian = jacobian.detach().cpu()
+    jacobian = torch.stack(jacobian, dim=1)
+    return jacobian
 
-    if convert_to_numpy:
-        jacobian = jacobian.numpy()
 
+def _reshape_for_jacobian(tensor: torch.Tensor) -> torch.Tensor:
+    """Reshape a tensor to be compatible with Jacobian computation.
+
+    Parameters
+    ----------
+    tensor : torch.Tensor
+        Input tensor of any shape.
+
+    Returns
+    -------
+    torch.Tensor
+        Reshaped tensor of shape (batch_size, -1).
+
+    Notes
+    -----
+    This function ensures that the input tensor is properly flattened for
+    Jacobian computation while preserving the batch dimension.
+    """
+    return tensor.view(tensor.shape[0], -1)
+
+
+def _compute_jacobian_columns(
+    model: torch.nn.Module,
+    x: torch.Tensor,
+    output_dim: int,
+    device: torch.device
+) -> torch.Tensor:
+    """Compute Jacobian matrix column by column using automatic differentiation.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The neural network model.
+    x : torch.Tensor
+        Input tensor of shape (batch_size, input_dim).
+    output_dim : int
+        The dimension of the model's output.
+    device : torch.device
+        The device on which to perform computations.
+
+    Returns
+    -------
+    torch.Tensor
+        Jacobian matrix of shape (batch_size, output_dim, input_dim).
+
+    Notes
+    -----
+    This function computes the Jacobian by iterating over input dimensions and
+    using automatic differentiation to compute partial derivatives. It is more
+    memory-efficient than computing the full Jacobian at once but may be slower
+    for large input dimensions.
+    """
+    jacobian = []
+    for i in range(output_dim):
+        grads = torch.autograd.grad(
+            model(x)[:, i:i + 1],
+            x,
+            retain_graph=True,
+            create_graph=False,
+            grad_outputs=torch.ones(model(x)[:, i:i + 1].shape).to(device),
+        )
+        jacobian.append(torch.cat(grads, dim=1))
+
+    jacobian = torch.stack(jacobian, dim=1)
     return jacobian

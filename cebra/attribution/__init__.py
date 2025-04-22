@@ -21,10 +21,25 @@
 #
 """Attribution methods for CEBRA.
 
+This module provides tools for computing and analyzing attribution maps in CEBRA models.
+Attribution maps help understand how input features contribute to the model's output
+by analyzing the relationship between input variables and model predictions.
+
+The module includes several attribution methods:
+- Jacobian-based attribution
+- Neuron gradient-based attribution
+- Feature ablation-based attribution
+- Integrated gradients-based attribution
+- Neuron gradient SHAP-based attribution
+
+Each method provides different insights into the model's behavior and can be used
+to analyze different aspects of the feature importance.
+
 This module was added in v0.6.0 and contains attribution methods described and benchmarked
 in [Schneider2025]_.
 
-
+References
+----------
 .. [Schneider2025] Schneider, S., González Laiz, R., Filippova, A., Frey, M., & Mathis, M. W. (2025).
     Time-series attribution maps with regularized contrastive learning.
     The 28th International Conference on Artificial Intelligence and Statistics.
