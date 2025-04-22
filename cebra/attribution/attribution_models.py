@@ -549,9 +549,20 @@ class NeuronGradientMethodBatched(NeuronGradientMethod):
         :py:class:`NeuronGradientMethod`
     """
 
-    def compute_attribution_map(self,
-                                attribute_to_neuron_input=False,
-                                batch_size=1024):
+    def compute_attribution_map(
+        self,
+        attribute_to_neuron_input: bool = False,
+        batch_size: int = 1024
+    ) -> dict:
+        """Compute attribution map using mini-batches.
+
+        Args:
+            attribute_to_neuron_input: If True, attribute to neuron input
+            batch_size: Size of mini-batches for processing
+
+        Returns:
+            Dictionary containing attribution maps
+        """
         input_data_batches = torch.split(self.input_data, batch_size)
 
         attribution_map = []
@@ -571,9 +582,7 @@ class NeuronGradientMethodBatched(NeuronGradientMethod):
 
         attribution_map = np.vstack(attribution_map)
         return self._reduce_attribution_map(
-            {'neuron-gradient': attribution_map,
-             #'neuron-gradient-invsvd': self._inverse_svd(attribution_map)
-        })
+            {'neuron-gradient': attribution_map})
 
 
 @dataclasses.dataclass
@@ -601,7 +610,7 @@ class FeatureAblationMethod(AttributionMap):
         """
         super().__post_init__()
         self.captum_model = NeuronFeatureAblation(forward_func=self.model,
-                                                  layer=self.model)
+                                                 layer=self.model)
 
     def compute_attribution_map(self,
                               baselines=None,
@@ -638,7 +647,7 @@ class FeatureAblationMethod(AttributionMap):
 
 @dataclasses.dataclass
 @register("feature-ablation-batched")
-class FeatureAblationMethodBAtched(FeatureAblationMethod):
+class FeatureAblationMethodBatched(FeatureAblationMethod):
     """As :py:class:`FeatureAblationMethod`, but using mini-batches.
 
     See also:
@@ -646,12 +655,11 @@ class FeatureAblationMethodBAtched(FeatureAblationMethod):
     """
 
     def compute_attribution_map(self,
-                                baselines=None,
-                                feature_mask=None,
-                                perturbations_per_eval=1,
-                                attribute_to_neuron_input=False,
-                                batch_size=1024):
-
+                              baselines=None,
+                              feature_mask=None,
+                              perturbations_per_eval=1,
+                              attribute_to_neuron_input=False,
+                              batch_size=1024):
         input_data_batches = torch.split(self.input_data, batch_size)
         attribution_map = []
         for input_data_batch in input_data_batches:
