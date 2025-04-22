@@ -42,11 +42,24 @@ import torch
 def tensors_to_cpu_and_double(vars_: list[torch.Tensor]) -> list[torch.Tensor]:
     """Convert a list of tensors to CPU and double precision.
 
+    This function ensures all tensors in the input list are moved to CPU and converted
+    to double precision (float64) format. This is useful for operations requiring higher
+    numerical precision.
+
     Args:
-        vars_: List of PyTorch tensors to convert
+        vars_: List of PyTorch tensors to convert. Tensors can be on any device.
 
     Returns:
-        List of tensors converted to CPU and double precision
+        List of tensors converted to CPU and double precision. The order of tensors
+        in the output list matches the input list.
+
+    Example:
+        >>> tensors = [torch.randn(3, 3).cuda(), torch.randn(2, 2)]
+        >>> cpu_tensors = tensors_to_cpu_and_double(tensors)
+        >>> all(t.is_cpu for t in cpu_tensors)
+        True
+        >>> all(t.dtype == torch.float64 for t in cpu_tensors)
+        True
     """
     cpu_vars = []
     for v in vars_:
@@ -60,12 +73,24 @@ def tensors_to_cuda(vars_: list[torch.Tensor],
                     cuda_device: str) -> list[torch.Tensor]:
     """Convert a list of tensors to CUDA device.
 
+    This function moves all tensors in the input list to the specified CUDA device.
+    Tensors already on CUDA are left unchanged. This is useful for GPU-accelerated
+    computations.
+
     Args:
-        vars_: List of PyTorch tensors to convert
-        cuda_device: CUDA device to move tensors to
+        vars_: List of PyTorch tensors to convert. Tensors can be on any device.
+        cuda_device: CUDA device identifier (e.g., "cuda:0", "cuda:1") to move
+            tensors to.
 
     Returns:
-        List of tensors moved to specified CUDA device
+        List of tensors moved to the specified CUDA device. The order of tensors
+        in the output list matches the input list.
+
+    Example:
+        >>> tensors = [torch.randn(3, 3), torch.randn(2, 2)]
+        >>> cuda_tensors = tensors_to_cuda(tensors, "cuda:0")
+        >>> all(t.is_cuda for t in cuda_tensors)
+        True
     """
     cpu_vars = []
     for v in vars_:
@@ -87,19 +112,39 @@ def compute_jacobian(
     """Compute the Jacobian matrix for a given model and input.
 
     This function computes the Jacobian matrix using PyTorch's autograd functionality.
-    It supports both CPU and CUDA computation, as well as single and double precision.
+    The Jacobian represents the first-order partial derivatives of the model's output
+    with respect to its input parameters. It supports both CPU and CUDA computation,
+    as well as single and double precision.
 
     Args:
-        model: PyTorch model to compute Jacobian for
-        input_vars: List of input tensors
-        mode: Computation mode, currently only "autograd" is supported
-        cuda_device: Device to use for CUDA computation
-        double_precision: If True, use double precision
-        convert_to_numpy: If True, convert output to numpy array
-        hybrid_solver: If True, concatenate multiple outputs along dimension 1
+        model: PyTorch model to compute Jacobian for. The model should be callable
+            with the input variables.
+        input_vars: List of input tensors to compute the Jacobian with respect to.
+            Each tensor should have requires_grad=True if gradients are needed.
+        mode: Computation mode. Currently only "autograd" is supported, which uses
+            PyTorch's automatic differentiation.
+        cuda_device: CUDA device identifier to use for computation (e.g., "cuda:0").
+            Ignored if double_precision is True.
+        double_precision: If True, use double precision (float64) for computation.
+            This moves all tensors to CPU.
+        convert_to_numpy: If True, convert the output Jacobian to a numpy array.
+            If False, returns a PyTorch tensor.
+        hybrid_solver: If True, concatenate multiple model outputs along dimension 1
+            before computing the Jacobian. Useful for models with multiple outputs.
 
     Returns:
-        Jacobian matrix as either PyTorch tensor or numpy array
+        Jacobian matrix as either a PyTorch tensor or numpy array. The shape is
+        (batch_size, output_dim, input_dim), where:
+        - batch_size is the size of the input batch
+        - output_dim is the dimension of the model's output
+        - input_dim is the total dimension of all input variables
+
+    Example:
+        >>> model = torch.nn.Linear(10, 5)
+        >>> x = torch.randn(3, 10, requires_grad=True)
+        >>> jacobian = compute_jacobian(model, [x])
+        >>> jacobian.shape
+        (3, 5, 10)
     """
     if double_precision:
         model = model.to("cpu").double()

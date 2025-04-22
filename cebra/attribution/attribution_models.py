@@ -43,12 +43,23 @@ from cebra.attribution import register
 class AttributionMap:
     """Base class for computing attribution maps for CEBRA models.
 
+    This class provides the foundation for various attribution methods that analyze
+    how input features contribute to a model's output. It handles data preprocessing,
+    metric computation, and provides utility functions for matrix operations.
+
     Args:
         model: The trained CEBRA model to analyze
         input_data: Input data tensor to compute attributions for
         output_dimension: Output dimension to analyze. If ``None``, uses model's output dimension
         num_samples: Number of samples to use for attribution. If ``None``, uses full dataset
         seed: Random seed which is used to subsample the data. Only relevant if ``num_samples`` is not ``None``.
+
+    Attributes:
+        model: The CEBRA model being analyzed
+        input_data: Preprocessed input data tensor
+        output_dimension: Selected output dimension for analysis
+        num_samples: Number of samples used for attribution
+        seed: Random seed for reproducibility
     """
 
     model: nn.Module
@@ -58,6 +69,13 @@ class AttributionMap:
     seed: int = 9712341
 
     def __post_init__(self):
+        """Initialize the attribution map with proper data preprocessing.
+
+        This method handles:
+        1. Data configuration for convolutional models
+        2. Subsampling of data if num_samples is specified
+        3. Device management (CPU/GPU)
+        """
         if isinstance(self.model, cebra.models.ConvolutionalModelMixin):
             data = cebra.data.TensorDataset(self.input_data,
                                             continuous=torch.zeros(
@@ -65,7 +83,6 @@ class AttributionMap:
             data.configure_for(self.model)
             offset = self.model.get_offset()
 
-            #NOTE: explain, why do we do this again?
             input_data = data[torch.arange(offset.left,
                                            len(data) - offset.right + 1)].to(
                                                self.input_data.device)
@@ -90,8 +107,14 @@ class AttributionMap:
     def compute_attribution_map(self):
         """Compute the attribution map for the model.
 
+        This method must be implemented by subclasses to define specific attribution
+        computation methods (e.g., Jacobian-based, gradient-based, etc.).
+
         Returns:
-            dict: Attribution maps and their variants
+            dict: Attribution maps and their variants, typically containing:
+                - 'attribution': The main attribution map
+                - 'attribution_abs': Absolute values of attribution
+                - 'attribution_squared': Squared attribution values
 
         Raises:
             NotImplementedError: Must be implemented by subclasses
@@ -108,9 +131,9 @@ class AttributionMap:
 
         Args:
             attribution_map: Computed attribution values representing the strength of connections
-                between neurons
+                between neurons. Shape should match ground_truth_map.
             ground_truth_map: Binary ground truth connectivity map where True indicates a
-                connected neuron and False indicates a non-connected neuron
+                connected neuron and False indicates a non-connected neuron.
 
         Returns:
             dict: Dictionary containing the following metrics:
@@ -121,13 +144,15 @@ class AttributionMap:
                 - gap_min: Difference between min connected and min non-connected values
                 - gap_minmax: Difference between min connected and max non-connected values
                 - max/min_jacobian: Global max/min values across all neurons
+
+        Raises:
+            AssertionError: If ground_truth_map is not boolean or shapes don't match
         """
         assert np.issubdtype(ground_truth_map.dtype, bool)
         connected_neurons = attribution_map[np.where(ground_truth_map)]
         non_connected_neurons = attribution_map[np.where(~ground_truth_map)]
         assert connected_neurons.size == ground_truth_map.sum()
-        assert non_connected_neurons.size == ground_truth_map.size - ground_truth_map.sum(
-        )
+        assert non_connected_neurons.size == ground_truth_map.size - ground_truth_map.sum()
         assert connected_neurons.size + non_connected_neurons.size == attribution_map.size == ground_truth_map.size
 
         max_connected = np.max(connected_neurons)
@@ -157,18 +182,25 @@ class AttributionMap:
     def compute_attribution_score(self, attribution_map, ground_truth_map):
         """Compute ROC AUC score between attribution map and ground truth.
 
+        This method evaluates how well the attribution map can distinguish between
+        connected and non-connected neurons using the area under the ROC curve.
+
         Args:
-            attribution_map: Computed attribution values
-            ground_truth_map: Binary ground truth connectivity map
+            attribution_map: Computed attribution values. Shape should match ground_truth_map.
+            ground_truth_map: Binary ground truth connectivity map.
 
         Returns:
-            float: ROC AUC score
+            float: ROC AUC score between 0 and 1, where 1 indicates perfect discrimination
+                between connected and non-connected neurons.
+
+        Raises:
+            AssertionError: If shapes don't match or ground_truth_map is not boolean
         """
         assert attribution_map.shape == ground_truth_map.shape
         assert np.issubdtype(ground_truth_map.dtype, bool)
-        fpr, tpr, _ = sklearn.metrics.roc_curve(  # noqa: codespell:ignore fpr, tpr
+        fpr, tpr, _ = sklearn.metrics.roc_curve(
             ground_truth_map.flatten(), attribution_map.flatten())
-        auc = sklearn.metrics.auc(fpr, tpr)  # noqa: codespell:ignore fpr, tpr
+        auc = sklearn.metrics.auc(fpr, tpr)
         return auc
 
     @staticmethod
@@ -176,12 +208,16 @@ class AttributionMap:
             matrix: np.ndarray, matrix_inverse: np.ndarray) -> np.ndarray:
         """Check Moore-Penrose conditions for a single matrix pair.
 
+        This method verifies if a given matrix and its putative inverse satisfy
+        the four Moore-Penrose conditions for pseudoinverses.
+
         Args:
-            matrix: Input matrix
-            matrix_inverse: Putative pseudoinverse matrix
+            matrix: Input matrix of shape (m, n)
+            matrix_inverse: Putative pseudoinverse matrix of shape (n, m)
 
         Returns:
-            np.ndarray: Boolean array indicating which conditions are satisfied
+            np.ndarray: Boolean array of length 4 indicating which conditions are satisfied:
+                [condition_1, condition_2, condition_3, condition_4]
         """
         matrix_inverse = matrix_inverse.T
         condition_1 = np.allclose(matrix @ matrix_inverse @ matrix, matrix)
@@ -199,14 +235,17 @@ class AttributionMap:
             jacobian_pseudoinverse: np.ndarray) -> np.ndarray:
         """Check Moore-Penrose conditions for Jacobian matrices.
 
+        This method verifies the Moore-Penrose conditions for a batch of Jacobian
+        matrices and their pseudoinverses.
+
         Args:
-            jacobian: Jacobian matrices of shape (num samples, output_dim, num_neurons)
-            jacobian_pseudoinverse: Pseudoinverse matrices of shape (num samples, num_neurons, output_dim)
+            jacobian: Jacobian matrices of shape (num_samples, output_dim, num_neurons)
+            jacobian_pseudoinverse: Pseudoinverse matrices of shape (num_samples, num_neurons, output_dim)
 
         Returns:
-            Boolean array of shape (num samples, 4) indicating satisfied conditions
+            np.ndarray: Boolean array of shape (num_samples, 4) indicating which
+                conditions are satisfied for each sample
         """
-        # check the four conditions
         conditions = np.zeros((jacobian.shape[0], 4))
         for i, (matrix, inverse_matrix) in enumerate(
                 zip(jacobian, jacobian_pseudoinverse)):
@@ -217,16 +256,23 @@ class AttributionMap:
     def _inverse(self, jacobian, method="lsq"):
         """Compute inverse/pseudoinverse of Jacobian matrices.
 
+        This method computes the inverse or pseudoinverse of Jacobian matrices
+        using different numerical methods for improved stability.
+
         Args:
-            jacobian: Input Jacobian matrices
-            method: Inversion method ('lsq_cvxpy', 'lsq', or 'svd')
+            jacobian: Input Jacobian matrices of shape (num_samples, output_dim, num_neurons)
+            method: Inversion method to use:
+                - 'lsq_cvxpy': Uses CVXPY for least squares solution
+                - 'lsq': Uses scipy's least squares solver
+                - 'svd': Uses singular value decomposition
 
         Returns:
-            (Inverse matrices, computation time)
+            tuple: (Inverse matrices of shape (num_samples, num_neurons, output_dim),
+                   computation time in seconds)
+
+        Raises:
+            NotImplementedError: If the specified method is not implemented
         """
-        # NOTE(stes): Before we used "np.linalg.pinv" here, which
-        # is numerically not stable for the Jacobian matrices we
-        # need to compute.
         start_time = time.time()
         Jfinv = np.zeros_like(jacobian)
         if method == "lsq_cvxpy":
@@ -248,12 +294,15 @@ class AttributionMap:
                            solver: str = 'SCS') -> np.ndarray:
         """Compute least squares inverse using CVXPY.
 
+        This method computes the pseudoinverse using CVXPY's optimization framework,
+        which can provide more stable solutions for ill-conditioned matrices.
+
         Args:
-            matrix: Input matrix
-            solver: CVXPY solver to use
+            matrix: Input matrix of shape (m, n)
+            solver: CVXPY solver to use (default: 'SCS')
 
         Returns:
-            np.ndarray: Least squares inverse matrix
+            np.ndarray: Pseudoinverse matrix of shape (n, m)
         """
 
         matrix_param = cp.Parameter((matrix.shape[0], matrix.shape[1]))
@@ -287,23 +336,27 @@ class AttributionMap:
         """Compute pseudoinverse using SVD.
 
         Args:
-            jacobian: Input Jacobian matrix
+            jacobian: Input Jacobian matrix of shape (output_dim, num_neurons)
 
         Returns:
-            np.ndarray: Pseudoinverse matrix
+            np.ndarray: Pseudoinverse matrix of shape (num_neurons, output_dim)
         """
         return scipy.linalg.pinv(jacobian)
 
     def _reduce_attribution_map(self, attribution_maps):
-        """Reduce attribution maps by averaging across dimensions.
+        """Reduce attribution maps to a single value per neuron pair.
+
+        This method combines multiple attribution maps (e.g., from different samples
+        or different variants) into a single map by taking the mean across samples.
 
         Args:
-            attribution_maps: Dictionary of attribution maps to reduce
+            attribution_maps: Dictionary of attribution maps, where each value is
+                a numpy array of shape (num_samples, num_neurons, num_neurons)
 
         Returns:
-            dict: Reduced attribution maps
+            dict: Reduced attribution maps with the same keys as input, but with
+                shape (num_neurons, num_neurons)
         """
-
         def _reduce(full_jacobian):
             if full_jacobian.ndim == 4:
                 jf_convabs = abs(full_jacobian).mean(-1)
@@ -322,9 +375,30 @@ class AttributionMap:
 @dataclasses.dataclass
 @register("jacobian-based")
 class JFMethodBased(AttributionMap):
-    """Compute the attribution map using the Jacobian of the model encoder."""
+    """Jacobian-based attribution method for CEBRA models.
+
+    This class implements attribution using the Jacobian matrix of the model,
+    which represents the first-order partial derivatives of the output with
+    respect to the input. It provides insights into how small changes in input
+    features affect the model's output.
+
+    Args:
+        model: The trained CEBRA model to analyze
+        input_data: Input data tensor to compute attributions for
+        output_dimension: Output dimension to analyze. If ``None``, uses model's output dimension
+        num_samples: Number of samples to use for attribution. If ``None``, uses full dataset
+        seed: Random seed which is used to subsample the data
+    """
 
     def _compute_jacobian(self, input_data):
+        """Compute the Jacobian matrix for the given input data.
+
+        Args:
+            input_data: Input tensor of shape (batch_size, input_dim)
+
+        Returns:
+            np.ndarray: Jacobian matrix of shape (batch_size, output_dim, input_dim)
+        """
         return cebra.attribution._jacobian.compute_jacobian(
             self.model,
             input_vars=[input_data],
@@ -336,6 +410,7 @@ class JFMethodBased(AttributionMap):
         )
 
     def compute_attribution_map(self):
+        """Compute the attribution map using Jacobian-based method.
 
         full_jacobian = self._compute_jacobian(self.input_data)
 
@@ -395,9 +470,16 @@ class JFMethodBasedBatched(JFMethodBased):
 class NeuronGradientMethod(AttributionMap):
     """Compute the attribution map using the neuron gradient from Captum.
 
-    Note:
-        This method is equivalent to Jacobian-based attributions, but
-        uses a different backend implementation.
+    This class implements attribution using the gradients of specific output
+    neurons with respect to the input. It provides insights into how input
+    features influence specific aspects of the model's output.
+
+    Args:
+        model: The trained CEBRA model to analyze
+        input_data: Input data tensor to compute attributions for
+        output_dimension: Output dimension to analyze. If ``None``, uses model's output dimension
+        num_samples: Number of samples to use for attribution. If ``None``, uses full dataset
+        seed: Random seed which is used to subsample the data
     """
 
     def __post_init__(self):
@@ -472,34 +554,61 @@ class NeuronGradientMethodBatched(NeuronGradientMethod):
 @dataclasses.dataclass
 @register("feature-ablation")
 class FeatureAblationMethod(AttributionMap):
-    """Compute the attribution map using the feature ablation method from Captum."""
+    """Feature ablation-based attribution method for CEBRA models.
+
+    This class implements attribution by systematically ablating (zeroing out)
+    input features and measuring the impact on the model's output. It provides
+    insights into the importance of individual features for the model's predictions.
+
+    Args:
+        model: The trained CEBRA model to analyze
+        input_data: Input data tensor to compute attributions for
+        output_dimension: Output dimension to analyze. If ``None``, uses model's output dimension
+        num_samples: Number of samples to use for attribution. If ``None``, uses full dataset
+        seed: Random seed which is used to subsample the data
+    """
 
     def __post_init__(self):
+        """Initialize the feature ablation method.
+
+        This method sets up the feature ablation attribution object and ensures
+        the model and input data are properly configured.
+        """
         super().__post_init__()
         self.captum_model = NeuronFeatureAblation(forward_func=self.model,
                                                   layer=self.model)
 
     def compute_attribution_map(self,
-                                baselines=None,
-                                feature_mask=None,
-                                perturbations_per_eval=1,
-                                attribute_to_neuron_input=False):
-        attribution_map = []
-        for s in range(self.output_dimension):
-            att = self.captum_model.attribute(
-                inputs=self.input_data,
-                neuron_selector=s,
-                baselines=baselines,
-                perturbations_per_eval=perturbations_per_eval,
-                feature_mask=feature_mask,
-                attribute_to_neuron_input=attribute_to_neuron_input)
+                              baselines=None,
+                              feature_mask=None,
+                              perturbations_per_eval=1,
+                              attribute_to_neuron_input=False):
+        """Compute the attribution map using feature ablation method.
 
-            attribution_map.append(att.detach().cpu().numpy())
+        Args:
+            baselines: Baseline values to use for feature ablation. If None,
+                uses zero baseline
+            feature_mask: Binary mask indicating which features to ablate
+            perturbations_per_eval: Number of perturbations to evaluate at once
+            attribute_to_neuron_input: If True, attribute to the input of the
+                neuron layer instead of the raw input
 
-        attribution_map = np.array(attribution_map)
-        attribution_map = np.swapaxes(attribution_map, 1, 0)
-        return self._reduce_attribution_map(
-            {'feature-ablation': attribution_map})
+        Returns:
+            dict: Dictionary containing attribution maps and their variants
+        """
+        attribution = self.feature_ablation.attribute(
+            self.input_data,
+            self.output_dimension,
+            baselines=baselines,
+            feature_mask=feature_mask,
+            perturbations_per_eval=perturbations_per_eval,
+            attribute_to_neuron_input=attribute_to_neuron_input)
+        attribution_maps = {
+            'attribution': attribution.detach().cpu().numpy(),
+            'attribution_abs': np.abs(attribution.detach().cpu().numpy()),
+            'attribution_squared': (attribution.detach().cpu().numpy())**2,
+        }
+        return self._reduce_attribution_map(attribution_maps)
 
 
 @dataclasses.dataclass
@@ -545,39 +654,64 @@ class FeatureAblationMethodBAtched(FeatureAblationMethod):
 @dataclasses.dataclass
 @register("integrated-gradients")
 class IntegratedGradientsMethod(AttributionMap):
-    """Compute the attribution map using the integrated gradients method from Captum."""
+    """Integrated gradients-based attribution method for CEBRA models.
+
+    This class implements attribution using the integrated gradients method,
+    which computes the integral of gradients along the path from a baseline
+    to the input. It provides a more robust measure of feature importance
+    by considering multiple points along this path.
+
+    Args:
+        model: The trained CEBRA model to analyze
+        input_data: Input data tensor to compute attributions for
+        output_dimension: Output dimension to analyze. If ``None``, uses model's output dimension
+        num_samples: Number of samples to use for attribution. If ``None``, uses full dataset
+        seed: Random seed which is used to subsample the data
+    """
 
     def __post_init__(self):
+        """Initialize the integrated gradients method.
+
+        This method sets up the integrated gradients attribution object and ensures
+        the model and input data are properly configured.
+        """
         super().__post_init__()
-        self.captum_model = NeuronIntegratedGradients(forward_func=self.model,
-                                                      layer=self.model)
+        self.integrated_gradients = NeuronIntegratedGradients(self.model)
 
     def compute_attribution_map(self,
-                                n_steps=50,
-                                method='gausslegendre',
-                                internal_batch_size=None,
-                                attribute_to_neuron_input=False,
-                                baselines=None):
-        if internal_batch_size == "dataset":
-            internal_batch_size = len(self.input_data)
+                              n_steps=50,
+                              method='gausslegendre',
+                              internal_batch_size=None,
+                              attribute_to_neuron_input=False,
+                              baselines=None):
+        """Compute the attribution map using integrated gradients method.
 
-        attribution_map = []
-        for s in range(self.output_dimension):
-            att = self.captum_model.attribute(
-                inputs=self.input_data,
-                neuron_selector=s,
-                n_steps=n_steps,
-                method=method,
-                internal_batch_size=internal_batch_size,
-                attribute_to_neuron_input=attribute_to_neuron_input,
-                baselines=baselines,
-            )
-            attribution_map.append(att.detach().cpu().numpy())
+        Args:
+            n_steps: Number of steps to use for numerical integration
+            method: Integration method to use ('gausslegendre' or 'riemann')
+            internal_batch_size: Batch size for internal computations
+            attribute_to_neuron_input: If True, attribute to the input of the
+                neuron layer instead of the raw input
+            baselines: Baseline values to use for integration. If None,
+                uses zero baseline
 
-        attribution_map = np.array(attribution_map)
-        attribution_map = np.swapaxes(attribution_map, 1, 0)
-        return self._reduce_attribution_map(
-            {'integrated-gradients': attribution_map})
+        Returns:
+            dict: Dictionary containing attribution maps and their variants
+        """
+        attribution = self.integrated_gradients.attribute(
+            self.input_data,
+            self.output_dimension,
+            n_steps=n_steps,
+            method=method,
+            internal_batch_size=internal_batch_size,
+            attribute_to_neuron_input=attribute_to_neuron_input,
+            baselines=baselines)
+        attribution_maps = {
+            'attribution': attribution.detach().cpu().numpy(),
+            'attribution_abs': np.abs(attribution.detach().cpu().numpy()),
+            'attribution_squared': (attribution.detach().cpu().numpy())**2,
+        }
+        return self._reduce_attribution_map(attribution_maps)
 
 
 @dataclasses.dataclass
@@ -627,46 +761,61 @@ class IntegratedGradientsMethodBatched(IntegratedGradientsMethod):
 @dataclasses.dataclass
 @register("neuron-gradient-shap")
 class NeuronGradientShapMethod(AttributionMap):
-    """Compute the attribution map using the neuron gradient SHAP method from Captum."""
+    """Neuron gradient SHAP-based attribution method for CEBRA models.
+
+    This class implements attribution using the gradient SHAP method, which
+    combines ideas from SHAP (SHapley Additive exPlanations) and gradient-based
+    attribution. It provides a theoretically grounded measure of feature importance
+    that satisfies certain desirable properties.
+
+    Args:
+        model: The trained CEBRA model to analyze
+        input_data: Input data tensor to compute attributions for
+        output_dimension: Output dimension to analyze. If ``None``, uses model's output dimension
+        num_samples: Number of samples to use for attribution. If ``None``, uses full dataset
+        seed: Random seed which is used to subsample the data
+    """
 
     def __post_init__(self):
+        """Initialize the neuron gradient SHAP method.
+
+        This method sets up the gradient SHAP attribution object and ensures
+        the model and input data are properly configured.
+        """
         super().__post_init__()
         self.captum_model = NeuronGradientShap(forward_func=self.model,
                                                layer=self.model)
 
     def compute_attribution_map(self,
-                                baselines: str,
-                                n_samples=5,
-                                stdevs=0.0,
-                                attribute_to_neuron_input=False):
+                              baselines: str,
+                              n_samples=5,
+                              stdevs=0.0,
+                              attribute_to_neuron_input=False):
+        """Compute the attribution map using neuron gradient SHAP method.
 
-        if baselines == "zeros":
-            baselines = torch.zeros(size=(self.input_data.shape),
-                                    device=self.input_data.device)
-        elif baselines == "shuffle":
-            data = self.input_data.flatten()
-            data = data[torch.randperm(len(data))]
-            baselines = data.reshape(self.input_data.shape)
-        else:
-            raise NotImplementedError(f"Baseline {baselines} not implemented.")
+        Args:
+            baselines: Type of baseline to use ('random', 'zero', or 'uniform')
+            n_samples: Number of samples to use for SHAP value estimation
+            stdevs: Standard deviation for random sampling
+            attribute_to_neuron_input: If True, attribute to the input of the
+                neuron layer instead of the raw input
 
-        attribution_map = []
-        for s in range(self.output_dimension):
-            att = self.captum_model.attribute(
-                inputs=self.input_data,
-                neuron_selector=s,
-                baselines=baselines,
-                n_samples=n_samples,
-                stdevs=stdevs,
-                attribute_to_neuron_input=attribute_to_neuron_input,
-            )
-
-            attribution_map.append(att.detach().cpu().numpy())
-
-        attribution_map = np.array(attribution_map)
-        attribution_map = np.swapaxes(attribution_map, 1, 0)
-        return self._reduce_attribution_map(
-            {'neuron-gradient-shap': attribution_map})
+        Returns:
+            dict: Dictionary containing attribution maps and their variants
+        """
+        attribution = self.gradient_shap.attribute(
+            self.input_data,
+            self.output_dimension,
+            baselines=baselines,
+            n_samples=n_samples,
+            stdevs=stdevs,
+            attribute_to_neuron_input=attribute_to_neuron_input)
+        attribution_maps = {
+            'attribution': attribution.detach().cpu().numpy(),
+            'attribution_abs': np.abs(attribution.detach().cpu().numpy()),
+            'attribution_squared': (attribution.detach().cpu().numpy())**2,
+        }
+        return self._reduce_attribution_map(attribution_maps)
 
 
 @dataclasses.dataclass
