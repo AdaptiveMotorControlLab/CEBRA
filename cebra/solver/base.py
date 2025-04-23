@@ -33,7 +33,7 @@ implement larger changes to the training loop.
 import abc
 import os
 import warnings
-from typing import Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import literate_dataclasses as dataclasses
 import numpy.typing as npt

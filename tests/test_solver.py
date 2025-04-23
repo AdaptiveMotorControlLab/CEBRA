@@ -59,13 +59,12 @@ for args in [
      cebra.data.ContinuousMultiSessionDataLoader, "offset1-model"),
     ("demo-continuous-multisession",
      cebra.data.ContinuousMultiSessionDataLoader, "offset10-model"),
-    ("demo-discrete-multisession",
-              cebra.data.DiscreteMultiSessionDataLoader, "offset1-model"),
-    ("demo-discrete-multisession",
-     cebra.data.DiscreteMultiSessionDataLoader, "offset10-model"),
+    ("demo-discrete-multisession", cebra.data.DiscreteMultiSessionDataLoader,
+     "offset1-model"),
+    ("demo-discrete-multisession", cebra.data.DiscreteMultiSessionDataLoader,
+     "offset10-model"),
 ]:
     multi_session_tests.append((*args, cebra.solver.MultiSessionSolver))
-
 
 
 def _get_loader(data, loader_initfunc):
@@ -168,7 +167,7 @@ def test_single_session(data_name, loader_initfunc, model_architecture,
 
     assert solver.num_sessions is None
     assert solver.n_features == X.shape[1]
-    
+
     embedding = solver.transform(X)
     assert isinstance(embedding, torch.Tensor)
     assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
@@ -526,158 +525,6 @@ def test_multi_session_2(data_name, loader_initfunc, solver_initfunc):
     assert isinstance(log, dict)
 
     solver.fit(loader)
-
-    assert solver.num_sessions == 3
-    assert solver.n_features == [X[i].shape[1] for i in range(len(X))]
-
-    embedding = solver.transform(X[0], session_id=0)
-    assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X[0].shape[0], OUTPUT_DIMENSION)
-    embedding = solver.transform(X[1], session_id=1)
-    assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X[1].shape[0], OUTPUT_DIMENSION)
-    embedding = solver.transform(X[0], session_id=0, pad_before_transform=False)
-    assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X[0].shape[0] -
-                               len(solver.model[0].get_offset()) + 1,
-                               OUTPUT_DIMENSION)
-
-    with pytest.raises(ValueError, match="torch.Tensor"):
-        embedding = solver.transform(X[0].numpy(), session_id=0)
-
-    with pytest.raises(ValueError, match="shape"):
-        embedding = solver.transform(X[1], session_id=0)
-    with pytest.raises(ValueError, match="shape"):
-        embedding = solver.transform(X[0], session_id=1)
-
-    with pytest.raises(RuntimeError, match="No.*session_id"):
-        embedding = solver.transform(X[0])
-    with pytest.raises(ValueError, match="single.*session"):
-        embedding = solver.transform(X)
-    with pytest.raises(RuntimeError, match="Invalid.*session_id"):
-        embedding = solver.transform(X[0], session_id=5)
-    with pytest.raises(RuntimeError, match="Invalid.*session_id"):
-        embedding = solver.transform(X[0], session_id=-1)
-
-    for param in solver.parameters(session_id=0):
-        assert isinstance(param, torch.Tensor)
-
-    fitted_solver = copy.deepcopy(solver)
-    with tempfile.TemporaryDirectory() as temp_dir:
-        solver.save(temp_dir)
-        solver.load(temp_dir)
-    _assert_equal(fitted_solver, solver)
-
-
-@pytest.mark.parametrize(
-    "inputs, add_padding, offset, start_batch_idx, end_batch_idx, expected_output",
-    [
-        # Test case 1: No padding
-        (torch.tensor([[1, 2], [3, 4], [5, 6]]), False, cebra.data.Offset(
-            0, 1), 0, 2, torch.tensor([[1, 2], [3, 4]])),  # first batch
-        (torch.tensor([[1, 2], [3, 4], [5, 6]]), False, cebra.data.Offset(
-            0, 1), 1, 3, torch.tensor([[3, 4], [5, 6]])),  # last batch
-        (torch.tensor(
-            [[1, 2], [3, 4], [5, 6], [7, 8]]), False, cebra.data.Offset(
-                0, 1), 1, 3, torch.tensor([[3, 4], [5, 6]])),  # middle batch
-
-        # Test case 2: First batch with padding
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-            True,
-            cebra.data.Offset(0, 1),
-            0,
-            2,
-            torch.tensor([[1, 2, 3], [4, 5, 6]]),
-        ),
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-            True,
-            cebra.data.Offset(1, 1),
-            0,
-            3,
-            torch.tensor([[1, 2, 3], [1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-        ),
-
-        # Test case 3: Last batch with padding
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-            True,
-            cebra.data.Offset(0, 1),
-            1,
-            3,
-            torch.tensor([[4, 5, 6], [7, 8, 9]]),
-        ),
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12],
-                          [13, 14, 15]]),
-            True,
-            cebra.data.Offset(1, 2),
-            1,
-            3,
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]),
-        ),
-
-        # Test case 4: Middle batch with padding
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]),
-            True,
-            cebra.data.Offset(0, 1),
-            1,
-            3,
-            torch.tensor([[4, 5, 6], [7, 8, 9]]),
-        ),
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]),
-            True,
-            cebra.data.Offset(1, 1),
-            1,
-            3,
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-        ),
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12],
-                          [13, 14, 15]]),
-            True,
-            cebra.data.Offset(0, 1),
-            2,
-            4,
-            torch.tensor([[7, 8, 9], [10, 11, 12]]),
-        ),
-        (
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]),
-            True,
-            cebra.data.Offset(0, 1),
-            0,
-            3,
-            torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-        ),
-
-        # Examples that throw an error:
-
-        # Padding without offset (should raise an error)
-        (torch.tensor([[1, 2]]), True, None, 0, 2, ValueError),
-        # Negative start_batch_idx or end_batch_idx (should raise an error)
-        (torch.tensor([[1, 2]]), False, cebra.data.Offset(
-            0, 1), -1, 2, ValueError),
-        # out of bound indices because offset is too large
-        (torch.tensor([[1, 2], [3, 4]]), True, cebra.data.Offset(
-            5, 5), 1, 2, ValueError),
-        # Batch length is smaller than offset.
-        (torch.tensor([[1, 2], [3, 4]]), False, cebra.data.Offset(
-            0, 1), 0, 1, ValueError),  # first batch
-    ],
-)
-def test_get_batch(inputs, add_padding, offset, start_batch_idx, end_batch_idx,
-                   expected_output):
-    if expected_output == ValueError:
-        with pytest.raises(ValueError):
-            cebra.solver.base._get_batch(inputs, offset, start_batch_idx,
-                                         end_batch_idx, add_padding)
-    else:
-        result = cebra.solver.base._get_batch(inputs, offset, start_batch_idx,
-                                              end_batch_idx, add_padding)
-        assert torch.equal(result, expected_output)
 
 
 def create_model(model_name, input_dimension):

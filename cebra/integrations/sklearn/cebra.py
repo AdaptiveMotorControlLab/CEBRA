@@ -51,6 +51,7 @@ CEBRA_LOAD_SAFE_GLOBALS = [
     np.dtypes.Float64DType, np.dtypes.Int64DType
 ]
 
+
 def check_version(estimator):
     # NOTE(stes): required as a check for the old way of specifying tags
     # https://github.com/scikit-learn/scikit-learn/pull/29677#issuecomment-2334229165
@@ -74,8 +75,6 @@ def _safe_torch_load(filename, weights_only, **kwargs):
             checkpoint = torch.load(filename, weights_only=True, **kwargs)
 
     return checkpoint
-
-
 
 
 def _init_loader(
