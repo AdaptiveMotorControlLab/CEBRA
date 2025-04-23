@@ -149,6 +149,13 @@ we outline different options below.
 
         Note that, similarly to that last command, you can select the specific install options of interest based on their description above and on your usecase.
 
+    .. tab:: Docker
+
+        .. code:: bash
+
+            $ docker pull mmathislab/cebra-cuda12.4-cudnn9
+
+        You can pull our container from DockerHub: https://hub.docker.com/u/mmathislab
 ..
 
 
