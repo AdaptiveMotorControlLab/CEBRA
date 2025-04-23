@@ -46,10 +46,8 @@ package.
 #             these imports will not be reordered by isort (see .isort.cfg)
 from cebra.data.base import *
 from cebra.data.datatypes import *
-
 from cebra.data.single_session import *
 from cebra.data.multi_session import *
-
+from cebra.data.multiobjective import *
 from cebra.data.datasets import *
-
 from cebra.data.helper import *

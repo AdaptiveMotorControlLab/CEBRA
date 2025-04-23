@@ -32,6 +32,7 @@ implement larger changes to the training loop.
 
 import abc
 import os
+import warnings
 from typing import Callable, Dict, List, Literal, Optional
 
 import literate_dataclasses as dataclasses
@@ -367,11 +368,19 @@ class MultiobjectiveSolver(Solver):
             for time contrastive learning.
         renormalize_features: If ``True``, normalize the behavior and time
             contrastive features individually before computing similarity scores.
+        ignore_deprecation_warning: If ``True``, suppress the deprecation warning.
+
+    Note:
+        This solver will be deprecated in a future version. Please use the functionality in
+        :py:mod:`cebra.solver.multiobjective` instead, which provides more versatile
+        multi-objective training capabilities. Instantiation of this solver will raise a
+        deprecation warning.
     """
 
     num_behavior_features: int = 3
     renormalize_features: bool = False
     output_mode: Literal["overlapping", "separate"] = "overlapping"
+    ignore_deprecation_warning: bool = False
 
     @property
     def num_time_features(self):
@@ -383,6 +392,13 @@ class MultiobjectiveSolver(Solver):
 
     def __post_init__(self):
         super().__post_init__()
+        if not self.ignore_deprecation_warning:
+            warnings.warn(
+                "MultiobjectiveSolver is deprecated since CEBRA 0.6.0 and will be removed in a future version. "
+                "Use the new functionality in cebra.solver.multiobjective instead, which is more versatile. "
+                "If you see this warning when using the scikit-learn interface, no action is required.",
+                DeprecationWarning,
+                stacklevel=2)
         self._check_dimensions()
         self.model = cebra.models.MultiobjectiveModel(
             self.model,
