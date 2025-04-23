@@ -237,6 +237,13 @@ class ContinuousDataLoader(cebra_data.Loader):
                     self.dataset.continuous_index,
                     self.delta,
                     device=self.device)
+            # TODO(stes): Add this distribution from internal xCEBRA codebase at a later point
+            # in time, currently not in use.
+            #elif self.conditional == "delta_vmf":
+            #    self.distribution = cebra.distributions.DeltaVMFDistribution(
+            #        self.dataset.continuous_index,
+            #        self.delta,
+            #        device=self.device)
             else:
                 raise ValueError(self.conditional)
 
@@ -343,6 +350,8 @@ class HybridDataLoader(cebra_data.Loader):
     """
 
     conditional: str = dataclasses.field(default="time_delta")
+    time_distribution: str = dataclasses.field(default="time")
+    time_offset: int = dataclasses.field(default=10)
     delta: float = dataclasses.field(default=0.1)
 
     @property
@@ -359,17 +368,59 @@ class HybridDataLoader(cebra_data.Loader):
         #            e.g. integrating the FAISS dataloader back in.
         super().__post_init__()
 
-        if self.conditional != "time_delta":
-            raise NotImplementedError(
-                "Hybrid training is currently only implemented using the ``time_delta`` "
-                "continual distribution.")
+        self._init_behavior_distribution()
+        self._init_time_distribution()
 
-        self.time_distribution = cebra.distributions.TimeContrastive(
-            time_offset=self.time_offset,
-            num_samples=len(self.dataset.neural),
-            device=self.device)
-        self.behavior_distribution = cebra.distributions.TimedeltaDistribution(
-            self.dataset.continuous_index, self.time_offset, device=self.device)
+    def _init_behavior_distribution(self):
+        if self.conditional == "time":
+            self.behavior_distribution = cebra.distributions.TimeContrastive(
+                time_offset=self.time_offset,
+                num_samples=len(self.dataset.neural),
+                device=self.device,
+            )
+
+        if self.conditional == "time_delta":
+            self.behavior_distribution = cebra.distributions.TimedeltaDistribution(
+                self.dataset.continuous_index,
+                self.time_offset,
+                device=self.device)
+
+        elif self.conditional == "delta_normal":
+            self.behavior_distribution = cebra.distributions.DeltaNormalDistribution(
+                self.dataset.continuous_index, self.delta, device=self.device)
+
+        elif self.conditional == "time":
+            self.behavior_distribution = cebra.distributions.TimeContrastive(
+                time_offset=self.time_offset,
+                num_samples=len(self.dataset.neural),
+                device=self.device,
+            )
+
+    def _init_time_distribution(self):
+
+        if self.time_distribution == "time":
+            self.time_distribution = cebra.distributions.TimeContrastive(
+                time_offset=self.time_offset,
+                num_samples=len(self.dataset.neural),
+                device=self.device,
+            )
+
+        elif self.time_distribution == "time_delta":
+            self.time_distribution = cebra.distributions.TimedeltaDistribution(
+                self.dataset.continuous_index,
+                self.time_offset,
+                device=self.device)
+
+        elif self.time_distribution == "delta_normal":
+            self.time_distribution = cebra.distributions.DeltaNormalDistribution(
+                self.dataset.continuous_index, self.delta, device=self.device)
+
+        # TODO(stes): Add this distribution from internal xCEBRA codebase at a later point
+        #elif self.time_distribution == "delta_vmf":
+        #    self.time_distribution = cebra.distributions.DeltaVMFDistribution(
+        #        self.dataset.continuous_index, self.delta, device=self.device)
+        else:
+            raise ValueError
 
     def get_indices(self, num_samples: int) -> BatchIndex:
         """Samples indices for reference, positive and negative examples.

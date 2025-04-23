@@ -37,6 +37,9 @@ cebra.registry.add_helper_functions(__name__)
 # pylint: disable=wrong-import-position
 from cebra.solver.base import *
 from cebra.solver.multi_session import *
+from cebra.solver.multiobjective import *
+from cebra.solver.regularized import *
+from cebra.solver.schedulers import *
 from cebra.solver.single_session import *
 from cebra.solver.supervised import *
 
