@@ -234,6 +234,11 @@ def _batched_transform(model: cebra.models.Model, inputs: torch.Tensor,
     index_dataset = IndexDataset(inputs)
     index_dataloader = DataLoader(index_dataset, batch_size=batch_size)
 
+    if len(index_dataloader) < 2:
+        raise ValueError(
+            f"Number of batches must be greater than 1, you can use transform without batching instead, got {len(index_dataloader)}."
+        )
+
     output = []
     for batch_idx, index_batch in enumerate(index_dataloader):
         # NOTE(celia): This is to prevent that adding the offset to the
@@ -449,6 +454,9 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 if logdir is not None:
                     self.save(logdir, f"checkpoint_{num_steps:#07d}.pth")
 
+        assert hasattr(self, "n_features")
+        assert hasattr(self, "num_sessions")
+
     def step(self, batch: cebra.data.Batch) -> dict:
         """Perform a single gradient update.
 
@@ -564,10 +572,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """
         raise NotImplementedError
 
-    @property
     def _check_is_fitted(self):
-        #NOTE(celia): instead of hasattr(model, "n_features_"), double check this!
-        if not (hasattr(self, "history") and len(self.history) > 0):
+        if not hasattr(self, "n_features"):
             raise ValueError(
                 f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
                 "appropriate arguments before using this estimator.")
@@ -598,15 +604,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Returns:
             The output embedding.
         """
-        if not self.is_fitted:
-            raise ValueError(
-                f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
-                "appropriate arguments before using this estimator.")
-
-        if batch_size is not None and batch_size < 1:
-            raise ValueError(
-                f"Batch size should be at least 1, got {batch_size}")
-
         if isinstance(inputs, list):
             raise ValueError(
                 "Inputs to transform() should be the data for a single session, but received a list."
@@ -623,7 +620,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             pad_before_transform = False
 
         model.eval()
-        if batch_size is not None:
+        if batch_size is not None and inputs.shape[0] > int(batch_size * 2):
             output = _batched_transform(
                 model=model,
                 inputs=inputs,

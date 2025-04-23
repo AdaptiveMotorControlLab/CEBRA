@@ -1053,14 +1053,12 @@ class CEBRA(TransformerMixin, BaseEstimator):
 
         # Save variables of interest as semi-private attributes
         self.model_ = model
-        self.n_features_ = ([
-            loader.dataset.get_input_dimension(session_id)
-            for session_id in range(loader.dataset.num_sessions)
-        ] if is_multisession else loader.dataset.input_dimension)
+
+        self.n_features_ = solver.n_features
+        self.num_sessions_ = solver.num_sessions
         self.solver_ = solver
         self.n_features_in_ = ([model[n].num_input for n in range(len(model))]
                                if is_multisession else model.num_input)
-        self.num_sessions_ = loader.dataset.num_sessions if is_multisession else None
 
         return self
 
@@ -1256,7 +1254,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
 
         return output.detach().cpu().numpy()
 
-    # Deprecated, kept for testing.
+    #NOTE: Deprecated, as transform is now handled in the solver but kept for testing.
     def transform_deprecated(self,
                              X: Union[npt.NDArray, torch.Tensor],
                              session_id: Optional[int] = None) -> npt.NDArray:

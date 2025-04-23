@@ -177,7 +177,7 @@ class MultiSessionSolver(abc_.Solver):
             )
 
     def _select_model(self, inputs: torch.Tensor, session_id: Optional[int]):
-        """ Select the model based on the input dimension and session ID.
+        """ Select the (trained) model based on the input dimension and session ID.
 
         Args:
             inputs: Data to infer using the selected model.
@@ -189,6 +189,7 @@ class MultiSessionSolver(abc_.Solver):
             The model (first returns) and the offset of the model (second returns).
         """
         self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_fitted()
         self._check_is_inputs_valid(inputs, session_id=session_id)
 
         model = self.model[session_id]

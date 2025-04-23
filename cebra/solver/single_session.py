@@ -103,7 +103,7 @@ class SingleSessionSolver(abc_.Solver):
                             List[torch.Tensor]], session_id: Optional[int]
     ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
                cebra.data.datatypes.Offset]:
-        """ Select the model based on the input dimension and session ID.
+        """ Select the (trained) model based on the input dimension and session ID.
 
         Args:
             inputs: Data to infer using the selected model.
@@ -114,8 +114,9 @@ class SingleSessionSolver(abc_.Solver):
         Returns:
             The model (first returns) and the offset of the model (second returns).
         """
-        self._check_is_inputs_valid(inputs, session_id=session_id)
         self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_fitted()
+        self._check_is_inputs_valid(inputs, session_id=session_id)
 
         model = self.model
         offset = model.get_offset()
@@ -228,7 +229,7 @@ class SingleSessionHybridSolver(abc_.MultiobjectiveSolver, SingleSessionSolver):
                             List[torch.Tensor]], session_id: Optional[int]
     ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
                cebra.data.datatypes.Offset]:
-        """ Select the model based on the input dimension and session ID.
+        """ Select the (trained) model based on the input dimension and session ID.
 
         Args:
             inputs: Data to infer using the selected model.
@@ -239,8 +240,9 @@ class SingleSessionHybridSolver(abc_.MultiobjectiveSolver, SingleSessionSolver):
         Returns:
             The model (first returns) and the offset of the model (second returns).
         """
-        self._check_is_inputs_valid(inputs, session_id=session_id)
         self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_fitted()
+        self._check_is_inputs_valid(inputs, session_id=session_id)
 
         model = self.model.module
         if hasattr(model, 'get_offset'):
