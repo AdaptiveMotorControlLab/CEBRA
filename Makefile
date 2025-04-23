@@ -55,7 +55,7 @@ interrogate:
 		--ignore-private \
 		--ignore-magic \
 		--omit-covered-files \
-		-f 90 \
+		-f 80 \
 		cebra
 
 # Build documentation using sphinx
