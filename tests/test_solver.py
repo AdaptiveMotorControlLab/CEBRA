@@ -195,7 +195,6 @@ def test_single_session(data_name, loader_initfunc, model_architecture,
         solver.load(temp_dir)
     _assert_equal(fitted_solver, solver)
 
-
     embedding = solver.transform(X)
     assert isinstance(embedding, torch.Tensor)
     assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
@@ -224,9 +223,11 @@ def test_single_session(data_name, loader_initfunc, model_architecture,
     _assert_equal(fitted_solver, solver)
 
 
-@pytest.mark.parametrize("data_name, loader_initfunc, model_architecture, solver_initfunc",
-                         single_session_tests)
-def test_single_session_auxvar(data_name, loader_initfunc, model_architecture, solver_initfunc):
+@pytest.mark.parametrize(
+    "data_name, loader_initfunc, model_architecture, solver_initfunc",
+    single_session_tests)
+def test_single_session_auxvar(data_name, loader_initfunc, model_architecture,
+                               solver_initfunc):
 
     pytest.skip("Not yet supported")
 

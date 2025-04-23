@@ -37,8 +37,6 @@ from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import literate_dataclasses as dataclasses
 import numpy.typing as npt
-import numpy as np
-import numpy.typing as npt
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -616,9 +614,9 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         elif not isinstance(inputs, torch.Tensor):
             raise ValueError(
                 f"Inputs should be a torch.Tensor, not {type(inputs)}.")
-            
+
         self._check_is_fitted()
-        
+
         model, offset = self._select_model(inputs, session_id)
 
         if len(offset) < 2 and pad_before_transform:
