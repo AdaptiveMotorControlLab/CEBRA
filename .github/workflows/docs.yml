@@ -47,11 +47,7 @@ jobs:
         with:
           repository: AdaptiveMotorControlLab/cebra-demos
           path: docs/source/demo_notebooks
-          # NOTE(stes): This is a temporary branch to add the xCEBRA demo notebooks
-          # to the docs. Once the notebooks are merged into main, we can remove this
-          # branch and change the ref to main.
-          # ref: main
-          ref: stes/add-xcebra
+          ref: main
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v5
