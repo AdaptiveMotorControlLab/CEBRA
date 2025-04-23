@@ -19,24 +19,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Pre-defined neural network model architectures
+"""Attribution methods for CEBRA.
 
-This package contains everything related to implementing data encoders and the loss functions
-applied to the feature spaces. :py:mod:`cebra.models.criterions` contains the implementations of
-InfoNCE and other contrastive losses. All additions regarding how data is encoded and losses are
-computed should be added to this package.
+This module was added in v0.6.0 and contains attribution methods described and benchmarked
+in [Schneider2025]_.
 
+
+.. [Schneider2025] Schneider, S., González Laiz, R., Filippova, A., Frey, M., & Mathis, M. W. (2025).
+    Time-series attribution maps with regularized contrastive learning.
+    The 28th International Conference on Artificial Intelligence and Statistics.
+    https://openreview.net/forum?id=aGrCXoTB4P
 """
-
 import cebra.registry
 
 cebra.registry.add_helper_functions(__name__)
 
-from cebra.models.model import *
-from cebra.models.multiobjective import *
-from cebra.models.layers import *
-from cebra.models.criterions import *
-from cebra.models.multicriterions import *
-from cebra.models.jacobian_regularizer import *
-
-cebra.registry.add_docstring(__name__)
+from cebra.attribution.attribution_models import *
+from cebra.attribution.jacobian_attribution import *

@@ -26,15 +26,12 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Path setup --------------------------------------------------------------
-
 import datetime
 import os
+import pathlib
 import sys
 
 sys.path.insert(0, os.path.abspath("."))
-
-import cebra  # noqa: E402
 
 
 def get_years(start_year=2021):
@@ -49,8 +46,17 @@ def get_years(start_year=2021):
 project = "cebra"
 copyright = f"""{get_years(2021)}"""
 author = "See AUTHORS.md"
-# The full version, including alpha/beta/rc tags
-release = cebra.__version__
+version_file = pathlib.Path(
+    __file__).parent.parent.parent / "cebra" / "__init__.py"
+assert version_file.exists(), f"Could not find version file: {version_file}"
+with version_file.open("r") as f:
+    for line in f:
+        if line.startswith("__version__"):
+            version = line.split("=")[1].strip().strip('"').strip("'")
+            print("Building docs for version:", version)
+            break
+    else:
+        raise ValueError("Could not find version in __init__.py")
 
 # -- General configuration ---------------------------------------------------
 
@@ -60,8 +66,7 @@ release = cebra.__version__
 
 #https://github.com/spatialaudio/nbsphinx/issues/128#issuecomment-1158712159
 html_js_files = [
-    "require.min.js",  # Add to your _static
-    "custom.js",
+    "https://cdn.plot.ly/plotly-latest.min.js",  # Add Plotly.js
 ]
 
 extensions = [
@@ -122,7 +127,8 @@ copybutton_only_copy_prompt_lines = True
 
 autodoc_member_order = "bysource"
 autodoc_mock_imports = [
-    "torch", "nlb_tools", "tqdm", "h5py", "pandas", "matplotlib", "plotly"
+    "torch", "nlb_tools", "tqdm", "h5py", "pandas", "matplotlib", "plotly",
+    "cvxpy", "captum", "joblib", "scikit-learn", "scipy", "requests", "sklearn"
 ]
 # autodoc_typehints = "none"
 
@@ -133,8 +139,18 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    "**/todo", "**/src", "cebra-figures/figures.rst", "cebra-figures/*.rst",
-    "*/cebra-figures/*.rst", "demo_notebooks/README.rst"
+    "**/todo",
+    "**/src",
+    "cebra-figures/figures.rst",
+    "cebra-figures/*.rst",
+    "*/cebra-figures/*.rst",
+    "*/demo_notebooks/README.rst",
+    "demo_notebooks/README.rst",
+    # TODO(stes): Remove this from the assets repo, then remove here
+    "_static/figures_usage.ipynb",
+    "*/_static/figures_usage.ipynb",
+    "assets/**/*.ipynb",
+    "*/assets/**/*.ipynb"
 ]
 
 # -- Options for HTML output -------------------------------------------------
@@ -185,23 +201,26 @@ html_theme_options = {
             "icon": "fas fa-graduation-cap",
         },
     ],
-    "external_links": [
-        # {"name": "Mathis Lab", "url": "http://www.mackenziemathislab.org/"},
-    ],
     "collapse_navigation": False,
-    "navigation_depth": 4,
-    "show_nav_level": 2,
+    "navigation_depth": 1,
+    "show_nav_level": 1,
     "navbar_align": "content",
     "show_prev_next": False,
+    "navbar_end": ["theme-switcher", "navbar-icon-links.html"],
+    "navbar_persistent": [],
+    "header_links_before_dropdown": 7
 }
 
-html_context = {"default_mode": "dark"}
+html_context = {"default_mode": "light"}
 html_favicon = "_static/img/logo_small.png"
 html_logo = "_static/img/logo_large.png"
 
-# Remove the search field for now
+# Replace with this configuration to enable "on this page" navigation
 html_sidebars = {
-    "**": ["search-field.html", "sidebar-nav-bs.html"],
+    "**": ["search-field.html", "sidebar-nav-bs", "page-toc.html"],
+    "demos": ["search-field.html", "sidebar-nav-bs"],
+    "api": ["search-field.html", "sidebar-nav-bs"],
+    "figures": ["search-field.html", "sidebar-nav-bs"],
 }
 
 # Disable links for embedded images
@@ -291,3 +310,12 @@ nbsphinx_prolog = r"""
 """
 # fmt: on
 # flake8: enable=E501
+
+# Configure nbsphinx to properly render Plotly plots
+nbsphinx_execute = 'auto'
+nbsphinx_allow_errors = True
+nbsphinx_requirejs_path = 'https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.7/require.js'
+nbsphinx_execute_arguments = [
+    "--InlineBackend.figure_formats={'png', 'svg', 'pdf'}",
+    "--InlineBackend.rc=figure.dpi=96",
+]

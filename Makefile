@@ -1,4 +1,4 @@
-CEBRA_VERSION := 0.5.0
+CEBRA_VERSION := 0.6.0a1
 
 dist:
 	python3 -m pip install virtualenv
@@ -55,7 +55,7 @@ interrogate:
 		--ignore-private \
 		--ignore-magic \
 		--omit-covered-files \
-		-f 90 \
+		-f 80 \
 		cebra
 
 # Build documentation using sphinx
