@@ -1436,17 +1436,14 @@ gets initialized which also allows the `prior` to be directly parametrized.
     solver.fit(loader=loader)
 
     # 7. Transform Embedding
-    train_batches = np.lib.stride_tricks.sliding_window_view(
-        neural_data, neural_model.get_offset().__len__(), axis=0
-    )
-
     x_train_emb = solver.transform(
-        torch.from_numpy(train_batches[:]).type(torch.FloatTensor).to(device)
-    ).to(device)
+        torch.from_numpy(neural_data).type(torch.FloatTensor).to(device),
+        pad_before_transform=True,
+        batch_size=512).to(device)
 
     # 8. Plot Embedding
     cebra.plot_embedding(
         x_train_emb.cpu(),
-        discrete_label[neural_model.get_offset().__len__() - 1 :, 0],
+        discrete_label[:,0],
         markersize=10,
     )
