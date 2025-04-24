@@ -22,6 +22,7 @@
 """Define the CEBRA model."""
 
 import itertools
+import warnings
 from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
                     Union)
 
@@ -129,7 +130,7 @@ def _init_loader(
         (not is_cont, not is_disc, is_multi),
     ]
     if any(all(combination) for combination in incompatible_combinations):
-        raise ValueError(f"Invalid index combination.\n"
+        raise ValueError("Invalid index combination.\n"
                          f"Continuous: {is_cont},\n"
                          f"Discrete: {is_disc},\n"
                          f"Hybrid training: {is_hybrid},\n"
@@ -293,7 +294,7 @@ def _init_loader(
                         "single-session",
                     )
 
-    error_message = (f"Invalid index combination.\n"
+    error_message = ("Invalid index combination.\n"
                      f"Continuous: {is_cont},\n"
                      f"Discrete: {is_disc},\n"
                      f"Hybrid training: {is_hybrid},\n"
@@ -340,7 +341,7 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
     if missing_keys:
         raise ValueError(
             f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
-            f"You can try loading the CEBRA model with the torch backend.")
+            "You can try loading the CEBRA model with the torch backend.")
 
     args, state, state_dict = cebra_info['args'], cebra_info[
         'state'], cebra_info['state_dict']
@@ -656,12 +657,12 @@ class CEBRA(TransformerMixin, BaseEstimator):
             # TODO(celia): to make it work for multiple set of index. For now, y should be a tuple of one list only
             if isinstance(y, tuple) and len(y) > 1:
                 raise NotImplementedError(
-                    f"Support for multiple set of index is not implemented in multissesion training, "
+                    "Support for multiple set of index is not implemented in multissesion training, "
                     f"got {len(y)} sets of indexes.")
 
             if not _are_sessions_equal(X, y):
                 raise ValueError(
-                    f"Invalid number of sessions: number of sessions in X and y need to match, "
+                    "Invalid number of sessions: number of sessions in X and y need to match, "
                     f"got X:{len(X)} and y:{[len(y_i) for y_i in y]}.")
 
             for session in range(len(X)):
@@ -685,8 +686,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
         else:
             if not _are_sessions_equal(X, y):
                 raise ValueError(
-                    f"Invalid number of samples or labels sessions: provide one session for single-session training, "
-                    f"and make sure the number of samples in X and y need match, "
+                    "Invalid number of samples or labels sessions: provide one session for single-session training, "
+                    "and make sure the number of samples in X and y need match, "
                     f"got {len(X)} and {[len(y_i) for y_i in y]}.")
             is_multisession = False
             dataset = _get_dataset(X, y)
@@ -848,7 +849,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
         # Check that same number of index
         if len(self.label_types_) != n_idx:
             raise ValueError(
-                f"Number of index invalid: labels must have the same number of index as for fitting,"
+                "Number of index invalid: labels must have the same number of index as for fitting,"
                 f"expects {len(self.label_types_)}, got {n_idx} idx.")
 
         for i in range(len(self.label_types_)):  # for each index
@@ -861,12 +862,12 @@ class CEBRA(TransformerMixin, BaseEstimator):
                     > 1):  # is there more than one feature in the index
                 if label_types_idx[1][1] != y[i].shape[1]:
                     raise ValueError(
-                        f"Labels invalid: must have the same number of features as the ones used for fitting,"
+                        "Labels invalid: must have the same number of features as the ones used for fitting,"
                         f"expects {label_types_idx[1]}, got {y[i].shape}.")
 
             if label_types_idx[0] != y[i].dtype:
                 raise ValueError(
-                    f"Labels invalid: must have the same type of features as the ones used for fitting,"
+                    "Labels invalid: must have the same type of features as the ones used for fitting,"
                     f"expects {label_types_idx[0]}, got {y[i].dtype}.")
 
     def _prepare_fit(
@@ -1254,7 +1255,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
 
         return output.detach().cpu().numpy()
 
-    #NOTE: Deprecated: transform is now handled in the solver but kept for testing.
+    #NOTE: Deprecated: transform is now handled in the solver but the original
+    #      method is kept here for testing.
     def transform_deprecated(self,
                              X: Union[npt.NDArray, torch.Tensor],
                              session_id: Optional[int] = None) -> npt.NDArray:
@@ -1279,6 +1281,12 @@ class CEBRA(TransformerMixin, BaseEstimator):
             >>> embedding = cebra_model.transform(dataset)
 
         """
+        warnings.warn(
+            "The method `transform_deprecated` is deprecated "
+            "but kept for testing puroposes."
+            "We recommend using `transform` instead.",
+            DeprecationWarning,
+            stacklevel=2)
 
         sklearn_utils_validation.check_is_fitted(self, "n_features_")
         model, offset = self._select_model(X, session_id)

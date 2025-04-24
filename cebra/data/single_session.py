@@ -69,17 +69,6 @@ class SingleSessionDataset(cebra_data.Dataset):
             reference=self[index.reference],
         )
 
-    def configure_for(self, model: "cebra.models.Model"):
-        """Configure the dataset offset for the provided model.
-
-        Call this function before indexing the dataset. This sets the
-        :py:attr:`cebra_data.Dataset.offset` attribute of the dataset.
-
-        Args:
-            model: The model to configure the dataset for.
-        """
-        self.offset = model.get_offset()
-
 
 @dataclasses.dataclass
 class DiscreteDataLoader(cebra_data.Loader):

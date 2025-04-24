@@ -353,7 +353,7 @@ class DatasetxCEBRA(cebra_io.HasDevice):
         """Configure the dataset offset for the provided model.
 
         Call this function before indexing the dataset. This sets the
-        :py:attr:`offset` attribute of the dataset.
+        ``offset`` attribute of the dataset.
 
         Args:
             model: The model to configure the dataset for.

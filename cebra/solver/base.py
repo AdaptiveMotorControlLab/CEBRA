@@ -84,7 +84,7 @@ def _check_indices(batch_start_idx: int, batch_end_idx: int,
         raise ValueError(
             f"The batch has length {batch_size_length} which "
             f"is smaller or equal than the required offset length {len(offset)}."
-            f"Either choose a model with smaller offset or the batch should contain more samples."
+            f"Either choose a model with smaller offset or the batch should contain 3 times more samples."
         )
 
 
@@ -127,7 +127,7 @@ def _get_batch(inputs: torch.Tensor, offset: Optional[cebra.data.Offset],
         inputs: Input data.
         offset: Model offset.
         batch_start_idx: Index of the first sample in the batch.
-        batch_end_idx: Index of the first sample in the batch.
+        batch_end_idx: Index of the last sample in the batch.
         pad_before_transform: If True zero-pad the batched data.
 
     Returns:
@@ -237,8 +237,8 @@ def _batched_transform(model: cebra.models.Model, inputs: torch.Tensor,
 
     if len(index_dataloader) < 2:
         raise ValueError(
-            f"Number of batches must be greater than 1, you can use transform without batching instead, got {len(index_dataloader)}."
-        )
+            f"Number of batches must be greater than 1, you can use transform "
+            f"without batching instead, got {len(index_dataloader)}.")
 
     output = []
     for batch_idx, index_batch in enumerate(index_dataloader):
@@ -253,7 +253,11 @@ def _batched_transform(model: cebra.models.Model, inputs: torch.Tensor,
         if batch_idx == (len(index_dataloader) - 1):
             # last batch, incomplete
             index_batch = torch.cat((last_batch, index_batch), dim=0)
+            assert index_batch[-1] + 1 == len(inputs), (
+                f"Last batch index {index_batch[-1]} + 1 should be equal to the length of inputs {len(inputs)}."
+            )
 
+        # Batch start and end so that `batch_size` size with the last batch including 2 batches
         batch_start_idx, batch_end_idx = index_batch[0], index_batch[-1] + 1
         batched_data = _get_batch(inputs=inputs,
                                   offset=offset,
@@ -264,7 +268,7 @@ def _batched_transform(model: cebra.models.Model, inputs: torch.Tensor,
         output_batch = _inference_transform(model, batched_data)
         output.append(output_batch)
 
-    output = torch.cat(output)
+    output = torch.cat(output, dim=0)
     return output
 
 
@@ -608,7 +612,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         of the given model, after switching it into eval mode.
 
         Args:
-            inputs: The input signal
+            inputs: The input signal (T, N).
             pad_before_transform: If ``False``, no padding is applied to the input
                 sequence and the output sequence will be smaller than the input
                 sequence due to the receptive field of the model. If the
@@ -635,11 +639,14 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         model, offset = self._select_model(inputs, session_id)
 
-        if len(offset) < 2 and pad_before_transform:
-            pad_before_transform = False
+        #if len(offset) < 2 and pad_before_transform:
+        #    pad_before_transform = False
 
         model.eval()
-        if batch_size is not None and inputs.shape[0] > int(batch_size * 2):
+        if batch_size is not None and inputs.shape[0] > int(
+                batch_size * 2) and not isinstance(
+                    self.model, cebra.models.ResampleModelMixin):
+            # NOTE: resampling models are not supported for batched inference.
             output = _batched_transform(
                 model=model,
                 inputs=inputs,

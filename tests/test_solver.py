@@ -34,43 +34,12 @@ import cebra.solver
 
 device = "cpu"
 
-single_session_tests = []
-for args in [
-    ("demo-discrete", cebra.data.DiscreteDataLoader, "offset10-model"),
-    ("demo-discrete", cebra.data.DiscreteDataLoader, "offset1-model"),
-    ("demo-discrete", cebra.data.DiscreteDataLoader, "offset1-model"),
-    ("demo-discrete", cebra.data.DiscreteDataLoader, "offset10-model"),
-    ("demo-continuous", cebra.data.ContinuousDataLoader, "offset10-model"),
-    ("demo-continuous", cebra.data.ContinuousDataLoader, "offset1-model"),
-    ("demo-mixed", cebra.data.MixedDataLoader, "offset10-model"),
-    ("demo-mixed", cebra.data.MixedDataLoader, "offset1-model"),
-]:
-    single_session_tests.append((*args, cebra.solver.SingleSessionSolver))
 
-single_session_hybrid_tests = []
-for args in [("demo-continuous", cebra.data.HybridDataLoader, "offset10-model"),
-             ("demo-continuous", cebra.data.HybridDataLoader, "offset1-model")]:
-    single_session_hybrid_tests.append(
-        (*args, cebra.solver.SingleSessionHybridSolver))
-
-multi_session_tests = []
-for args in [
-    ("demo-continuous-multisession",
-     cebra.data.ContinuousMultiSessionDataLoader, "offset1-model"),
-    ("demo-continuous-multisession",
-     cebra.data.ContinuousMultiSessionDataLoader, "offset10-model"),
-    ("demo-discrete-multisession", cebra.data.DiscreteMultiSessionDataLoader,
-     "offset1-model"),
-    ("demo-discrete-multisession", cebra.data.DiscreteMultiSessionDataLoader,
-     "offset10-model"),
-]:
-    multi_session_tests.append((*args, cebra.solver.MultiSessionSolver))
-
-
-def _get_loader(data, loader_initfunc):
+def _get_loader(data_name, loader_initfunc):
+    data = cebra.datasets.init(data_name)
     kwargs = dict(num_steps=2, batch_size=32)
     loader = loader_initfunc(data, **kwargs)
-    return loader
+    return loader, data
 
 
 OUTPUT_DIMENSION = 3
@@ -86,12 +55,12 @@ def _make_model(dataset, model_architecture="offset10-model"):
                              OUTPUT_DIMENSION)
 
 
-# def _make_behavior_model(dataset):
-#     # TODO flexible input dimension
-#     return nn.Sequential(
-#         nn.Conv1d(dataset.input_dimension, 5, kernel_size=10),
-#         nn.Flatten(start_dim=1, end_dim=-1),
-#     )
+def _make_behavior_model(dataset):
+    # TODO flexible input dimension
+    return nn.Sequential(
+        nn.Conv1d(dataset.input_dimension, 5, kernel_size=10),
+        nn.Flatten(start_dim=1, end_dim=-1),
+    )
 
 
 def _assert_same_state_dict(first, second):
@@ -137,12 +106,16 @@ def _assert_equal(original_solver, loaded_solver):
 
 
 @pytest.mark.parametrize(
-    "data_name, loader_initfunc, model_architecture, solver_initfunc",
-    single_session_tests)
+    "data_name, model_architecture, loader_initfunc, solver_initfunc",
+    [(dataset, model, loader, cebra.solver.SingleSessionSolver)
+     for dataset, loader in [("demo-discrete", cebra.data.DiscreteDataLoader),
+                             ("demo-continuous", cebra.data.ContinuousDataLoader
+                             ), ("demo-mixed", cebra.data.MixedDataLoader)]
+     for model in
+     ["offset1-model", "offset10-model", "offset40-model-4x-subsample"]])
 def test_single_session(data_name, loader_initfunc, model_architecture,
                         solver_initfunc):
-    data = cebra.datasets.init(data_name)
-    loader = _get_loader(data, loader_initfunc)
+    loader, data = _get_loader(data_name, loader_initfunc)
     model = _make_model(data, model_architecture)
     data.configure_for(model)
     offset = model.get_offset()
@@ -170,16 +143,34 @@ def test_single_session(data_name, loader_initfunc, model_architecture,
 
     embedding = solver.transform(X)
     assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
+                                   OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
     embedding = solver.transform(torch.Tensor(X))
     assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
+                                   OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
     embedding = solver.transform(X, session_id=0)
     assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
+                                   OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
     embedding = solver.transform(X, pad_before_transform=False)
     assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0] - len(offset) + 1, OUTPUT_DIMENSION)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (
+            (X.shape[0] - len(offset)) // solver.model.resample_factor + 1,
+            OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0] - len(offset) + 1,
+                                   OUTPUT_DIMENSION)
 
     with pytest.raises(ValueError, match="torch.Tensor"):
         solver.transform(X.numpy())
@@ -197,16 +188,34 @@ def test_single_session(data_name, loader_initfunc, model_architecture,
 
     embedding = solver.transform(X)
     assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
+                                   OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
     embedding = solver.transform(torch.Tensor(X))
     assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
+                                   OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
     embedding = solver.transform(X, session_id=0)
     assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
+                                   OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
     embedding = solver.transform(X, pad_before_transform=False)
     assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0] - len(offset) + 1, OUTPUT_DIMENSION)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (
+            (X.shape[0] - len(offset)) // solver.model.resample_factor + 1,
+            OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0] - len(offset) + 1,
+                                   OUTPUT_DIMENSION)
 
     with pytest.raises(ValueError, match="torch.Tensor"):
         solver.transform(X.numpy())
@@ -224,41 +233,47 @@ def test_single_session(data_name, loader_initfunc, model_architecture,
 
 
 @pytest.mark.parametrize(
-    "data_name, loader_initfunc, model_architecture, solver_initfunc",
-    single_session_tests)
+    "data_name, model_architecture, loader_initfunc, solver_initfunc",
+    [(dataset, model, loader, cebra.solver.SingleSessionSolver)
+     for dataset, loader in [("demo-discrete", cebra.data.DiscreteDataLoader),
+                             ("demo-continuous", cebra.data.ContinuousDataLoader
+                             ), ("demo-mixed", cebra.data.MixedDataLoader)]
+     for model in
+     ["offset1-model", "offset10-model", "offset40-model-4x-subsample"]])
 def test_single_session_auxvar(data_name, loader_initfunc, model_architecture,
                                solver_initfunc):
 
     pytest.skip("Not yet supported")
 
-    # loader = _get_loader(data_name, loader_initfunc)
-    # model = _make_model(loader.dataset)
-    # behavior_model = _make_behavior_model(loader.dataset)  # noqa: F841
+    loader = _get_loader(data_name, loader_initfunc)
+    model = _make_model(loader.dataset)
+    behavior_model = _make_behavior_model(loader.dataset)  # noqa: F841
 
-    # criterion = cebra.models.InfoNCE()
-    # optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    criterion = cebra.models.InfoNCE()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-    # solver = solver_initfunc(
-    #     model=model,
-    #     criterion=criterion,
-    #     optimizer=optimizer,
-    # )
+    solver = solver_initfunc(
+        model=model,
+        criterion=criterion,
+        optimizer=optimizer,
+    )
 
-    # batch = next(iter(loader))
-    # assert batch.reference.shape == (32, loader.dataset.input_dimension, 10)
-    # log = solver.step(batch)
-    # assert isinstance(log, dict)
+    batch = next(iter(loader))
+    assert batch.reference.shape == (32, loader.dataset.input_dimension, 10)
+    log = solver.step(batch)
+    assert isinstance(log, dict)
 
-    # solver.fit(loader)
+    solver.fit(loader)
 
 
 @pytest.mark.parametrize(
-    "data_name, loader_initfunc, model_architecture, solver_initfunc",
-    single_session_hybrid_tests)
+    "data_name, model_architecture, loader_initfunc, solver_initfunc",
+    [("demo-continuous", model, cebra.data.HybridDataLoader,
+      cebra.solver.SingleSessionHybridSolver)
+     for model in ["offset1-model", "offset10-model"]])
 def test_single_session_hybrid(data_name, loader_initfunc, model_architecture,
                                solver_initfunc):
-    data = cebra.datasets.init(data_name)
-    loader = _get_loader(data, loader_initfunc)
+    loader, data = _get_loader(data_name, loader_initfunc)
     model = _make_model(data, model_architecture)
     data.configure_for(model)
     offset = model.get_offset()
@@ -312,12 +327,18 @@ def test_single_session_hybrid(data_name, loader_initfunc, model_architecture,
 
 
 @pytest.mark.parametrize(
-    "data_name, loader_initfunc, model_architecture, solver_initfunc",
-    multi_session_tests)
+    "data_name, model_architecture, loader_initfunc, solver_initfunc",
+    [(dataset, model, loader, cebra.solver.MultiSessionSolver)
+     for dataset, loader in [
+         ("demo-discrete-multisession",
+          cebra.data.DiscreteMultiSessionDataLoader),
+         ("demo-continuous-multisession",
+          cebra.data.ContinuousMultiSessionDataLoader),
+     ]
+     for model in ["offset1-model", "offset10-model"]])
 def test_multi_session(data_name, loader_initfunc, model_architecture,
                        solver_initfunc):
-    data = cebra.datasets.init(data_name)
-    loader = _get_loader(data, loader_initfunc)
+    loader, data = _get_loader(data_name, loader_initfunc)
     model = nn.ModuleList([
         _make_model(dataset, model_architecture)
         for dataset in data.iter_sessions()

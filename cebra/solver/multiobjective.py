@@ -155,7 +155,7 @@ class MultiObjectiveConfig:
         if len(set(self.feature_ranges_tuple)) != len(
                 self.feature_ranges_tuple):
             raise RuntimeError(
-                f"Feature ranges are not unique. Please check again and remove the duplicates. "
+                "Feature ranges are not unique. Please check again and remove the duplicates. "
                 f"Feature ranges: {self.feature_ranges_tuple}")
 
         print("Creating MultiCriterion")
@@ -456,8 +456,27 @@ class MultiobjectiveSolverBase(cebra_solver_single.SingleSessionSolver):
         self.log.setdefault(("sum_loss_val",), []).append(sum_loss_valid)
         return stats_val
 
+    # NOTE: Deprecated: batched transform can now be performed (more memory efficient)
+    #       using the transform method of the model, and handling padding is implemented
+    #       directly in the base Solver. This method is kept for testing purposes.
     @torch.no_grad()
     def transform_deprecated(self, inputs: torch.Tensor) -> torch.Tensor:
+        """Transform the input data using the model.
+
+        Args:
+            inputs: The input data to transform.
+
+        Returns:
+            The transformed data.
+        """
+
+        warnings.warn(
+            "The method `transform_deprecated` is deprecated "
+            "but kept for testing puroposes."
+            "We recommend using `transform` instead.",
+            DeprecationWarning,
+            stacklevel=2)
+
         offset = self.model.get_offset()
         self.model.eval()
         X = inputs.cpu().numpy()

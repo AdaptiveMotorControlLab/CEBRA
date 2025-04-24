@@ -31,45 +31,9 @@ import cebra.solver
 
 device = "cpu"
 
-NUM_STEPS = 2
-
-single_session_tests = []
-for args in [
-    ("demo-discrete", cebra.data.DiscreteDataLoader, "offset10-model"),
-    ("demo-discrete", cebra.data.DiscreteDataLoader, "offset1-model"),
-    ("demo-discrete", cebra.data.DiscreteDataLoader, "offset1-model"),
-    ("demo-discrete", cebra.data.DiscreteDataLoader, "offset10-model"),
-    ("demo-continuous", cebra.data.ContinuousDataLoader, "offset10-model"),
-    ("demo-continuous", cebra.data.ContinuousDataLoader, "offset1-model"),
-    ("demo-mixed", cebra.data.MixedDataLoader, "offset10-model"),
-    ("demo-mixed", cebra.data.MixedDataLoader, "offset1-model"),
-]:
-    single_session_tests.append((*args, cebra.solver.SingleSessionSolver))
-
-single_session_hybrid_tests = []
-for args in [("demo-continuous", cebra.data.HybridDataLoader, "offset10-model"),
-             ("demo-continuous", cebra.data.HybridDataLoader, "offset1-model")]:
-    single_session_hybrid_tests.append(
-        (*args, cebra.solver.SingleSessionHybridSolver))
-
-multi_session_tests = []
-for args in [
-    ("demo-continuous-multisession",
-     cebra.data.ContinuousMultiSessionDataLoader, "offset1-model"),
-    ("demo-continuous-multisession",
-     cebra.data.ContinuousMultiSessionDataLoader, "offset10-model"),
-    ("demo-discrete-multisession", cebra.data.DiscreteMultiSessionDataLoader,
-     "offset1-model"),
-    ("demo-discrete-multisession", cebra.data.DiscreteMultiSessionDataLoader,
-     "offset10-model"),
-]:
-    multi_session_tests.append((*args, cebra.solver.MultiSessionSolver))
-
-
-def _get_loader(data, loader_initfunc):
-    kwargs = dict(num_steps=NUM_STEPS, batch_size=32)
-    loader = loader_initfunc(data, **kwargs)
-    return loader
+NUM_STEPS = 10
+BATCHES = [25_000, 50_000, 75_000]
+MODELS = ["offset1-model", "offset10-model", "offset40-model-4x-subsample"]
 
 
 @pytest.mark.parametrize(
@@ -155,9 +119,6 @@ def _get_loader(data, loader_initfunc):
             3,
             torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
         ),
-
-        # Examples that throw an error:
-
         # Padding without offset (should raise an error)
         (torch.tensor([[1, 2]]), True, None, 0, 2, ValueError),
         # Negative start_batch_idx or end_batch_idx (should raise an error)
@@ -190,35 +151,21 @@ def create_model(model_name, input_dimension):
                              num_output=3)
 
 
-single_session_tests_select_model = []
-single_session_hybrid_tests_select_model = []
-for model_name in ["offset1-model", "offset10-model"]:
-    for session_id in [None, 0, 5]:
-        for args in [
-            ("demo-discrete", model_name, session_id,
-             cebra.data.DiscreteDataLoader),
-            ("demo-continuous", model_name, session_id,
-             cebra.data.ContinuousDataLoader),
-            ("demo-mixed", model_name, session_id, cebra.data.MixedDataLoader),
-        ]:
-            single_session_tests_select_model.append(
-                (*args, cebra.solver.SingleSessionSolver))
-            single_session_hybrid_tests_select_model.append(
-                (*args, cebra.solver.SingleSessionHybridSolver))
-
-multi_session_tests_select_model = []
-for model_name in ["offset10-model"]:
-    for session_id in [None, 0, 1, 5, 2, 6, 4]:
-        for args in [("demo-continuous-multisession", model_name, session_id,
-                      cebra.data.ContinuousMultiSessionDataLoader)]:
-            multi_session_tests_select_model.append(
-                (*args, cebra.solver.MultiSessionSolver))
-
-
 @pytest.mark.parametrize(
-    "data_name, model_name ,session_id, loader_initfunc, solver_initfunc",
-    single_session_tests_select_model + single_session_hybrid_tests_select_model
-)
+    "data_name, model_name, session_id, loader_initfunc, solver_initfunc",
+    [(dataset, model, session_id, loader, cebra.solver.SingleSessionSolver)
+     for dataset, loader in [("demo-discrete", cebra.data.DiscreteDataLoader),
+                             ("demo-continuous", cebra.data.ContinuousDataLoader
+                             ), ("demo-mixed", cebra.data.MixedDataLoader)]
+     for model in ["offset1-model", "offset10-model"]
+     for session_id in [None, 0, 5]] +
+    [(dataset, model, session_id, loader,
+      cebra.solver.SingleSessionHybridSolver)
+     for dataset, loader in [
+         ("demo-continuous", cebra.data.HybridDataLoader),
+     ]
+     for model in ["offset1-model", "offset10-model"]
+     for session_id in [None, 0, 5]])
 def test_select_model_single_session(data_name, model_name, session_id,
                                      loader_initfunc, solver_initfunc):
     dataset = cebra.datasets.init(data_name)
@@ -244,16 +191,25 @@ def test_select_model_single_session(data_name, model_name, session_id,
 
 @pytest.mark.parametrize(
     "data_name, model_name, session_id, loader_initfunc, solver_initfunc",
-    multi_session_tests_select_model)
+    [(dataset, model, session_id, loader, cebra.solver.MultiSessionSolver)
+     for dataset, loader in [
+         ("demo-continuous-multisession",
+          cebra.data.ContinuousMultiSessionDataLoader),
+     ]
+     for model in ["offset1-model", "offset10-model"]
+     for session_id in [None, 0, 1, 5, 2, 6, 4]])
 def test_select_model_multi_session(data_name, model_name, session_id,
                                     loader_initfunc, solver_initfunc):
+
     dataset = cebra.datasets.init(data_name)
+    kwargs = dict(num_steps=NUM_STEPS, batch_size=32)
+    loader = loader_initfunc(dataset, **kwargs)
+
     model = nn.ModuleList([
         create_model(model_name, dataset.input_dimension)
         for dataset in dataset.iter_sessions()
     ])
     dataset.configure_for(model)
-    loader = _get_loader(dataset, loader_initfunc=loader_initfunc)
 
     offset = model[0].get_offset()
     solver = solver_initfunc(model=model,
@@ -282,43 +238,25 @@ def test_select_model_multi_session(data_name, model_name, session_id,
             assert model == model_
 
 
-models = [
-    "offset1-model",
-    "offset10-model",
-    "offset40-model-4x-subsample",
-    "offset1-model",
-    "offset10-model",
-]  #NOTE(rodrigo): there is an issue with "offset4-model-2x-subsample" because it's not a convolutional model.
-batch_size_inference = [40_000, 99_990, 99_999]
-
-single_session_tests_transform = []
-for padding in [True, False]:
-    for model_name in models:
-        for batch_size in batch_size_inference:
-            for args in [
-                ("demo-discrete", model_name, padding, batch_size,
-                 cebra.data.DiscreteDataLoader),
-                ("demo-continuous", model_name, padding, batch_size,
-                 cebra.data.ContinuousDataLoader),
-                ("demo-mixed", model_name, padding, batch_size,
-                 cebra.data.MixedDataLoader),
-            ]:
-                single_session_tests_transform.append(
-                    (*args, cebra.solver.SingleSessionSolver))
-
-single_session_hybrid_tests_transform = []
-for padding in [True, False]:
-    for model_name in models:
-        for batch_size in batch_size_inference:
-            for args in [("demo-continuous", model_name, padding, batch_size,
-                          cebra.data.HybridDataLoader)]:
-                single_session_hybrid_tests_transform.append(
-                    (*args, cebra.solver.SingleSessionHybridSolver))
-
-
 @pytest.mark.parametrize(
     "data_name, model_name, padding, batch_size_inference, loader_initfunc, solver_initfunc",
-    single_session_tests_transform + single_session_hybrid_tests_transform)
+    [(dataset, model, padding, batch_size, loader,
+      cebra.solver.SingleSessionSolver)
+     for dataset, loader in [("demo-discrete", cebra.data.DiscreteDataLoader),
+                             ("demo-continuous", cebra.data.ContinuousDataLoader
+                             ), ("demo-mixed", cebra.data.MixedDataLoader)]
+     for model in
+     ["offset1-model", "offset10-model", "offset40-model-4x-subsample"]
+     for padding in [True, False]
+     for batch_size in BATCHES] +
+    [(dataset, model, padding, batch_size, loader,
+      cebra.solver.SingleSessionHybridSolver)
+     for dataset, loader in [
+         ("demo-continuous", cebra.data.HybridDataLoader),
+     ]
+     for model in MODELS
+     for padding in [True, False]
+     for batch_size in BATCHES])
 def test_batched_transform_single_session(
     data_name,
     model_name,
@@ -342,31 +280,28 @@ def test_batched_transform_single_session(
     solver.fit(loader)
 
     embedding_batched = solver.transform(inputs=loader.dataset.neural,
-                                         batch_size=batch_size,
+                                         batch_size=batch_size_inference,
                                          pad_before_transform=padding)
 
     embedding = solver.transform(inputs=loader.dataset.neural,
                                  pad_before_transform=padding)
 
     assert embedding_batched.shape == embedding.shape
-    assert np.allclose(embedding_batched, embedding, rtol=1e-02)
-
-
-multi_session_tests_transform = []
-for padding in [True, False]:
-    for model_name in models:
-        for batch_size in batch_size_inference:
-            for args in [
-                ("demo-continuous-multisession", model_name, padding,
-                 batch_size, cebra.data.ContinuousMultiSessionDataLoader)
-            ]:
-                multi_session_tests_transform.append(
-                    (*args, cebra.solver.MultiSessionSolver))
+    assert np.allclose(embedding_batched, embedding, rtol=1e-4, atol=1e-4)
 
 
 @pytest.mark.parametrize(
     "data_name, model_name,padding,batch_size_inference,loader_initfunc, solver_initfunc",
-    multi_session_tests_transform)
+    [(dataset, model, padding, batch_size, loader,
+      cebra.solver.MultiSessionSolver)
+     for dataset, loader in [
+         ("demo-continuous-multisession",
+          cebra.data.ContinuousMultiSessionDataLoader),
+     ]
+     for model in
+     ["offset1-model", "offset10-model", "offset40-model-4x-subsample"]
+     for padding in [True, False]
+     for batch_size in BATCHES])
 def test_batched_transform_multi_session(data_name, model_name, padding,
                                          batch_size_inference, loader_initfunc,
                                          solver_initfunc):
@@ -402,7 +337,7 @@ def test_batched_transform_multi_session(data_name, model_name, padding,
         embedding_batched = solver.transform(inputs=inputs.neural,
                                              session_id=i,
                                              pad_before_transform=padding,
-                                             batch_size=batch_size)
+                                             batch_size=batch_size_inference)
 
         assert embedding_batched.shape == embedding.shape
-        assert np.allclose(embedding_batched, embedding, rtol=1e-02)
+        assert np.allclose(embedding_batched, embedding, rtol=1e-4, atol=1e-4)
