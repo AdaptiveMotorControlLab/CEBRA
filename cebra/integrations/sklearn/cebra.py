@@ -1227,7 +1227,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
             >>> cebra_model = cebra.CEBRA(max_iterations=10)
             >>> cebra_model.fit(dataset)
             CEBRA(max_iterations=10)
-            >>> embedding = cebra_model.transform(dataset)
+            >>> embedding = cebra_model.transform(dataset, batch_size=200)
 
         """
         sklearn_utils_validation.check_is_fitted(self, "n_features_")
@@ -1254,7 +1254,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
 
         return output.detach().cpu().numpy()
 
-    #NOTE: Deprecated, as transform is now handled in the solver but kept for testing.
+    #NOTE: Deprecated: transform is now handled in the solver but kept for testing.
     def transform_deprecated(self,
                              X: Union[npt.NDArray, torch.Tensor],
                              session_id: Optional[int] = None) -> npt.NDArray:

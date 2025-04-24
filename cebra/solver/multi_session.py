@@ -40,11 +40,21 @@ class MultiSessionSolver(abc_.Solver):
     _variant_name = "multi-session"
 
     def parameters(self, session_id: Optional[int] = None):
-        """Iterate over all parameters."""
+        """Iterate over all parameters.
+
+        Args:
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Yields:
+            The parameters of the model.
+        """
         if session_id is not None:
             for parameter in self.model[session_id].parameters():
                 yield parameter
 
+        # If session_id is None, it can still iterate over the criterion
         for parameter in self.criterion.parameters():
             yield parameter
 
@@ -161,12 +171,12 @@ class MultiSessionSolver(abc_.Solver):
     def _check_is_session_id_valid(self, session_id: Optional[int]):
         """Check that the session ID provided is valid for the solver instance.
 
-        The session ID must be non-null and between 0 and the number session in the dataset.
+        The session ID must be non-null and between 0 and the number session
+        in the dataset.
 
         Args:
             session_id: The session ID to check.
         """
-
         if session_id is None:
             raise RuntimeError(
                 "No session_id provided: multisession model requires a session_id to choose the model corresponding to your data shape."
@@ -233,7 +243,20 @@ class MultiSessionAuxVariableSolver(MultiSessionSolver):
     _variant_name = "multi-session-aux"
     reference_model: torch.nn.Module
 
-    def _inference(self, batches):
+    def _inference(self, batches: List[cebra.data.Batch]) -> cebra.data.Batch:
+        """Given batches of input examples, computes the feature representations/embeddings.
+
+        Args:
+            batches: A list of input data, not necessarily aligned across the batch
+                dimension. This means that ``batch.index`` specifies the map
+                between reference/positive samples, if not equal ``None``.
+
+        Returns:
+            Processed batch of data. While the input data might not be aligned
+            across the sample dimensions, the output data should be aligned and
+            ``batch.index`` should be set to ``None``.
+
+        """
         refs = []
         poss = []
         negs = []

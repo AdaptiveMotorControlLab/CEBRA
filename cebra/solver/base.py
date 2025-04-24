@@ -54,9 +54,10 @@ def _check_indices(batch_start_idx: int, batch_end_idx: int,
                    offset: cebra.data.Offset, num_samples: int):
     """Check that indexes in a batch are in a correct range.
 
-    First and last index must be positive integers, smaller than the total length of inputs
-    in the dataset, the first index must be smaller than the last and the batch size cannot
-    be smaller than the offset of the model.
+    First and last index must be positive integers, smaller than
+    the total length of inputs in the dataset, the first index
+    must be smaller than the last and the batch size cannot be
+    smaller than the offset of the model.
 
     Args:
         batch_start_idx: Index of the first sample in the batch.
@@ -380,6 +381,16 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
     @abc.abstractmethod
     def parameters(self, session_id: Optional[int] = None):
+        """Iterate over all parameters of the model.
+
+        Args:
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Yields:
+            The parameters of the model.
+        """
         raise NotImplementedError
 
     def _get_loader(self, loader):
@@ -573,6 +584,13 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         raise NotImplementedError
 
     def _check_is_fitted(self):
+        """Check if the model is fitted.
+
+        If the model is fitted, the solver should have a `n_features` attribute.
+
+        Raises:
+            ValueError: If the model is not fitted.
+        """
         if not hasattr(self, "n_features"):
             raise ValueError(
                 f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
@@ -581,7 +599,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     @torch.no_grad()
     def transform(self,
                   inputs: Union[torch.Tensor, List[torch.Tensor], npt.NDArray],
-                  pad_before_transform: bool = True,
+                  pad_before_transform: Optional[bool] = True,
                   session_id: Optional[int] = None,
                   batch_size: Optional[int] = None) -> torch.Tensor:
         """Compute the embedding.
@@ -591,11 +609,12 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         Args:
             inputs: The input signal
-            pad_before_transform: If ``False``, no padding is applied to the input sequence.
-                and the output sequence will be smaller than the input sequence due to the
-                receptive field of the model. If the input sequence is ``n`` steps long,
-                and a model with receptive field ``m`` is used, the output sequence would
-                only be ``n-m+1`` steps long.
+            pad_before_transform: If ``False``, no padding is applied to the input
+                sequence and the output sequence will be smaller than the input
+                sequence due to the receptive field of the model. If the
+                input sequence is ``n`` steps long, and a model with receptive
+                field ``m`` is used, the output sequence would  only be
+                ``n-m+1`` steps long.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
@@ -640,8 +659,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
         """Given a batch of input examples, return the model outputs.
 
-        TODO: make this a public function?
-
         Args:
             batch: The input data, not necessarily aligned across the batch
                 dimension. This means that ``batch.index`` specifies the map
@@ -654,12 +671,12 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """
         raise NotImplementedError
 
-    def load(self, logdir, filename="checkpoint.pth"):
+    def load(self, logdir: str, filename: str = "checkpoint.pth"):
         """Load the experiment from its checkpoint file.
 
         Args:
-            logdir: Log directory.
-            filename (str): Checkpoint name for loading the experiment.
+            logdir: Logging directory.
+            filename: Checkpoint name for loading the experiment.
         """
 
         savepath = os.path.join(logdir, filename)
@@ -674,7 +691,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             session_n_features for session_n_features in n_features
         ] if isinstance(n_features, list) else n_features)
 
-    def save(self, logdir, filename="checkpoint_last.pth"):
+    def save(self, logdir: str, filename: str = "checkpoint_last.pth"):
         """Save the model and optimizer params.
 
         Args:
