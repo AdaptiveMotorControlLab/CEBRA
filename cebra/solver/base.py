@@ -599,7 +599,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
-            batch_size: If not None, batched inference will be applied.
+            batch_size: If not None, batched inference will not be applied.
 
         Returns:
             The output embedding.

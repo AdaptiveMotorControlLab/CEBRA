@@ -53,6 +53,7 @@ import cebra
 import cebra.data
 import cebra.io
 import cebra.models
+import cebra.solver.single_session as cebra_solver_single
 from cebra.solver import register
 from cebra.solver.base import Solver
 from cebra.solver.schedulers import Scheduler
@@ -187,7 +188,7 @@ class MultiObjectiveConfig:
 
 
 @dataclasses.dataclass
-class MultiobjectiveSolverBase(Solver):
+class MultiobjectiveSolverBase(cebra_solver_single.SingleSessionSolver):
 
     feature_ranges: List[slice] = None
     renormalize: bool = None
@@ -208,6 +209,13 @@ class MultiobjectiveSolverBase(Solver):
             feature_ranges=self.feature_ranges,
             renormalize=self.renormalize,
         )
+
+    def parameters(self, session_id: Optional[int] = None):
+        """Iterate over all parameters."""
+        super().parameters(session_id=session_id)
+
+        for parameter in self.regularizer.parameters():
+            yield parameter
 
     def fit(self,
             loader: cebra.data.Loader,
@@ -241,6 +249,7 @@ class MultiobjectiveSolverBase(Solver):
                 save_hook(solver=self, step=num_steps)
             return stats_val
 
+        self._set_fitted_params(loader)
         self.to(loader.device)
 
         iterator = self._get_loader(loader,
@@ -393,11 +402,14 @@ class MultiobjectiveSolverBase(Solver):
         logger=None,
         weights_loss: Optional[List[float]] = None,
     ):
+        loader.dataset.configure_for(self.model)
+        iterator = self._get_loader(loader)
+
         self.model.eval()
         total_loss = Meter()
 
         losses_dict = {}
-        for _, batch in enumerate(loader):
+        for _, batch in iterator:
             predictions = self._inference(batch)
             losses = self.criterion(predictions)
 
@@ -445,7 +457,7 @@ class MultiobjectiveSolverBase(Solver):
         return stats_val
 
     @torch.no_grad()
-    def transform(self, inputs: torch.Tensor) -> torch.Tensor:
+    def transform_deprecated(self, inputs: torch.Tensor) -> torch.Tensor:
         offset = self.model.get_offset()
         self.model.eval()
         X = inputs.cpu().numpy()
