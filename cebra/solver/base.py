@@ -639,8 +639,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         model, offset = self._select_model(inputs, session_id)
 
-        #if len(offset) < 2 and pad_before_transform:
-        #    pad_before_transform = False
+        if len(offset) < 2 and pad_before_transform:
+            pad_before_transform = False
 
         model.eval()
         if batch_size is not None and inputs.shape[0] > int(
