@@ -31,6 +31,7 @@ import cebra.data as cebra_data
 import cebra.distributions
 from cebra.data.datatypes import Batch
 from cebra.data.datatypes import BatchIndex
+from cebra.models import Model
 
 __all__ = [
     "MultiSessionDataset",
@@ -104,17 +105,18 @@ class MultiSessionDataset(cebra_data.Dataset):
             ) for session_id, session in enumerate(self.iter_sessions())
         ]
 
-    def configure_for(self, model: "cebra.models.Model"):
+    def configure_for(self, model: "Model"):
         """Configure the dataset offset for the provided model.
 
         Call this function before indexing the dataset. This sets the
-        ``offset`` attribute of the dataset.
+        :py:attr:`cebra.data.Dataset.offset` attribute of the dataset.
 
         Args:
             model: The model to configure the dataset for.
         """
-        for i, session in enumerate(self.iter_sessions()):
-            session.configure_for(model[i])
+        self.offset = model.get_offset()
+        for session in self.iter_sessions():
+            session.configure_for(model)
 
 
 @dataclasses.dataclass

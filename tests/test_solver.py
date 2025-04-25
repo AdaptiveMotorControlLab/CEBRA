@@ -344,6 +344,8 @@ def test_multi_session(data_name, loader_initfunc, model_architecture,
         for dataset in data.iter_sessions()
     ])
     data.configure_for(model)
+    offset_length = len(model[0].get_offset())
+
     criterion = cebra.models.InfoNCE()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
@@ -353,8 +355,9 @@ def test_multi_session(data_name, loader_initfunc, model_architecture,
 
     batch = next(iter(loader))
     for session_id, dataset in enumerate(loader.dataset.iter_sessions()):
-        assert batch[session_id].reference.shape[:2] == (
-            32, dataset.input_dimension)
+        assert batch[session_id].reference.shape == (32,
+                                                     dataset.input_dimension,
+                                                     offset_length)
         assert batch[session_id].index is not None
 
     log = solver.step(batch)
