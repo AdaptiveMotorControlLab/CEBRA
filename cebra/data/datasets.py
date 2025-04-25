@@ -29,6 +29,7 @@ import numpy.typing as npt
 import torch
 
 import cebra.data as cebra_data
+import cebra.data.masking as cebra_data_masking
 import cebra.helper as cebra_helper
 import cebra.io as cebra_io
 from cebra.data.datatypes import Batch
@@ -304,7 +305,7 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
 
 
 # TODO(stes): This should be a single session dataset?
-class DatasetxCEBRA(cebra_io.HasDevice):
+class DatasetxCEBRA(cebra_io.HasDevice, cebra_data_masking.MaskingMixin):
     """Dataset class for xCEBRA models.
 
     This class handles neural data and associated labels for xCEBRA models, providing
@@ -435,3 +436,72 @@ class DatasetxCEBRA(cebra_io.HasDevice):
             positive=[self[idx] for idx in index.positive],
             negative=self[index.negative],
         )
+
+
+class UnifiedDataset(DatasetCollection):
+    """Multi session dataset made up of a list of datasets, considered as a unique session.
+
+    Considering the sessions as a unique session, or pseudo-session, is used to later train a single
+    model for all the sessions, even if they originally contain a variable number of neurons.
+    To do that, we sample ref/pos/neg for each session and concatenate them along the neurons axis.
+
+    For instance, for a batch size ``batch_size``, we sample ``(batch_size, num_neurons(session), offset)`` for
+    each type of samples (ref/pos/neg) and then concatenate so that the final :py:class:`cebra.data.datatypes.Batch`
+    is of shape ``(batch_size, total_num_neurons, offset)``, with ``total_num_neurons`` is  the sum of all the
+    ``num_neurons(session)``.
+    """
+
+    def __init__(self, *datasets: cebra_data.SingleSessionDataset):
+        super().__init__(*datasets)
+        self.shuffled_neurons = False
+
+    @property
+    def input_dimension(self) -> int:
+        """Returns the sum of the input dimension for each session."""
+        return np.sum([
+            self.get_input_dimension(session_id)
+            for session_id in range(self.num_sessions)
+        ])
+
+    def _get_batches(self, index):
+        """Return the data at the specified index location."""
+        return [
+            cebra_data.Batch(
+                reference=self.get_session(session_id)[
+                    index.reference[session_id]],
+                positive=self.get_session(session_id)[
+                    index.positive[session_id]],
+                negative=self.get_session(session_id)[
+                    index.negative[session_id]],
+            ) for session_id in range(self.num_sessions)
+        ]
+
+    def load_batch(self, index: BatchIndex) -> Batch:
+        """Return the data at the specified index location.
+
+        Concatenate batches for each sessions on the number of neurons axis.
+
+        Args:
+            batches: List of :py:class:`cebra.data.datatypes.Batch` sampled for each session. An instance
+                :py:class:`cebra.data.datatypes.Batch` of the list is of shape ``(batch_size, num_neurons(session), offset)``.
+
+        Returns:
+            A :py:class:`cebra.data.datatypes.Batch`, of shape ``(batch_size, total_num_neurons, offset)``, where
+            ``total_num_neurons`` is  the sum of all the ``num_neurons(session)``
+        """
+        batches = self._get_batches(index)
+
+        return cebra_data.Batch(
+            reference=self._apply_mask(
+                torch.cat([batch.reference for batch in batches], dim=1)),
+            positive=self._apply_mask(
+                torch.cat([batch.positive for batch in batches], dim=1)),
+            negative=self._apply_mask(
+                torch.cat([batch.negative for batch in batches], dim=1)),
+        )
+
+    def __getitem__(self, args) -> List[Batch]:
+        """Return a set of samples from all sessions."""
+
+        session_id, index = args
+        return self.get_session(session_id).__getitem__(index)

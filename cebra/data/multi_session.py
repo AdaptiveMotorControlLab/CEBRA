@@ -38,6 +38,7 @@ __all__ = [
     "ContinuousMultiSessionDataLoader",
     "DiscreteMultiSessionDataLoader",
     "MixedMultiSessionDataLoader",
+    "UnifiedLoader",
 ]
 
 
@@ -178,3 +179,64 @@ class DiscreteMultiSessionDataLoader(MultiSessionLoader):
 @dataclasses.dataclass
 class MixedMultiSessionDataLoader(MultiSessionLoader):
     pass
+
+
+@dataclasses.dataclass
+class UnifiedLoader(ContinuousMultiSessionDataLoader):
+    """Dataloader for multi-session datasets, considered as a single session.
+
+    This class is used in pair with :py:class:`cebra.data.datasets.UnifiedDataset`
+    to sample from each session and train a single model on them, even if sessions have a
+    different number of neurons.
+
+    To sample the reference and negative samples, a target session is randomly selected. Indexes
+    are unformly sampled in that first session. Then, indexes in the other sessions are samples
+    conditionally to the first session indexes, so that their corresponding auxiliary variables
+    are close. For the positive samples, they are sampled conditionally to the reference samples,
+    in their corresponding session only.
+
+    Then, the ref/pos/neg samples are concatenated respectively, along the neurons axis (takes place
+    in the :py:class:`cebra.data.datasets.UnifiedDataset`).
+
+    """
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.sampler = cebra.distributions.UnifiedSampler(
+            self.dataset, self.time_offset)
+
+    def get_indices(self, num_samples: int) -> BatchIndex:
+        """Sample and return the specified number of indices.
+
+        The elements of the returned ``BatchIndex`` will be used to index the
+        ``dataset`` of this data loader.
+
+        To sample the reference and negative samples, a target session is
+        randomly selected. Indexes are unformly sampled in that first
+        session. Then, indexes in the other sessions are samples conditionally
+        to the first session indexes, so that their corresponding auxiliary
+        variables are close. For the positive samples, they are sampled
+        conditionally to the reference samples, in their corresponding session
+        only.
+
+        Args:
+            num_samples: The size of each of the reference, positive and
+                negative samples to sample.
+
+        Returns:
+            Batch indices for the reference, positive and negative samples.
+        """
+        ref_idx = self.sampler.sample_prior(self.batch_size)
+        neg_idx = self.sampler.sample_prior(self.batch_size)
+
+        pos_idx = self.sampler.sample_conditional(ref_idx)
+
+        ref_idx = torch.from_numpy(ref_idx).to(self.device)
+        neg_idx = torch.from_numpy(neg_idx).to(self.device)
+        pos_idx = torch.from_numpy(pos_idx).to(self.device)
+
+        return BatchIndex(
+            reference=ref_idx,
+            positive=pos_idx,
+            negative=neg_idx,
+        )

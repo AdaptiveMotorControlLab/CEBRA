@@ -151,3 +151,21 @@ class MultiMixed(cebra.data.DatasetCollection):
             DemoDatasetMixed(_DEFAULT_NUM_TIMEPOINTS, num_neural, num_behavior)
             for num_neural in nums_neural
         ])
+
+
+@register("demo-continuous-unified")
+class DemoDatasetUnified(cebra.data.UnifiedDataset):
+
+    def __init__(
+        self,
+        nums_neural=[3, 4, 5],
+        num_behavior=5,
+        num_timepoints=_DEFAULT_NUM_TIMEPOINTS,
+    ):
+        super().__init__(*[
+            DemoDatasetContinuous(num_timepoints, num_neural, num_behavior)
+            for num_neural in nums_neural
+        ])
+
+        self.num_timepoints = num_timepoints
+        self.nums_neural = nums_neural

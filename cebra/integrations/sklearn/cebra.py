@@ -498,6 +498,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
             optimizer documentation in :py:mod:`torch.optim` for further information on how to format the
             arguments.
             |Default:| ``(('betas', (0.9, 0.999)), ('eps', 1e-08), ('weight_decay', 0), ('amsgrad', False))``
+        masking_kwargs (dict):
+            TODO(celia)
 
     Example:
 
@@ -571,6 +573,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
             ("weight_decay", 0),
             ("amsgrad", False),
         ),
+        masking_kwargs: Dict[str, Union[float, List[float], Tuple[float,
+                                                                  ...]]] = None,
     ):
         self.__dict__.update(locals())
 
@@ -894,6 +898,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
         self.device_ = sklearn_utils.check_device(self.device)
         self.offset_ = self._compute_offset()
         dataset, is_multisession = self._prepare_data(X, y)
+
+        dataset.set_masks(self.masking_kwargs)
 
         loader, solver_name = self._prepare_loader(
             dataset,

@@ -19,11 +19,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import _util
 import pytest
 import torch
 
 import cebra.data
 import cebra.io
+
+BATCH_SIZE = 32
+NUMS_NEURAL = [3, 4, 5]
 
 
 def parametrize_device(func):
@@ -137,6 +141,8 @@ def _assert_device(first, second):
         ("demo-discrete", cebra.data.DiscreteDataLoader),
         ("demo-continuous", cebra.data.ContinuousDataLoader),
         ("demo-mixed", cebra.data.MixedDataLoader),
+        ("demo-continuous-multisession", cebra.data.MultiSessionLoader),
+        ("demo-continuous-unified", cebra.data.UnifiedLoader),
     ],
 )
 def test_device(data_name, loader_initfunc, device):
@@ -147,7 +153,7 @@ def test_device(data_name, loader_initfunc, device):
     other_device = swap.get(device)
     dataset = RandomDataset(N=100, device=other_device)
 
-    loader = loader_initfunc(dataset, num_steps=10, batch_size=32)
+    loader = loader_initfunc(dataset, num_steps=10, batch_size=BATCH_SIZE)
     loader.to(device)
     assert loader.dataset == dataset
     _assert_device(loader.device, device)
@@ -206,12 +212,13 @@ def _check_attributes(obj, is_list=False):
         ("demo-discrete", cebra.data.DiscreteDataLoader),
         ("demo-continuous", cebra.data.ContinuousDataLoader),
         ("demo-mixed", cebra.data.MixedDataLoader),
+        ("demo-continuous-unified", cebra.data.UnifiedLoader),
     ],
 )
 def test_singlesession_loader(data_name, loader_initfunc, device):
     data = cebra.datasets.init(data_name)
     data.to(device)
-    loader = loader_initfunc(data, num_steps=10, batch_size=32)
+    loader = loader_initfunc(data, num_steps=10, batch_size=BATCH_SIZE)
     _assert_dataset_on_correct_device(loader, device)
 
     index = loader.get_indices(100)
@@ -219,17 +226,17 @@ def test_singlesession_loader(data_name, loader_initfunc, device):
 
     for batch in loader:
         _check_attributes(batch)
-        assert len(batch.positive) == 32
+        assert len(batch.positive) == BATCH_SIZE
 
 
 def test_multisession_cont_loader():
-    data = cebra.datasets.MultiContinuous(nums_neural=[3, 4, 5],
+    data = cebra.datasets.MultiContinuous(nums_neural=NUMS_NEURAL,
                                           num_behavior=5,
                                           num_timepoints=100)
     loader = cebra.data.ContinuousMultiSessionDataLoader(
         data,
         num_steps=10,
-        batch_size=32,
+        batch_size=BATCH_SIZE,
     )
 
     # Check the sampler
@@ -259,22 +266,22 @@ def test_multisession_cont_loader():
             [b.reference.flatten(1).mean(dim=1, keepdims=True) for b in batch],
             dim=0).repeat(1, 1, feature_dim)
 
-    assert batch[0].reference.shape == (32, 3, 10)
-    assert batch[1].reference.shape == (32, 4, 10)
-    assert batch[2].reference.shape == (32, 5, 10)
+    assert batch[0].reference.shape == (BATCH_SIZE, 3, 10)
+    assert batch[1].reference.shape == (BATCH_SIZE, 4, 10)
+    assert batch[2].reference.shape == (BATCH_SIZE, 5, 10)
 
     dummy_prediction = _process(batch, feature_dim=6)
-    assert dummy_prediction.shape == (3, 32, 6)
+    assert dummy_prediction.shape == (3, BATCH_SIZE, 6)
     _mix(dummy_prediction, batch[0].index)
 
 
 def test_multisession_disc_loader():
-    data = cebra.datasets.MultiDiscrete(nums_neural=[3, 4, 5],
+    data = cebra.datasets.MultiDiscrete(nums_neural=NUMS_NEURAL,
                                         num_timepoints=100)
     loader = cebra.data.DiscreteMultiSessionDataLoader(
         data,
         num_steps=10,
-        batch_size=32,
+        batch_size=BATCH_SIZE,
     )
 
     # Check the sampler
@@ -306,12 +313,12 @@ def test_multisession_disc_loader():
             [b.reference.flatten(1).mean(dim=1, keepdims=True) for b in batch],
             dim=0).repeat(1, 1, feature_dim)
 
-    assert batch[0].reference.shape == (32, 3, 10)
-    assert batch[1].reference.shape == (32, 4, 10)
-    assert batch[2].reference.shape == (32, 5, 10)
+    assert batch[0].reference.shape == (BATCH_SIZE, 3, 10)
+    assert batch[1].reference.shape == (BATCH_SIZE, 4, 10)
+    assert batch[2].reference.shape == (BATCH_SIZE, 5, 10)
 
     dummy_prediction = _process(batch, feature_dim=6)
-    assert dummy_prediction.shape == (3, 32, 6)
+    assert dummy_prediction.shape == (3, BATCH_SIZE, 6)
     _mix(dummy_prediction, batch[0].index)
 
 
@@ -326,7 +333,7 @@ def test_multisession_loader(data_name, loader_initfunc, device):
     # TODO change number of timepoints across the sessions
 
     data = cebra.datasets.init(data_name)
-    kwargs = dict(num_steps=10, batch_size=32)
+    kwargs = dict(num_steps=10, batch_size=BATCH_SIZE)
     loader = loader_initfunc(data, **kwargs)
 
     index = loader.get_indices(100)
@@ -337,4 +344,19 @@ def test_multisession_loader(data_name, loader_initfunc, device):
     for batch in loader:
         _check_attributes(batch, is_list=True)
         for session_batch in batch:
-            assert len(session_batch.positive) == 32
+            assert len(session_batch.positive) == BATCH_SIZE
+
+
+@_util.parametrize_device
+def test_unified_loader(device):
+    dataset = cebra.datasets.DemoDatasetUnified(nums_neural=NUMS_NEURAL,
+                                                num_behavior=6,
+                                                num_timepoints=100)
+    dataset.to(device)
+    _ = cebra.data.UnifiedLoader(
+        dataset,
+        num_steps=10,
+        batch_size=BATCH_SIZE,
+    )
+
+    #TODO

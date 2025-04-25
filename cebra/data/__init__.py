@@ -51,3 +51,4 @@ from cebra.data.multi_session import *
 from cebra.data.multiobjective import *
 from cebra.data.datasets import *
 from cebra.data.helper import *
+from cebra.data.masking import *
