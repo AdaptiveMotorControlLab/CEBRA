@@ -110,7 +110,7 @@ class MultiSessionDataset(cebra_data.Dataset):
         """Configure the dataset offset for the provided model.
 
         Call this function before indexing the dataset. This sets the
-        :py:attr:`cebra.data.Dataset.offset` attribute of the dataset.
+        :py:attr:`cebra_data.Dataset.offset` attribute of the dataset.
 
         Args:
             model: The model to configure the dataset for.
