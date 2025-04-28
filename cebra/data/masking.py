@@ -8,8 +8,19 @@ import cebra.data.mask as mask
 
 class MaskedMixin:
 
-    # Initialization so that no maskins is applied
-    masks = []  # a list of Mask instances
+    def __init__(self):
+        """Initialize the MaskedMixin class.
+
+        Note:
+            This class is designed to be used as a mixin for other classes.
+            It provides functionality to apply masking to data.
+            The class should be initialized with the `__init__` method of the
+            parent class to ensure proper initialization.
+            The `set_masks` method should be called to set the masking types
+            and their corresponding probabilities.
+        """
+        # Initialization so that no maskins is applied
+        self.masks = []  # a list of Mask instances
 
     def set_masks(self, masking: Optional[Dict[str, float]] = None) -> None:
         """Set the mask type and probability for the dataset.
@@ -23,13 +34,16 @@ class MaskedMixin:
             By default, no masks are applied.
         """
         if masking is not None:
-            for mask_key in self.masking:
+            for mask_key in masking:
                 if mask_key in mask.__all__:
                     cls = getattr(mask, mask_key)
+                    self.masks = [
+                        m for m in self.masks if not isinstance(m, cls)
+                    ]
                     self.masks.append(cls(masking[mask_key]))
                 else:
                     raise ValueError(
-                        f"Mask type {mask_key} not supported. Supported types are {self.masking.keys()}"
+                        f"Mask type {mask_key} not supported. Supported types are {masking.keys()}"
                     )
 
     def apply_mask(self,
@@ -51,6 +65,12 @@ class MaskedMixin:
         Returns:
             torch.Tensor: The masked data.
         """
+        if data.dim() != 3:
+            raise ValueError(
+                f"Data must be a 3D tensor, but got {data.dim()}D tensor.")
+        if data.dtype != torch.float32:
+            raise ValueError(
+                f"Data must be a float32 tensor, but got {data.dtype}.")
 
         # If masks is empty, return the data as is
         if not self.masks:

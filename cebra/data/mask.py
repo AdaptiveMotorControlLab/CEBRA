@@ -34,32 +34,32 @@ class Mask:
         """
         if isinstance(masking_value, float):
             assert 0.0 < masking_value < 1.0, (
-                f"Masking ratio {masking_value} for {self.__name__} "
+                f"Masking ratio {masking_value} for {self.__name__()} "
                 "should be between 0.0 and 1.0.")
 
         elif isinstance(masking_value, list):
             assert all(isinstance(ratio, float) for ratio in masking_value), (
-                f"Masking ratios {masking_value} for {self.__name__} "
+                f"Masking ratios {masking_value} for {self.__name__()} "
                 "should be between 0.0 and 1.0.")
             assert all(0.0 < ratio < 1.0 for ratio in masking_value), (
-                f"Masking ratios {masking_value} for {self.__name__} "
+                f"Masking ratios {masking_value} for {self.__name__()} "
                 "should be between 0.0 and 1.0.")
 
         elif isinstance(masking_value, tuple):
             assert len(masking_value) == 3, (
-                f"Masking ratios {masking_value} for {self.__name__} "
+                f"Masking ratios {masking_value} for {self.__name__()} "
                 "should be a tuple of (min, max, step).")
             assert 0.0 <= masking_value[0] < masking_value[1] <= 1.0, (
-                f"Masking ratios {masking_value} for {self.__name__} "
+                f"Masking ratios {masking_value} for {self.__name__()} "
                 "should be between 0.0 and 1.0.")
             assert masking_value[2] < masking_value[1] - masking_value[0], (
-                f"Masking step {masking_value[2]} for {self.__name__} "
+                f"Masking step {masking_value[2]} for {self.__name__()} "
                 "should be between smaller than the diff between min "
                 f"({masking_value[0]}) and max ({masking_value[1]}).")
 
         else:
             raise ValueError(
-                f"Masking ratio {masking_value} for {self.__name__} "
+                f"Masking ratio {masking_value} for {self.__name__()} "
                 "should be a float, list of floats or a tuple of (min, max, step)."
             )
 
@@ -91,8 +91,8 @@ class RandomNeuronMask(Mask):
         # Random mask: shape [batch_size, n_neurons], different per batch and neurons
         masked = torch.rand(batch_size, n_neurons,
                             device=data.device) < mask_ratio
-        return (~masked).int().expand(-1, -1,
-                                      offset_length)  # Expand to all timesteps
+        return (~masked).int().unsqueeze(2).expand(
+            -1, -1, offset_length)  # Expand to all timesteps
 
     def _select_masking_params(self) -> float:
         """
@@ -114,7 +114,7 @@ class RandomNeuronMask(Mask):
 
         else:
             raise ValueError(
-                f"Masking ratio {self.mask_ratio} for {self.__name__} "
+                f"Masking ratio {self.mask_ratio} for {self.__name__()} "
                 "should be a float, list of floats or a tuple of (min, max, step)."
             )
 
@@ -150,8 +150,8 @@ class RandomTimestepMask(Mask):
         # Random mask: shape [batbatch_idxch_size, offset_length], different per batch and timestamp
         masked = torch.rand(batch_idx, offset_length,
                             device=data.device) < mask_ratio
-        return (~masked).int().expand(-1, n_neurons,
-                                      -1)  # Expand to all neurons
+        return (~masked).int().unsqueeze(1).expand(-1, n_neurons,
+                                                   -1)  # Expand to all neurons
 
     def _select_masking_params(self) -> float:
         """
@@ -173,7 +173,7 @@ class RandomTimestepMask(Mask):
 
         else:
             raise ValueError(
-                f"Masking ratio {self.mask_ratio} for {self.__name__} "
+                f"Masking ratio {self.mask_ratio} for {self.__name__()} "
                 "should be a float, list of floats or a tuple of (min, max, step)."
             )
 
@@ -216,9 +216,10 @@ class NeuronBlockMask(Mask):
             # Select random the start index for the block of neurons to mask
             start_idx = torch.randint(0, n_neurons - num_mask + 1, (1,)).item()
             end_idx = min(start_idx + num_mask, n_neurons)
-            mask[batch_idx, start_idx:end_idx, :] = 0  # set masked neurons to 0
+            mask[batch_idx, start_idx:end_idx] = 0  # set masked neurons to 0
 
-        return mask.expand(-1, -1, offset_length)  # Expand to all timesteps
+        return mask.unsqueeze(2).expand(
+            -1, -1, offset_length)  # Expand to all timesteps
 
     def _select_masking_params(self) -> float:
         """
@@ -240,7 +241,7 @@ class NeuronBlockMask(Mask):
 
         else:
             raise ValueError(
-                f"Masking ratio {self.mask_prop} for {self.__name__} "
+                f"Masking ratio {self.mask_prop} for {self.__name__()} "
                 "should be a float, list of floats or a tuple of (min, max, step)."
             )
 
@@ -281,9 +282,9 @@ class TimeBlockMask(Mask):
         sampled_rate, masked_seq_len = self._select_masking_params()
 
         num_masked_starting_points = int(offset_length * sampled_rate)
-        mask = torch.zeros_like((batch_size, offset_length),
-                                dtype=int,
-                                device=data.device)
+        mask = torch.ones((batch_size, offset_length),
+                          dtype=int,
+                          device=data.device)
         for batch_idx in range(batch_size):
             # Sample starting points for masking in the current batch
             start_indices = torch.randperm(
@@ -292,9 +293,10 @@ class TimeBlockMask(Mask):
             # Apply masking spans
             for start in start_indices:
                 end = min(start + masked_seq_len, offset_length)
-                mask[batch_idx, :, start:end] = 0  # set masked timesteps to 0
+                mask[batch_idx, start:end] = 0  # set masked timesteps to 0
 
-        return mask.expand(-1, n_neurons, -1)  # Expand to all neurons
+        return mask.unsqueeze(1).expand(-1, n_neurons,
+                                        -1)  # Expand to all neurons
 
     def _check_masking_parameters(self, masking_value: Union[float, List[float],
                                                              Tuple[float]]):
@@ -305,14 +307,14 @@ class TimeBlockMask(Mask):
         masked_seq_len: The length of each masked span starting from the sampled time-step.
         """
         assert isinstance(masking_value, tuple) and len(masking_value) == 2, (
-            f"Masking parameters {masking_value} for {self.__name__} "
+            f"Masking parameters {masking_value} for {self.__name__()} "
             "should be a tuple of (sampled_rate, masked_seq_len).")
         assert 0.0 < masking_value[0] < 1.0 and isinstance(
-            masking_value[0],
-            float), (f"Masking parameters {masking_value} for {self.__name__} "
-                     "should be between 0.0 and 1.0.")
+            masking_value[0], float), (
+                f"Masking parameters {masking_value} for {self.__name__()} "
+                "should be between 0.0 and 1.0.")
         assert masking_value[1] > 0 and isinstance(masking_value[1], int), (
-            f"Masking parameters {masking_value} for {self.__name__} "
+            f"Masking parameters {masking_value} for {self.__name__()} "
             "should be an integer greater than 0.")
 
     def _select_masking_params(self) -> float:
