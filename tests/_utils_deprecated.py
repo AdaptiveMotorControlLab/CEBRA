@@ -9,7 +9,6 @@ import torch
 import cebra
 import cebra.integrations.sklearn.utils as sklearn_utils
 import cebra.models
-import cebra.solvers
 
 
 #NOTE: Deprecated: transform is now handled in the solver but the original
@@ -79,7 +78,7 @@ def cebra_transform_deprecated(cebra_model,
 #       using the transform method of the model, and handling padding is implemented
 #       directly in the base Solver. This method is kept for testing purposes.
 @torch.no_grad()
-def multiobjective_transform_deprecated(solver: cebra.solvers.Solver,
+def multiobjective_transform_deprecated(solver: "cebra.solvers.Solver",
                                         inputs: torch.Tensor) -> torch.Tensor:
     """Transform the input data using the model.
 

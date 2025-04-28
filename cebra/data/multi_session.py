@@ -26,12 +26,12 @@ from typing import List
 
 import literate_dataclasses as dataclasses
 import torch
+import torch.nn as nn
 
 import cebra.data as cebra_data
 import cebra.distributions
 from cebra.data.datatypes import Batch
 from cebra.data.datatypes import BatchIndex
-from cebra.models import Model
 
 __all__ = [
     "MultiSessionDataset",
@@ -105,7 +105,7 @@ class MultiSessionDataset(cebra_data.Dataset):
             ) for session_id, session in enumerate(self.iter_sessions())
         ]
 
-    def configure_for(self, model: "Model"):
+    def configure_for(self, model: "cebra.models.Model"):
         """Configure the dataset offset for the provided model.
 
         Call this function before indexing the dataset. This sets the
@@ -114,9 +114,16 @@ class MultiSessionDataset(cebra_data.Dataset):
         Args:
             model: The model to configure the dataset for.
         """
-        self.offset = model.get_offset()
-        for session in self.iter_sessions():
-            session.configure_for(model)
+        if not isinstance(model, nn.ModuleList):
+            raise ValueError(
+                "The model must be a nn.ModuleList to configure the dataset.")
+        if len(model) != self.num_sessions:
+            raise ValueError(
+                f"The model must have {self.num_sessions} sessions, but got {len(model)}."
+            )
+
+        for i, session in enumerate(self.iter_sessions()):
+            session.configure_for(model[i])
 
 
 @dataclasses.dataclass
