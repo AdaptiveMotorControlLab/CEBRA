@@ -130,8 +130,6 @@ class UnifiedSolver(abc_.Solver):
         Returns:
             The model (first returns) and the offset of the model (second returns).
         """
-        self._check_is_inputs_valid(inputs, session_id=session_id)
-
         model = self.model
         offset = model.get_offset()
         return model, offset
@@ -211,6 +209,12 @@ class UnifiedSolver(abc_.Solver):
             is (num_samples(session_id), output_dimension)``.
 
         """
+        if not isinstance(inputs, list):
+            raise ValueError(
+                f"Inputs to transform() should be a list, not {type(inputs)}.")
+
+        self._check_is_fitted()
+
         if session_id is None:
             raise ValueError("Session ID is required for multi-session models.")
 

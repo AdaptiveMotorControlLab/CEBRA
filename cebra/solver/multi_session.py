@@ -81,10 +81,11 @@ class MultiSessionSolver(abc_.Solver):
             across the sample dimensions, the output data should be aligned and
             ``batch.index`` should be set to ``None``.
         """
-        batch.to(self.device)
-        ref = torch.stack([model(batch.reference)], dim=0)
-        pos = torch.stack([model(batch.positive)], dim=0)
-        neg = torch.stack([model(batch.negative)], dim=0)
+        ref, pos, neg = self._compute_features(batch, model)
+
+        ref = ref.unsqueeze(0)
+        pos = pos.unsqueeze(0)
+        neg = neg.unsqueeze(0)
 
         pos = self._mix(pos, batch.index_reversed)
 

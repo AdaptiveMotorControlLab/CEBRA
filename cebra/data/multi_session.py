@@ -115,16 +115,15 @@ class MultiSessionDataset(cebra_data.Dataset):
         Args:
             model: The model to configure the dataset for.
         """
-        if not isinstance(model, nn.ModuleList):
-            raise ValueError(
-                "The model must be a nn.ModuleList to configure the dataset.")
-        if len(model) != self.num_sessions:
-            raise ValueError(
-                f"The model must have {self.num_sessions} sessions, but got {len(model)}."
-            )
-
         for i, session in enumerate(self.iter_sessions()):
-            session.configure_for(model[i])
+            if isinstance(model, nn.ModuleList):
+                if len(model) != self.num_sessions:
+                    raise ValueError(
+                        f"The model must have {self.num_sessions} sessions, but got {len(model)}."
+                    )
+                session.configure_for(model[i])
+            else:
+                session.configure_for(model)
 
 
 @dataclasses.dataclass

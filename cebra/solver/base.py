@@ -397,6 +397,31 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """
         raise NotImplementedError
 
+    def _compute_features(
+        self,
+        batch: cebra.data.Batch,
+        model: Optional[torch.nn.Module] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Compute the features of the reference, positive and negative samples.
+        Args:
+            batch: The input data, not necessarily aligned across the batch
+                dimension. This means that ``batch.index`` specifies the map
+                between reference/positive samples, if not equal ``None``.
+            model: The model to use for inference.
+                If not provided, the model of the solver is used.
+
+        Returns:
+            Tuple of reference, positive and negative features.
+        """
+        if model is None:
+            model = self.model
+
+        batch.to(self.device)
+        ref = model(batch.reference)
+        pos = model(batch.positive)
+        neg = model(batch.negative)
+        return ref, pos, neg
+
     def _get_loader(self, loader):
         return ProgressBar(
             loader,

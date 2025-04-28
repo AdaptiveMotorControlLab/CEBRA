@@ -20,6 +20,7 @@
 # limitations under the License.
 #
 import _util
+import numpy as np
 import pytest
 import torch
 
@@ -28,11 +29,6 @@ import cebra.io
 
 BATCH_SIZE = 32
 NUMS_NEURAL = [3, 4, 5]
-
-
-def parametrize_device(func):
-    _devices = ("cpu", "cuda") if torch.cuda.is_available() else ("cpu",)
-    return pytest.mark.parametrize("device", _devices)(func)
 
 
 class LoadSpeed:
@@ -111,7 +107,11 @@ def _assert_dataset_on_correct_device(loader, device):
     assert hasattr(loader, "dataset")
     assert hasattr(loader, "device")
     assert isinstance(loader.dataset, cebra.io.HasDevice)
-    assert loader.dataset.neural.device.type == device
+    if isinstance(loader, cebra.data.SingleSessionDataset):
+        assert loader.dataset.neural.device.type == device
+    elif isinstance(loader, cebra.data.MultiSessionDataset):
+        for session in loader.dataset.iter_sessions():
+            assert session.neural.device.type == device
 
 
 def test_demo_data():
@@ -134,7 +134,7 @@ def _assert_device(first, second):
     assert _to_str(first) == _to_str(second)
 
 
-@parametrize_device
+@_util.parametrize_device
 @pytest.mark.parametrize(
     "data_name, loader_initfunc",
     [
@@ -162,7 +162,7 @@ def test_device(data_name, loader_initfunc, device):
     _assert_device(loader.get_indices(10).reference.device, device)
 
 
-@parametrize_device
+@_util.parametrize_device
 @pytest.mark.parametrize("prior", ("uniform", "empirical"))
 def test_discrete(prior, device, benchmark):
     dataset = RandomDataset(N=100, device=device)
@@ -177,7 +177,7 @@ def test_discrete(prior, device, benchmark):
     benchmark(load_speed)
 
 
-@parametrize_device
+@_util.parametrize_device
 @pytest.mark.parametrize("conditional", ("time", "time_delta"))
 def test_continuous(conditional, device, benchmark):
     dataset = RandomDataset(N=100, d=5, device=device)
@@ -205,14 +205,13 @@ def _check_attributes(obj, is_list=False):
         raise TypeError()
 
 
-@parametrize_device
+@_util.parametrize_device
 @pytest.mark.parametrize(
     "data_name, loader_initfunc",
     [
         ("demo-discrete", cebra.data.DiscreteDataLoader),
         ("demo-continuous", cebra.data.ContinuousDataLoader),
         ("demo-mixed", cebra.data.MixedDataLoader),
-        ("demo-continuous-unified", cebra.data.UnifiedLoader),
     ],
 )
 def test_singlesession_loader(data_name, loader_initfunc, device):
@@ -229,116 +228,60 @@ def test_singlesession_loader(data_name, loader_initfunc, device):
         assert len(batch.positive) == BATCH_SIZE
 
 
-def test_multisession_cont_loader():
-    data = cebra.datasets.MultiContinuous(nums_neural=NUMS_NEURAL,
-                                          num_behavior=5,
-                                          num_timepoints=100)
-    loader = cebra.data.ContinuousMultiSessionDataLoader(
-        data,
-        num_steps=10,
-        batch_size=BATCH_SIZE,
-    )
-
-    # Check the sampler
-    assert hasattr(loader, "sampler")
-    ref_idx = loader.sampler.sample_prior(1000)
-    assert len(ref_idx) == 3  # num_sessions
-    for session in range(3):
-        assert ref_idx[session].max() < 100
-    pos_idx, idx, idx_rev = loader.sampler.sample_conditional(ref_idx)
-
-    assert pos_idx is not None
-    assert idx is not None
-    assert idx_rev is not None
-
-    batch = next(iter(loader))
-
-    def _mix(array, idx):
-        shape = array.shape
-        n, m = shape[:2]
-        mixed = array.reshape(n * m, -1)[idx]
-        print(mixed.shape, array.shape, idx.shape)
-        return mixed.reshape(shape)
-
-    def _process(batch, feature_dim=1):
-        """Given list_i[(N,d_i)] batch, return (#session, N, feature_dim) tensor"""
-        return torch.stack(
-            [b.reference.flatten(1).mean(dim=1, keepdims=True) for b in batch],
-            dim=0).repeat(1, 1, feature_dim)
-
-    assert batch[0].reference.shape == (BATCH_SIZE, 3, 10)
-    assert batch[1].reference.shape == (BATCH_SIZE, 4, 10)
-    assert batch[2].reference.shape == (BATCH_SIZE, 5, 10)
-
-    dummy_prediction = _process(batch, feature_dim=6)
-    assert dummy_prediction.shape == (3, BATCH_SIZE, 6)
-    _mix(dummy_prediction, batch[0].index)
-
-
-def test_multisession_disc_loader():
-    data = cebra.datasets.MultiDiscrete(nums_neural=NUMS_NEURAL,
-                                        num_timepoints=100)
-    loader = cebra.data.DiscreteMultiSessionDataLoader(
-        data,
-        num_steps=10,
-        batch_size=BATCH_SIZE,
-    )
-
-    # Check the sampler
-    assert hasattr(loader, "sampler")
-    ref_idx = loader.sampler.sample_prior(1000)
-    assert len(ref_idx) == 3  # num_sessions
-
-    # Check sample points are in session length range
-    for session in range(3):
-        assert ref_idx[session].max() < loader.sampler.session_lengths[session]
-    pos_idx, idx, idx_rev = loader.sampler.sample_conditional(ref_idx)
-
-    assert pos_idx is not None
-    assert idx is not None
-    assert idx_rev is not None
-
-    batch = next(iter(loader))
-
-    def _mix(array, idx):
-        shape = array.shape
-        n, m = shape[:2]
-        mixed = array.reshape(n * m, -1)[idx]
-        print(mixed.shape, array.shape, idx.shape)
-        return mixed.reshape(shape)
-
-    def _process(batch, feature_dim=1):
-        """Given list_i[(N,d_i)] batch, return (#session, N, feature_dim) tensor"""
-        return torch.stack(
-            [b.reference.flatten(1).mean(dim=1, keepdims=True) for b in batch],
-            dim=0).repeat(1, 1, feature_dim)
-
-    assert batch[0].reference.shape == (BATCH_SIZE, 3, 10)
-    assert batch[1].reference.shape == (BATCH_SIZE, 4, 10)
-    assert batch[2].reference.shape == (BATCH_SIZE, 5, 10)
-
-    dummy_prediction = _process(batch, feature_dim=6)
-    assert dummy_prediction.shape == (3, BATCH_SIZE, 6)
-    _mix(dummy_prediction, batch[0].index)
-
-
-@parametrize_device
+@_util.parametrize_device
 @pytest.mark.parametrize(
     "data_name, loader_initfunc",
-    [('demo-discrete-multisession', cebra.data.DiscreteMultiSessionDataLoader),
-     ("demo-continuous-multisession",
-      cebra.data.ContinuousMultiSessionDataLoader)],
+    [
+        ("demo-continuous-multisession",
+         cebra.data.ContinuousMultiSessionDataLoader),
+        ("demo-discrete-multisession",
+         cebra.data.DiscreteMultiSessionDataLoader),
+    ],
 )
 def test_multisession_loader(data_name, loader_initfunc, device):
-    # TODO change number of timepoints across the sessions
-
     data = cebra.datasets.init(data_name)
-    kwargs = dict(num_steps=10, batch_size=BATCH_SIZE)
-    loader = loader_initfunc(data, **kwargs)
+    data.to(device)
+    loader = loader_initfunc(data, num_steps=10, batch_size=BATCH_SIZE)
+
+    _assert_dataset_on_correct_device(loader, device)
+
+    # Check the sampler
+    assert hasattr(loader, "sampler")
+    ref_idx = loader.sampler.sample_prior(1000)
+    assert len(ref_idx) == len(NUMS_NEURAL)
+    for session in range(len(NUMS_NEURAL)):
+        assert ref_idx[session].max(
+        ) < cebra.datasets.demo._DEFAULT_NUM_TIMEPOINTS
+    pos_idx, idx, idx_rev = loader.sampler.sample_conditional(ref_idx)
+
+    assert pos_idx is not None
+    assert idx is not None
+    assert idx_rev is not None
+
+    batch = next(iter(loader))
+    for i, n_neurons in enumerate(NUMS_NEURAL):
+        assert batch[i].reference.shape == (BATCH_SIZE, n_neurons, 10)
+
+    def _mix(array, idx):
+        shape = array.shape
+        n, m = shape[:2]
+        mixed = array.reshape(n * m, -1)[idx]
+        print(mixed.shape, array.shape, idx.shape)
+        return mixed.reshape(shape)
+
+    def _process(batch, feature_dim=1):
+        """Given list_i[(N,d_i)] batch, return (#session, N, feature_dim) tensor"""
+        return torch.stack(
+            [b.reference.flatten(1).mean(dim=1, keepdims=True) for b in batch],
+            dim=0).repeat(1, 1, feature_dim)
+
+    dummy_prediction = _process(batch, feature_dim=6)
+    assert dummy_prediction.shape == (3, BATCH_SIZE, 6)
+    _mix(dummy_prediction, batch[0].index)
 
     index = loader.get_indices(100)
-    print(index[0])
-    print(type(index))
+    #print(index[0])
+    #print(type(index))
     _check_attributes(index, is_list=False)
 
     for batch in loader:
@@ -348,15 +291,54 @@ def test_multisession_loader(data_name, loader_initfunc, device):
 
 
 @_util.parametrize_device
-def test_unified_loader(device):
-    dataset = cebra.datasets.DemoDatasetUnified(nums_neural=NUMS_NEURAL,
-                                                num_behavior=6,
-                                                num_timepoints=100)
-    dataset.to(device)
-    _ = cebra.data.UnifiedLoader(
-        dataset,
-        num_steps=10,
-        batch_size=BATCH_SIZE,
-    )
+@pytest.mark.parametrize(
+    "data_name, loader_initfunc",
+    [
+        ("demo-continuous-unified", cebra.data.UnifiedLoader),
+    ],
+)
+def test_unified_loader(data_name, loader_initfunc, device):
+    data = cebra.datasets.init(data_name)
+    data.to(device)
+    loader = loader_initfunc(data, num_steps=10, batch_size=BATCH_SIZE)
 
-    #TODO
+    _assert_dataset_on_correct_device(loader, device)
+
+    # Check the sampler
+    num_samples = 100
+    assert hasattr(loader, "sampler")
+    ref_idx = loader.sampler.sample_all_uniform_prior(num_samples)
+    assert ref_idx.shape == (len(NUMS_NEURAL), num_samples)
+    assert isinstance(ref_idx, np.ndarray)
+
+    for session in range(len(NUMS_NEURAL)):
+        assert ref_idx[session].max(
+        ) < cebra.datasets.demo._DEFAULT_NUM_TIMEPOINTS
+    pos_idx = loader.sampler.sample_conditional(ref_idx)
+    assert pos_idx.shape == (len(NUMS_NEURAL), num_samples)
+
+    for session in range(len(NUMS_NEURAL)):
+        ref_idx = torch.from_numpy(
+            loader.sampler.sample_all_uniform_prior(
+                num_samples=num_samples)[session])
+        assert ref_idx.shape == (num_samples,)
+        all_ref_idx = loader.sampler.sample_all_sessions(ref_idx=ref_idx,
+                                                         session_id=session)
+        assert all_ref_idx.shape == (len(NUMS_NEURAL), num_samples)
+        assert isinstance(all_ref_idx, torch.Tensor)
+        for i in range(len(all_ref_idx)):
+            assert all_ref_idx[i].max(
+            ) < cebra.datasets.demo._DEFAULT_NUM_TIMEPOINTS
+
+    for i in range(len(all_ref_idx)):
+        pos_idx = loader.sampler.sample_conditional(all_ref_idx)
+        assert pos_idx.shape == (len(NUMS_NEURAL), num_samples)
+
+    # Check the batch
+    batch = next(iter(loader))
+    assert batch.reference.shape == (BATCH_SIZE, sum(NUMS_NEURAL), 10)
+    assert batch.positive.shape == (BATCH_SIZE, sum(NUMS_NEURAL), 10)
+    assert batch.negative.shape == (BATCH_SIZE, sum(NUMS_NEURAL), 10)
+
+    index = loader.get_indices(100)
+    _check_attributes(index, is_list=False)

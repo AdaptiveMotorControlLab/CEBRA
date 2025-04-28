@@ -417,7 +417,7 @@ def test_multi_session(data_name, loader_initfunc, model_architecture,
 def _make_val_data(dataset):
     if isinstance(dataset, cebra.datasets.demo.DemoDataset):
         return dataset.neural
-    elif isinstance(dataset, cebra.datasets.demo.MultiContinuousPseudo):
+    elif isinstance(dataset, cebra.datasets.demo.DemoDatasetUnified):
         return [session.neural for session in dataset.iter_sessions()], [
             session.continuous_index for session in dataset.iter_sessions()
         ]
@@ -430,12 +430,14 @@ def _make_val_data(dataset):
          ("demo-continuous-unified", cebra.data.UnifiedLoader),
      ]
      for model in ["offset1-model", "offset10-model"]])
-def test_unified_session(data_name, loader_initfunc, solver_initfunc, device):
-    loader, data = _get_loader(data_name, loader_initfunc, device)
-    criterion = cebra.models.InfoNCE()
-    model = cebra.models.init("offset10-model", loader.dataset.input_dimension,
-                              32, 3).to(device)
+def test_unified_session(data_name, model_architecture, loader_initfunc,
+                         solver_initfunc):
+    loader, data = _get_loader(data_name, loader_initfunc)
+    model = _make_model(data, model_architecture)
     data.configure_for(model)
+    offset = model.get_offset()
+
+    criterion = cebra.models.InfoNCE()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     solver = solver_initfunc(model=model,
@@ -443,31 +445,22 @@ def test_unified_session(data_name, loader_initfunc, solver_initfunc, device):
                              optimizer=optimizer)
 
     batch = next(iter(loader))
-    for session_id, dataset in enumerate(loader.dataset.iter_sessions()):
-        assert batch[session_id].reference.shape == (32,
-                                                     dataset.input_dimension,
-                                                     10)
-        assert batch[session_id].index is not None
+    assert batch.reference.shape == (32, loader.dataset.input_dimension,
+                                     len(offset))
 
     log = solver.step(batch)
     assert isinstance(log, dict)
 
     solver.fit(loader)
-
-    batch = next(iter(loader))
-    assert batch.reference.shape == (32, loader.dataset.input_dimension, 10)
-
-    log = solver.step(batch)
-    assert isinstance(log, dict)
-
     data, labels = _make_val_data(loader.dataset)
 
-    for i in range(len(loader.dataset.nums_neural)):
+    assert solver.num_sessions == 3
+    assert solver.n_features == sum(
+        [data[i].shape[1] for i in range(len(data))])
+
+    for i in range(loader.dataset.num_sessions):
         emb = solver.transform(data, labels, session_id=i)
         assert emb.shape == (loader.dataset.num_timepoints, 3)
 
         emb = solver.transform(data, labels, session_id=i, batch_size=300)
         assert emb.shape == (loader.dataset.num_timepoints, 3)
-
-    assert solver.num_sessions == 3
-    assert solver.n_features == [data[i].shape[1] for i in range(len(data))]

@@ -146,10 +146,7 @@ class SingleSessionSolver(abc_.Solver):
             across the sample dimensions, the output data should be aligned and
             ``batch.index`` should be set to ``None``.
         """
-        batch.to(self.device)
-        ref = self.model(batch.reference)
-        pos = self.model(batch.positive)
-        neg = self.model(batch.negative)
+        ref, pos, neg = self._compute_features(batch)
         return cebra.data.Batch(ref, pos, neg)
 
     def get_embedding(self, data: torch.Tensor) -> torch.Tensor:
@@ -291,6 +288,17 @@ class SingleSessionAuxVariableSolver(SingleSessionSolver):
                                      pad_before_transform=pad_before_transform)
 
         return output
+
+    def _compute_features(
+        self,
+        batch: cebra.data.Batch,
+        model: Optional[torch.nn.Module] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        batch.to(self.device)
+        ref = self.reference_model(batch.reference)
+        pos = self.model(batch.positive)
+        neg = self.model(batch.negative)
+        return ref, pos, neg
 
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
         """Given a batch of input examples, computes the feature representation/embedding.

@@ -305,7 +305,7 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
 
 
 # TODO(stes): This should be a single session dataset?
-class DatasetxCEBRA(cebra_io.HasDevice, cebra_data_masking.MaskingMixin):
+class DatasetxCEBRA(cebra_io.HasDevice, cebra_data_masking.MaskedMixin):
     """Dataset class for xCEBRA models.
 
     This class handles neural data and associated labels for xCEBRA models, providing
@@ -492,11 +492,11 @@ class UnifiedDataset(DatasetCollection):
         batches = self._get_batches(index)
 
         return cebra_data.Batch(
-            reference=self._apply_mask(
+            reference=self.apply_mask(
                 torch.cat([batch.reference for batch in batches], dim=1)),
-            positive=self._apply_mask(
+            positive=self.apply_mask(
                 torch.cat([batch.positive for batch in batches], dim=1)),
-            negative=self._apply_mask(
+            negative=self.apply_mask(
                 torch.cat([batch.negative for batch in batches], dim=1)),
         )
 
