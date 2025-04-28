@@ -21,8 +21,10 @@
 #
 """Solver implementations for multi-session datasetes."""
 
-from typing import List, Optional
+import copy
+from typing import List, Optional, Tuple, Union
 
+import numpy.typing as npt
 import torch
 
 import cebra
@@ -241,7 +243,16 @@ class MultiSessionAuxVariableSolver(MultiSessionSolver):
     """Multi session training, contrasting neural data against behavior."""
 
     _variant_name = "multi-session-aux"
-    reference_model: torch.nn.Module
+    reference_model: torch.nn.Module = None
+
+    def __post_init__(self):
+        super().__post_init__()
+        if self.reference_model is None:
+            # NOTE(stes): This should work, according to this thread
+            # https://discuss.pytorch.org/t/can-i-deepcopy-a-model/52192/19
+            # and create a true copy of the model.
+            self.reference_model = copy.deepcopy(self.model)
+            self.reference_model.to(self.device)
 
     def _inference(self, batches: List[cebra.data.Batch]) -> cebra.data.Batch:
         """Given batches of input examples, computes the feature representations/embeddings.
@@ -276,3 +287,83 @@ class MultiSessionAuxVariableSolver(MultiSessionSolver):
             positive=pos.view(-1, num_features),
             negative=neg.view(-1, num_features),
         )
+
+    def _select_model(
+        self,
+        inputs: Union[torch.Tensor, List[torch.Tensor]],
+        session_id: Optional[int] = None,
+        use_reference_model: bool = False,
+    ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
+               cebra.data.datatypes.Offset]:
+        """ Select the model based on the input dimension and session ID.
+
+        Args:
+            inputs: Data to infer using the selected model.
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Returns:
+            The model (first returns) and the offset of the model (second returns).
+        """
+        self._check_is_inputs_valid(inputs, session_id=session_id)
+        self._check_is_session_id_valid(session_id=session_id)
+
+        if use_reference_model:
+            model = self.reference_model[session_id]
+        else:
+            model = self.model[session_id]
+        offset = model.get_offset()
+        return model, offset
+
+    @torch.no_grad()
+    def transform(self,
+                  inputs: Union[torch.Tensor, List[torch.Tensor], npt.NDArray],
+                  pad_before_transform: bool = True,
+                  session_id: Optional[int] = None,
+                  batch_size: Optional[int] = None,
+                  use_reference_model: bool = False) -> torch.Tensor:
+        """Compute the embedding.
+        This function by default use ``model`` that was trained to encode the positive
+        and negative samples. To use ``reference_model`` instead of ``model``
+        ``use_reference_model`` should be equal ``True``.
+        Args:
+            inputs: The input signal
+            use_reference_model: Flag for using ``reference_model``
+        Returns:
+            The output embedding.
+        """
+        if isinstance(inputs, list):
+            raise NotImplementedError(
+                "Inputs to transform() should be the data for a single session."
+            )
+        elif not isinstance(inputs, torch.Tensor):
+            raise ValueError(
+                f"Inputs should be a torch.Tensor, not {type(inputs)}.")
+
+        if not hasattr(self, "history") and len(self.history) > 0:
+            raise ValueError(
+                f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
+                "appropriate arguments before using this estimator.")
+        model, offset = self._select_model(
+            inputs, session_id, use_reference_model=use_reference_model)
+
+        if len(offset) < 2 and pad_before_transform:
+            pad_before_transform = False
+
+        model.eval()
+        if batch_size is not None:
+            output = abc_._batched_transform(
+                model=model,
+                inputs=inputs,
+                offset=offset,
+                batch_size=batch_size,
+                pad_before_transform=pad_before_transform,
+            )
+        else:
+            output = abc_._transform(model=model,
+                                     inputs=inputs,
+                                     offset=offset,
+                                     pad_before_transform=pad_before_transform)
+
+        return output
