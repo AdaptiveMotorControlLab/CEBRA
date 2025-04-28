@@ -32,7 +32,7 @@ import cebra.data
 import cebra.io
 from cebra.datasets import register
 
-_DEFAULT_NUM_TIMEPOINTS = 10_000
+_DEFAULT_NUM_TIMEPOINTS = 1_000
 NUMS_NEURAL = [3, 4, 5]
 
 
