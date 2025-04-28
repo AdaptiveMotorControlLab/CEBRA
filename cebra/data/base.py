@@ -198,7 +198,7 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
         """Configure the dataset offset for the provided model.
 
         Call this function before indexing the dataset. This sets the
-        ``offset`` attribute of the dataset.
+        :py:attr:`offset` attribute of the dataset.
 
         Args:
             model: The model to configure the dataset for.

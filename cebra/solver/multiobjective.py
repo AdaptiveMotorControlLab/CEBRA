@@ -456,56 +456,6 @@ class MultiobjectiveSolverBase(cebra_solver_single.SingleSessionSolver):
         self.log.setdefault(("sum_loss_val",), []).append(sum_loss_valid)
         return stats_val
 
-    # NOTE: Deprecated: batched transform can now be performed (more memory efficient)
-    #       using the transform method of the model, and handling padding is implemented
-    #       directly in the base Solver. This method is kept for testing purposes.
-    @torch.no_grad()
-    def transform_deprecated(self, inputs: torch.Tensor) -> torch.Tensor:
-        """Transform the input data using the model.
-
-        Args:
-            inputs: The input data to transform.
-
-        Returns:
-            The transformed data.
-        """
-
-        warnings.warn(
-            "The method `transform_deprecated` is deprecated "
-            "but kept for testing puroposes."
-            "We recommend using `transform` instead.",
-            DeprecationWarning,
-            stacklevel=2)
-
-        offset = self.model.get_offset()
-        self.model.eval()
-        X = inputs.cpu().numpy()
-        X = np.pad(X, ((offset.left, offset.right - 1), (0, 0)), mode="edge")
-        X = torch.from_numpy(X).float().to(self.device)
-
-        if isinstance(self.model.module, cebra.models.ConvolutionalModelMixin):
-            # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
-            X = X.transpose(1, 0).unsqueeze(0)
-            outputs = self.model(X)
-
-            # switch back from (1, C, T) -> (T, C)
-            if isinstance(outputs, torch.Tensor):
-                assert outputs.dim() == 3 and outputs.shape[0] == 1
-                outputs = outputs.squeeze(0).transpose(1, 0)
-            elif isinstance(outputs, tuple):
-                assert all(tensor.dim() == 3 and tensor.shape[0] == 1
-                           for tensor in outputs)
-                outputs = (
-                    output.squeeze(0).transpose(1, 0) for output in outputs)
-                outputs = tuple(outputs)
-            else:
-                raise ValueError("Invalid condition in solver.transform")
-        else:
-            # Standard evaluation, (T, C, dt)
-            outputs = self.model(X)
-
-        return outputs
-
 
 @register("supervised-solver-xcebra")
 @dataclasses.dataclass

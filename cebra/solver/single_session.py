@@ -285,10 +285,7 @@ class SingleSessionHybridSolver(abc_.MultiobjectiveSolver, SingleSessionSolver):
         self._check_is_inputs_valid(inputs, session_id=session_id)
 
         model = self.model.module
-        if hasattr(model, 'get_offset'):
-            offset = model.get_offset()
-        else:
-            offset = None
+        offset = model.get_offset()
         return model, offset
 
 

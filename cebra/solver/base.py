@@ -52,7 +52,7 @@ from cebra.solver.util import ProgressBar
 
 def _check_indices(batch_start_idx: int, batch_end_idx: int,
                    offset: cebra.data.Offset, num_samples: int):
-    """Check that indexes in a batch are in a correct range.
+    """Check that indices in a batch are in a correct range.
 
     First and last index must be positive integers, smaller than
     the total length of inputs in the dataset, the first index
