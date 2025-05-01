@@ -93,7 +93,7 @@ def download_file_with_progress_bar(url: str,
         )
 
     # Create the directory and any necessary parent directories
-    location_path.mkdir(exist_ok=True)
+    location_path.mkdir(parents=True, exist_ok=True)
 
     filename = filename_match.group(1)
     file_path = location_path / filename

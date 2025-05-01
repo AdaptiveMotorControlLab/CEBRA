@@ -383,3 +383,132 @@ def test_sklearn_runs_consistency():
     with pytest.raises(ValueError, match="Invalid.*embeddings"):
         _, _, _ = cebra_sklearn_metrics.consistency_score(
             invalid_embeddings_runs, between="runs")
+
+
+@pytest.mark.parametrize("seed", [42, 24, 10])
+def test_goodness_of_fit_score(seed):
+    """
+    Ensure that the GoF score is close to 0 for a model fit on random data.
+    """
+    cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture="offset1-model",
+        max_iterations=5,
+        batch_size=512,
+    )
+    generator = torch.Generator().manual_seed(seed)
+    X = torch.rand(5000, 50, dtype=torch.float32, generator=generator)
+    y = torch.rand(5000, 5, dtype=torch.float32, generator=generator)
+    cebra_model.fit(X, y)
+    score = cebra_sklearn_metrics.goodness_of_fit_score(cebra_model,
+                                                        X,
+                                                        y,
+                                                        session_id=0,
+                                                        num_batches=500)
+    assert isinstance(score, float)
+    assert np.isclose(score, 0, atol=0.01)
+
+
+@pytest.mark.parametrize("seed", [42, 24, 10])
+def test_goodness_of_fit_history(seed):
+    """
+    Ensure that the GoF score is higher for a model fit on data with underlying
+    structure than for a model fit on random data.
+    """
+
+    # Generate data
+    generator = torch.Generator().manual_seed(seed)
+    X = torch.rand(1000, 50, dtype=torch.float32, generator=generator)
+    y_random = torch.rand(len(X), 5, dtype=torch.float32, generator=generator)
+    linear_map = torch.randn(50, 5, dtype=torch.float32, generator=generator)
+    y_linear = X @ linear_map
+
+    def _fit_and_get_history(X, y):
+        cebra_model = cebra_sklearn_cebra.CEBRA(
+            model_architecture="offset1-model",
+            max_iterations=150,
+            batch_size=512,
+            device="cpu")
+        cebra_model.fit(X, y)
+        history = cebra_sklearn_metrics.goodness_of_fit_history(cebra_model)
+        # NOTE(stes): Ignore the first 5 iterations, they can have nonsensical values
+        # due to numerical issues.
+        return history[5:]
+
+    history_random = _fit_and_get_history(X, y_random)
+    history_linear = _fit_and_get_history(X, y_linear)
+
+    assert isinstance(history_random, np.ndarray)
+    assert history_random.shape[0] > 0
+    # NOTE(stes): Ignore the first 5 iterations, they can have nonsensical values
+    # due to numerical issues.
+    history_random_non_negative = history_random[history_random >= 0]
+    np.testing.assert_allclose(history_random_non_negative, 0, atol=0.075)
+
+    assert isinstance(history_linear, np.ndarray)
+    assert history_linear.shape[0] > 0
+
+    assert np.all(history_linear[-20:] > history_random[-20:])
+
+
+@pytest.mark.parametrize("seed", [42, 24, 10])
+def test_infonce_to_goodness_of_fit(seed):
+    """Test the conversion from InfoNCE loss to goodness of fit metric."""
+    # Test with model
+    cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture="offset10-model",
+        max_iterations=5,
+        batch_size=128,
+    )
+    generator = torch.Generator().manual_seed(seed)
+    X = torch.rand(1000, 50, dtype=torch.float32, generator=generator)
+    cebra_model.fit(X)
+
+    # Test single value
+    gof = cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0,
+                                                           model=cebra_model)
+    assert isinstance(gof, float)
+
+    # Test array of values
+    infonce_values = np.array([1.0, 2.0, 3.0])
+    gof_array = cebra_sklearn_metrics.infonce_to_goodness_of_fit(
+        infonce_values, model=cebra_model)
+    assert isinstance(gof_array, np.ndarray)
+    assert gof_array.shape == infonce_values.shape
+
+    # Test with explicit batch_size and num_sessions
+    gof = cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0,
+                                                           batch_size=128,
+                                                           num_sessions=1)
+    assert isinstance(gof, float)
+
+    # Test error cases
+    with pytest.raises(ValueError, match="batch_size.*should not be provided"):
+        cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0,
+                                                         model=cebra_model,
+                                                         batch_size=128)
+
+    with pytest.raises(ValueError, match="batch_size.*should not be provided"):
+        cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0,
+                                                         model=cebra_model,
+                                                         num_sessions=1)
+
+    # Test with unfitted model
+    unfitted_model = cebra_sklearn_cebra.CEBRA(max_iterations=5)
+    with pytest.raises(RuntimeError, match="Fit the CEBRA model first"):
+        cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0,
+                                                         model=unfitted_model)
+
+    # Test with model having batch_size=None
+    none_batch_model = cebra_sklearn_cebra.CEBRA(batch_size=None,
+                                                 max_iterations=5)
+    none_batch_model.fit(X)
+    with pytest.raises(ValueError, match="Computing the goodness of fit"):
+        cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0,
+                                                         model=none_batch_model)
+
+    # Test missing batch_size or num_sessions when model is None
+    with pytest.raises(ValueError, match="batch_size.*and num_sessions"):
+        cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0, batch_size=128)
+
+    with pytest.raises(ValueError, match="batch_size.*and num_sessions"):
+        cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0, num_sessions=1)

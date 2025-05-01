@@ -25,6 +25,7 @@ import copy
 from typing import List, Optional, Tuple, Union
 
 import literate_dataclasses as dataclasses
+import numpy.typing as npt
 import torch
 
 import cebra
@@ -46,8 +47,18 @@ class SingleSessionSolver(abc_.Solver):
     _variant_name = "single-session"
 
     def parameters(self, session_id: Optional[int] = None):
-        """Iterate over all parameters."""
-        self._check_is_session_id_valid(session_id=session_id)
+        """Iterate over all parameters.
+
+        Args:
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Yields:
+            The parameters of the model.
+        """
+        # If session_id is invalid, it doesn't matter, since we are
+        # using a single session solver.
         for parameter in self.model.parameters():
             yield parameter
 
@@ -103,7 +114,7 @@ class SingleSessionSolver(abc_.Solver):
                             List[torch.Tensor]], session_id: Optional[int]
     ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
                cebra.data.datatypes.Offset]:
-        """ Select the model based on the input dimension and session ID.
+        """ Select the (trained) model based on the input dimension and session ID.
 
         Args:
             inputs: Data to infer using the selected model.
@@ -114,8 +125,9 @@ class SingleSessionSolver(abc_.Solver):
         Returns:
             The model (first returns) and the offset of the model (second returns).
         """
-        self._check_is_inputs_valid(inputs, session_id=session_id)
         self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_fitted()
+        self._check_is_inputs_valid(inputs, session_id=session_id)
 
         model = self.model
         offset = model.get_offset()
@@ -134,10 +146,7 @@ class SingleSessionSolver(abc_.Solver):
             across the sample dimensions, the output data should be aligned and
             ``batch.index`` should be set to ``None``.
         """
-        batch.to(self.device)
-        ref = self.model(batch.reference)
-        pos = self.model(batch.positive)
-        neg = self.model(batch.negative)
+        ref, pos, neg = self._compute_features(batch)
         return cebra.data.Batch(ref, pos, neg)
 
     def get_embedding(self, data: torch.Tensor) -> torch.Tensor:
@@ -195,7 +204,118 @@ class SingleSessionAuxVariableSolver(SingleSessionSolver):
             self.reference_model = copy.deepcopy(self.model)
             self.reference_model.to(self.model.device)
 
-    def _inference(self, batch):
+    def _select_model(
+        self,
+        inputs: Union[torch.Tensor, List[torch.Tensor]],
+        session_id: Optional[int] = None,
+        use_reference_model: bool = False,
+    ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
+               cebra.data.datatypes.Offset]:
+        """ Select the model based on the input dimension and session ID.
+
+        Args:
+            inputs: Data to infer using the selected model.
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+            use_reference_model: Flag for using ``reference_model``.
+
+        Returns:
+            The model (first returns) and the offset of the model (second returns).
+        """
+        self._check_is_inputs_valid(inputs, session_id=session_id)
+        self._check_is_session_id_valid(session_id=session_id)
+
+        if use_reference_model:
+            model = self.reference_model
+        else:
+            model = self.model
+
+        if hasattr(model, 'get_offset'):
+            offset = model.get_offset()
+        else:
+            offset = None
+        return model, offset
+
+    @torch.no_grad()
+    def transform(self,
+                  inputs: Union[torch.Tensor, List[torch.Tensor], npt.NDArray],
+                  pad_before_transform: bool = True,
+                  session_id: Optional[int] = None,
+                  batch_size: Optional[int] = None,
+                  use_reference_model: bool = False) -> torch.Tensor:
+        """Compute the embedding.
+        This function by default use ``model`` that was trained to encode the positive
+        and negative samples. To use ``reference_model`` instead of ``model``
+        ``use_reference_model`` should be equal ``True``.
+        Args:
+            inputs: The input signal
+            use_reference_model: Flag for using ``reference_model``
+        Returns:
+            The output embedding.
+        """
+        if isinstance(inputs, list):
+            raise NotImplementedError(
+                "Inputs to transform() should be the data for a single session."
+            )
+        elif not isinstance(inputs, torch.Tensor):
+            raise ValueError(
+                f"Inputs should be a torch.Tensor, not {type(inputs)}.")
+
+        if not hasattr(self, "history") and len(self.history) > 0:
+            raise ValueError(
+                f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
+                "appropriate arguments before using this estimator.")
+        model, offset = self._select_model(
+            inputs, session_id, use_reference_model=use_reference_model)
+
+        if len(offset) < 2 and pad_before_transform:
+            pad_before_transform = False
+
+        model.eval()
+        if batch_size is not None:
+            output = abc_._batched_transform(
+                model=model,
+                inputs=inputs,
+                offset=offset,
+                batch_size=batch_size,
+                pad_before_transform=pad_before_transform,
+            )
+        else:
+            output = abc_._transform(model=model,
+                                     inputs=inputs,
+                                     offset=offset,
+                                     pad_before_transform=pad_before_transform)
+
+        return output
+
+    def _compute_features(
+        self,
+        batch: cebra.data.Batch,
+        model: Optional[torch.nn.Module] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        batch.to(self.device)
+        ref = self.reference_model(batch.reference)
+        pos = self.model(batch.positive)
+        neg = self.model(batch.negative)
+        return ref, pos, neg
+
+    def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
+        """Given a batch of input examples, computes the feature representation/embedding.
+
+        The reference samples are processed with a different model than the
+        positive and negative samples.
+
+        Args:
+            batch: The input data, not necessarily aligned across the batch
+                dimension. This means that ``batch.index`` specifies the map
+                between reference/positive samples, if not equal ``None``.
+
+        Returns:
+            Processed batch of data. While the input data might not be aligned
+            across the sample dimensions, the output data should be aligned and
+            ``batch.index`` should be set to ``None``.
+        """
         batch.to(self.device)
         ref = self.reference_model(batch.reference)
         pos = self.model(batch.positive)
@@ -211,6 +331,21 @@ class SingleSessionHybridSolver(abc_.MultiobjectiveSolver, SingleSessionSolver):
     _variant_name = "single-session-hybrid"
 
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
+        """Given a batch of input examples, computes the feature representation/embedding.
+
+        The samples are processed with both a time-contrastive module and a
+        behavior-contrastive module, that are part of the same model.
+
+        Args:
+            batch: The input data, not necessarily aligned across the batch
+                dimension. This means that ``batch.index`` specifies the map
+                between reference/positive samples, if not equal ``None``.
+
+        Returns:
+            Processed batch of data. While the input data might not be aligned
+            across the sample dimensions, the output data should be aligned and
+            ``batch.index`` should be set to ``None``.
+        """
         batch.to(self.device)
         behavior_ref = self.model(batch.reference)[0]
         behavior_pos = self.model(batch.positive[:int(len(batch.positive) //
@@ -228,7 +363,7 @@ class SingleSessionHybridSolver(abc_.MultiobjectiveSolver, SingleSessionSolver):
                             List[torch.Tensor]], session_id: Optional[int]
     ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
                cebra.data.datatypes.Offset]:
-        """ Select the model based on the input dimension and session ID.
+        """ Select the (trained) model based on the input dimension and session ID.
 
         Args:
             inputs: Data to infer using the selected model.
@@ -239,14 +374,12 @@ class SingleSessionHybridSolver(abc_.MultiobjectiveSolver, SingleSessionSolver):
         Returns:
             The model (first returns) and the offset of the model (second returns).
         """
-        self._check_is_inputs_valid(inputs, session_id=session_id)
         self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_fitted()
+        self._check_is_inputs_valid(inputs, session_id=session_id)
 
         model = self.model.module
-        if hasattr(model, 'get_offset'):
-            offset = model.get_offset()
-        else:
-            offset = None
+        offset = model.get_offset()
         return model, offset
 
 
@@ -303,6 +436,18 @@ class BatchSingleSessionSolver(SingleSessionSolver):
             return self.model(data[0].T)
 
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
+        """Given a batch of input examples, computes the feature representation/embedding.
+
+        Args:
+            batch: The input data, not necessarily aligned across the batch
+                dimension. This means that ``batch.index`` specifies the map
+                between reference/positive samples, if not equal ``None``.
+
+        Returns:
+            Processed batch of data. While the input data might not be aligned
+            across the sample dimensions, the output data should be aligned and
+            ``batch.index`` should be set to ``None``.
+        """
         outputs = self.get_embedding(self.neural)
         idc = batch.positive - self.offset.left >= len(outputs)
         batch.positive[idc] = batch.reference[idc]

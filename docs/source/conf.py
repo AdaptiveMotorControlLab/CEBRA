@@ -26,20 +26,12 @@
 # list see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-# -- Path setup --------------------------------------------------------------
-
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
-#
+import datetime
 import os
+import pathlib
 import sys
 
 sys.path.insert(0, os.path.abspath("."))
-
-import datetime
-
-import cebra
 
 
 def get_years(start_year=2021):
@@ -52,16 +44,31 @@ def get_years(start_year=2021):
 
 # -- Project information -----------------------------------------------------
 project = "cebra"
-copyright = f"""{get_years(2021)}, Steffen Schneider, Jin H Lee, Mackenzie Mathis"""
-author = "Steffen Schneider, Jin H Lee, Mackenzie Mathis"
-# The full version, including alpha/beta/rc tags
-release = cebra.__version__
+copyright = f"""{get_years(2021)}"""
+author = "See AUTHORS.md"
+version_file = pathlib.Path(
+    __file__).parent.parent.parent / "cebra" / "__init__.py"
+assert version_file.exists(), f"Could not find version file: {version_file}"
+with version_file.open("r") as f:
+    for line in f:
+        if line.startswith("__version__"):
+            version = line.split("=")[1].strip().strip('"').strip("'")
+            print("Building docs for version:", version)
+            break
+    else:
+        raise ValueError("Could not find version in __init__.py")
 
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
+
+#https://github.com/spatialaudio/nbsphinx/issues/128#issuecomment-1158712159
+html_js_files = [
+    "https://cdn.plot.ly/plotly-latest.min.js",  # Add Plotly.js
+]
+
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
@@ -73,7 +80,6 @@ extensions = [
     "sphinx_tabs.tabs",
     "sphinx.ext.mathjax",
     "IPython.sphinxext.ipython_console_highlighting",
-    # "sphinx_panels", # Note: package to avoid: no longer maintained.
     "sphinx_design",
     "sphinx_togglebutton",
     "sphinx.ext.doctest",
@@ -121,7 +127,8 @@ copybutton_only_copy_prompt_lines = True
 
 autodoc_member_order = "bysource"
 autodoc_mock_imports = [
-    "torch", "nlb_tools", "tqdm", "h5py", "pandas", "matplotlib", "plotly"
+    "torch", "nlb_tools", "tqdm", "h5py", "pandas", "matplotlib", "plotly",
+    "cvxpy", "captum", "joblib", "scikit-learn", "scipy", "requests", "sklearn"
 ]
 # autodoc_typehints = "none"
 
@@ -132,8 +139,18 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    "**/todo", "**/src", "cebra-figures/figures.rst", "cebra-figures/*.rst",
-    "*/cebra-figures/*.rst", "demo_notebooks/README.rst"
+    "**/todo",
+    "**/src",
+    "cebra-figures/figures.rst",
+    "cebra-figures/*.rst",
+    "*/cebra-figures/*.rst",
+    "*/demo_notebooks/README.rst",
+    "demo_notebooks/README.rst",
+    # TODO(stes): Remove this from the assets repo, then remove here
+    "_static/figures_usage.ipynb",
+    "*/_static/figures_usage.ipynb",
+    "assets/**/*.ipynb",
+    "*/assets/**/*.ipynb"
 ]
 
 # -- Options for HTML output -------------------------------------------------
@@ -141,6 +158,23 @@ exclude_patterns = [
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 html_theme = "pydata_sphinx_theme"
+
+html_context = {
+    "default_mode": "light",
+    "switcher": {
+        "version_match":
+            "latest",  # Adjust this dynamically per version
+        "versions": [
+            ("latest", "/latest/"),
+            ("v0.2.0", "/v0.2.0/"),
+            ("v0.3.0", "/v0.3.0/"),
+            ("v0.4.0", "/v0.4.0/"),
+            ("v0.5.0rc1", "/v0.5.0rc1/"),
+        ],
+    },
+    "navbar_start": ["version-switcher",
+                     "navbar-logo"],  # Place the dropdown above the logo
+}
 
 # More info on theme options:
 # https://pydata-sphinx-theme.readthedocs.io/en/latest/user_guide/configuring.html
@@ -156,11 +190,6 @@ html_theme_options = {
             "url": "https://twitter.com/cebraAI",
             "icon": "fab fa-twitter",
         },
-        # {
-        #     "name": "DockerHub",
-        #     "url": "https://hub.docker.com/r/stffsc/cebra",
-        #     "icon": "fab fa-docker",
-        # },
         {
             "name": "PyPI",
             "url": "https://pypi.org/project/cebra/",
@@ -172,23 +201,26 @@ html_theme_options = {
             "icon": "fas fa-graduation-cap",
         },
     ],
-    "external_links": [
-        # {"name": "Mathis Lab", "url": "http://www.mackenziemathislab.org/"},
-    ],
     "collapse_navigation": False,
-    "navigation_depth": 4,
-    "show_nav_level": 2,
+    "navigation_depth": 1,
+    "show_nav_level": 1,
     "navbar_align": "content",
     "show_prev_next": False,
+    "navbar_end": ["theme-switcher", "navbar-icon-links.html"],
+    "navbar_persistent": [],
+    "header_links_before_dropdown": 7
 }
 
-html_context = {"default_mode": "dark"}
+html_context = {"default_mode": "light"}
 html_favicon = "_static/img/logo_small.png"
 html_logo = "_static/img/logo_large.png"
 
-# Remove the search field for now
+# Replace with this configuration to enable "on this page" navigation
 html_sidebars = {
-    "**": ["search-field.html", "sidebar-nav-bs.html"],
+    "**": ["search-field.html", "sidebar-nav-bs", "page-toc.html"],
+    "demos": ["search-field.html", "sidebar-nav-bs"],
+    "api": ["search-field.html", "sidebar-nav-bs"],
+    "figures": ["search-field.html", "sidebar-nav-bs"],
 }
 
 # Disable links for embedded images
@@ -207,6 +239,8 @@ nitpick_ignore = [
 ]
 
 nbsphinx_thumbnails = {
+    "demo_notebooks/CEBRA_best_practices":
+        "_static/thumbnails/cebra-best.png",
     "demo_notebooks/Demo_primate_reaching":
         "_static/thumbnails/ForelimbS1.png",
     "demo_notebooks/Demo_hippocampus":
@@ -235,6 +269,8 @@ nbsphinx_thumbnails = {
         "_static/thumbnails/openScope_demo.png",
     "demo_notebooks/Demo_dandi_NeuroDataReHack_2023":
         "_static/thumbnails/dandi_demo_monkey.png",
+    "demo_notebooks/Demo_xCEBRA_RatInABox":
+        "_static/thumbnails/xCEBRA.png"
 }
 
 rst_prolog = r"""
@@ -247,6 +283,9 @@ rst_prolog = r"""
 
 # Download link for the notebook, see
 # https://nbsphinx.readthedocs.io/en/0.3.0/prolog-and-epilog.html
+
+# fmt: off
+# flake8: noqa: E501
 nbsphinx_prolog = r"""
 
 .. only:: html
@@ -269,3 +308,14 @@ nbsphinx_prolog = r"""
 
 ----
 """
+# fmt: on
+# flake8: enable=E501
+
+# Configure nbsphinx to properly render Plotly plots
+nbsphinx_execute = 'auto'
+nbsphinx_allow_errors = True
+nbsphinx_requirejs_path = 'https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.7/require.js'
+nbsphinx_execute_arguments = [
+    "--InlineBackend.figure_formats={'png', 'svg', 'pdf'}",
+    "--InlineBackend.rc=figure.dpi=96",
+]

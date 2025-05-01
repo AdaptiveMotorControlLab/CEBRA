@@ -21,7 +21,11 @@
 #
 """Continuous variable multi-session sampling."""
 
+import random
+from typing import Optional
+
 import numpy as np
+import numpy.typing as npt
 import torch
 
 import cebra.distributions as cebra_distr
@@ -383,3 +387,202 @@ class DiscreteMultisessionSampler(cebra_distr.PriorDistribution,
         for i in range(self.num_sessions):
             pos_samples[i] = self.data[i][pos_idx[i]]
         return pos_samples
+
+
+class UnifiedSampler(MultisessionSampler):
+    """Multi-session sampling, considering them as a single session.
+
+    Align embeddings across multiple sessions, using a set of
+    auxiliary variables, so that the samples in the different sessions
+    are sampled together based on how the corresponding auxiliary
+    variables are close from each other.
+
+    Then, the reference, positive and negative can be concatenated on their
+    neurons axis to train a single model for all sessions.
+
+    Example:
+        >>> import cebra.distributions.multisession as cebra_distributions_multisession
+        >>> import cebra.integrations.sklearn.dataset as cebra_sklearn_dataset
+        >>> import cebra.data
+        >>> import torch
+        >>> from torch import nn
+        >>> # Multisession training: one model per dataset (different input dimensions)
+        >>> session1 = torch.rand(100, 30)
+        >>> session2 = torch.rand(100, 50)
+        >>> index1 = torch.rand(100)
+        >>> index2 = torch.rand(100)
+        >>> num_features = 8
+        >>> dataset = cebra.data.UnifiedDataset(
+        ...               cebra_sklearn_dataset.SklearnDataset(session1, (index1, )),
+        ...               cebra_sklearn_dataset.SklearnDataset(session2, (index2, )))
+        >>> model = cebra.models.init(
+        ...                    name="offset1-model",
+        ...                    num_neurons=dataset.input_dimension,
+        ...                    num_units=32,
+        ...                    num_output=num_features,
+        ...         ).to("cpu")
+        >>> sampler = cebra_distributions_multisession.UnifiedSampler(dataset, time_offset=10)
+
+        >>> # ref and pos samples from all datasets
+        >>> ref = sampler.sample_prior(100)
+        >>> pos = sampler.sample_conditional(ref)
+        >>> ref = torch.LongTensor(ref)
+        >>> pos = torch.LongTensor(pos)
+        >>> loss = (ref - pos)**2
+
+    Note:
+        This function does currently not support explicitly selected
+        discrete indices. They should be added as dimensions to the
+        continuous index. More weight can be added to the discrete
+        dimensions by using larger values in one-hot coding.
+
+    """
+
+    def sample_all_uniform_prior(self,
+                                 num_samples: int) -> npt.NDArray[np.int64]:
+        """Returns uniformly sampled index for all sessions of the dataset.
+
+        Args:
+            num_samples: Number of samples to sample in each session.
+
+        Returns:
+            ``(N, num_samples)`` with ``N`` the number of sessions. Array of
+            samples, uniformly picked for each session.
+        """
+        return super().sample_prior(num_samples=num_samples)
+
+    def sample_prior(self,
+                     num_samples: int,
+                     session_id: Optional[int] = None) -> npt.NDArray[np.int64]:
+        """Return uniformly sampled indices for all sessions.
+
+        First, the reference indexes in a reference session are uniformly sampled.
+        Then the reference indexes for the other sessions are sampled so that their
+        corresponding auxiliary variables are close to the reference indexes of the
+        reference session.
+
+        Args:
+            num_samples: Number of samples to pick.
+            session_id: ID of the session to use as the reference session. If ``None``,
+                the session is randomly selected.
+
+        Returns:
+            A :py:func:`numpy.array` containing the idx of the reference samples for all
+            sessions.
+        """
+
+        # Randomly pick the reference session
+        if session_id is None:
+            session_id = random.choice(list(range(self.num_sessions)))
+
+        # Sample prior for all sessions
+        idx = self.sample_all_uniform_prior(num_samples=num_samples)
+        # Keep the idx for the reference session only
+        idx = torch.from_numpy(idx[session_id])
+
+        # Sample the references indexes in other sessions, based on their distance to the
+        # reference idx in the reference session.
+        return self.sample_all_sessions(idx, session_id).cpu().numpy()
+
+    def _get_query(self,
+                   reference_idx: torch.Tensor,
+                   session_id: int,
+                   aligned: bool = False) -> torch.Tensor:
+        """
+
+        Args:
+            aligned: If True, no time difference is added to the query.
+        """
+        cum_idx = reference_idx + self.lengths[session_id]
+        if aligned:
+            query = self.all_data[cum_idx]
+        else:
+            diff_idx = torch.randint(len(self.time_difference),
+                                     (len(reference_idx),))
+            query = self.all_data[cum_idx] + self.time_difference[diff_idx]
+        return torch.from_numpy(query).to(_device)
+
+    def sample_all_sessions(self, ref_idx: torch.Tensor,
+                            session_id: int) -> torch.Tensor:
+        """Sample sessions based on a reference session.
+
+        Reference samples for the ``(session_id)``th session were first sampled uniformly, as in
+        the py:class:`~.MultisessionSampler`. Then, reference samples for the other sessions
+        are sampled so that they are as close as the corresponding auxiliary variables in
+        the reference session.
+
+        Note: similar to ``sample_condiditonal`` but at the level of the sessions, sampling ref idx in each
+        session so that they are close to the ref idx in the reference session (``session_id``th session).
+
+        Args:
+            ref_idx: Uniformly sampled ``idx`` for the reference session, ``(num_samples, )``, values
+            can be in ``[0, len(get_session[session_id])]``.
+            session_id: Session ID of the reference session, whose ``idx`` are present in ``ref_idx``.
+
+        Returns:
+            The prior for all sessions, creating a "pseudo-animal", where ``idx`` sampled in different
+            sessions correspond to points in the recordings where the auxiliary variables are similar.
+
+        """
+        # Get the continuous data corresponding to the idx
+        # all_data: (sum(self.session_lengths), )
+        # ref_idx: (num_samples, ), values in [O, len(get_session[session_id])]
+        # self.lengths: (num_sessions, ), cumsum of the length of each session, providing the first
+        # element of a session in self.all_data.
+        # cum_ref_idx: (num_samples, ), values of ref_idx, switched to correspond to the indexes in
+        # of session_id, in the flatten array self.all_data.
+        all_idx = torch.zeros(self.num_sessions, len(ref_idx),
+                              device=_device).long()
+        query = self._get_query(
+            reference_idx=ref_idx, session_id=session_id,
+            aligned=True)  # same query for all + no time diff added
+
+        for i in range(self.num_sessions):
+            # except for the session_id provided
+            if i == session_id:
+                continue
+            # different query for each. more robust to variance.
+            #query = self._get_query(reference_idx=ref_idx,
+            #                        session_id=session_id,
+            #                        aligned=False)
+
+            # get the idx of the datapoint that is the closest to the query
+            all_idx[i] = self.index[i].search(
+                query)  # search in the whole dataset
+
+            # all_idx[i] = self.index[i].search_or_mask(
+            #     query, threshold=self.distance_threshold[i])
+
+        all_idx[session_id] = ref_idx
+        return all_idx
+
+    def sample_conditional(
+            self, reference_idx: npt.NDArray[np.int64]) -> torch.Tensor:
+        """Sample from the conditional distribution.
+
+        Contrary to the :py:class:`MultisessionSampler`, conditional distribution
+        is sampled so that the samples match the reference samples. They are sampled
+        from the same session as each reference idx only, rather than across all
+        sessions.
+
+        Args:
+            reference_idx: Reference indices, with dimension ``(session, batch)``.
+
+        Returns:
+            Positive indices, which will be grouped by
+            session and match the reference indices.
+            Returned shape is ``(session, batch)``.
+
+        """
+
+        cond_idx = torch.zeros((reference_idx.shape[0], reference_idx.shape[1]),
+                               dtype=torch.int,
+                               device=_device).long()
+
+        for session_id in range(self.num_sessions):
+            query = self._get_query(reference_idx=reference_idx[session_id],
+                                    session_id=session_id)
+
+            cond_idx[session_id] = self.index[session_id].search(query)
+
+        return cond_idx.cpu().numpy()

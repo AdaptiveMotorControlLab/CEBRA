@@ -90,6 +90,10 @@ def test_offset_models(model_name, batch_size, input_length):
 
 def test_multiobjective():
 
+    # NOTE(stes): This test is deprecated and will be removed in a future version.
+    # As of CEBRA 0.6.0, the multi objective models are tested separately in
+    # test_multiobjective.py.
+
     class TestModel(cebra.models.Model):
 
         def __init__(self):
@@ -155,8 +159,8 @@ def test_version_check(version, raises):
             cebra.models.model._check_torch_version(raise_error=True)
 
 
-def test_version_check():
-    raises = not cebra.models.model._check_torch_version(raise_error=False)
+def test_version_check_dropout_available():
+    raises = cebra.models.model._check_torch_version(raise_error=False)
     if raises:
         assert len(cebra.models.get_options("*dropout*")) == 0
     else:

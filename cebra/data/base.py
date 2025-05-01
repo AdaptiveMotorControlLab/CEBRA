@@ -27,6 +27,7 @@ import literate_dataclasses as dataclasses
 import torch
 
 import cebra.data.assets as cebra_data_assets
+import cebra.data.masking as cebra_data_masking
 import cebra.distributions
 import cebra.io
 from cebra.data.datatypes import Batch
@@ -36,7 +37,7 @@ from cebra.data.datatypes import Offset
 __all__ = ["Dataset", "Loader"]
 
 
-class Dataset(abc.ABC, cebra.io.HasDevice):
+class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
     """Abstract base class for implementing a dataset.
 
     The class attributes provide information about the shape of the data when
@@ -193,7 +194,6 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
         """
         raise NotImplementedError()
 
-    @abc.abstractmethod
     def configure_for(self, model: "cebra.models.Model"):
         """Configure the dataset offset for the provided model.
 
@@ -203,7 +203,7 @@ class Dataset(abc.ABC, cebra.io.HasDevice):
         Args:
             model: The model to configure the dataset for.
         """
-        raise NotImplementedError
+        self.offset = model.get_offset()
 
 
 @dataclasses.dataclass

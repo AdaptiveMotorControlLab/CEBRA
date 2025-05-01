@@ -27,11 +27,14 @@ from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
 
 import numpy as np
 import numpy.typing as npt
+import packaging.version
 import pkg_resources
+import sklearn
 import sklearn.utils.validation as sklearn_utils_validation
 import torch
 from sklearn.base import BaseEstimator
 from sklearn.base import TransformerMixin
+from sklearn.utils.metaestimators import available_if
 from torch import nn
 
 import cebra.data
@@ -40,6 +43,38 @@ import cebra.integrations.sklearn.dataset as cebra_sklearn_dataset
 import cebra.integrations.sklearn.utils as sklearn_utils
 import cebra.models
 import cebra.solver
+
+# NOTE(stes): From torch 2.6 onwards, we need to specify the following list
+# when loading CEBRA models to allow weights_only = True.
+CEBRA_LOAD_SAFE_GLOBALS = [
+    cebra.data.Offset, torch.torch_version.TorchVersion, np.dtype,
+    np.dtypes.Float64DType, np.dtypes.Int64DType
+]
+
+
+def check_version(estimator):
+    # NOTE(stes): required as a check for the old way of specifying tags
+    # https://github.com/scikit-learn/scikit-learn/pull/29677#issuecomment-2334229165
+    return packaging.version.parse(
+        sklearn.__version__) < packaging.version.parse("1.6.dev")
+
+
+def _safe_torch_load(filename, weights_only, **kwargs):
+    if weights_only is None:
+        if packaging.version.parse(
+                torch.__version__) >= packaging.version.parse("2.6.0"):
+            weights_only = True
+        else:
+            weights_only = False
+
+    if not weights_only:
+        checkpoint = torch.load(filename, weights_only=False, **kwargs)
+    else:
+        # NOTE(stes): This is only supported for torch 2.6+
+        with torch.serialization.safe_globals(CEBRA_LOAD_SAFE_GLOBALS):
+            checkpoint = torch.load(filename, weights_only=True, **kwargs)
+
+    return checkpoint
 
 
 def _init_loader(
@@ -94,7 +129,7 @@ def _init_loader(
         (not is_cont, not is_disc, is_multi),
     ]
     if any(all(combination) for combination in incompatible_combinations):
-        raise ValueError(f"Invalid index combination.\n"
+        raise ValueError("Invalid index combination.\n"
                          f"Continuous: {is_cont},\n"
                          f"Discrete: {is_disc},\n"
                          f"Hybrid training: {is_hybrid},\n"
@@ -258,7 +293,7 @@ def _init_loader(
                         "single-session",
                     )
 
-    error_message = (f"Invalid index combination.\n"
+    error_message = ("Invalid index combination.\n"
                      f"Continuous: {is_cont},\n"
                      f"Discrete: {is_disc},\n"
                      f"Hybrid training: {is_hybrid},\n"
@@ -305,7 +340,7 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
     if missing_keys:
         raise ValueError(
             f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
-            f"You can try loading the CEBRA model with the torch backend.")
+            "You can try loading the CEBRA model with the torch backend.")
 
     args, state, state_dict = cebra_info['args'], cebra_info[
         'state'], cebra_info['state_dict']
@@ -364,7 +399,7 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
     return cebra_
 
 
-class CEBRA(BaseEstimator, TransformerMixin):
+class CEBRA(TransformerMixin, BaseEstimator):
     """CEBRA model defined as part of a ``scikit-learn``-like API.
 
     Attributes:
@@ -462,6 +497,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
             optimizer documentation in :py:mod:`torch.optim` for further information on how to format the
             arguments.
             |Default:| ``(('betas', (0.9, 0.999)), ('eps', 1e-08), ('weight_decay', 0), ('amsgrad', False))``
+        masking_kwargs (dict):
+            TODO(celia)
 
     Example:
 
@@ -535,6 +572,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
             ("weight_decay", 0),
             ("amsgrad", False),
         ),
+        masking_kwargs: Dict[str, Union[float, List[float], Tuple[float,
+                                                                  ...]]] = None,
     ):
         self.__dict__.update(locals())
 
@@ -621,12 +660,12 @@ class CEBRA(BaseEstimator, TransformerMixin):
             # TODO(celia): to make it work for multiple set of index. For now, y should be a tuple of one list only
             if isinstance(y, tuple) and len(y) > 1:
                 raise NotImplementedError(
-                    f"Support for multiple set of index is not implemented in multissesion training, "
+                    "Support for multiple set of index is not implemented in multissesion training, "
                     f"got {len(y)} sets of indexes.")
 
             if not _are_sessions_equal(X, y):
                 raise ValueError(
-                    f"Invalid number of sessions: number of sessions in X and y need to match, "
+                    "Invalid number of sessions: number of sessions in X and y need to match, "
                     f"got X:{len(X)} and y:{[len(y_i) for y_i in y]}.")
 
             for session in range(len(X)):
@@ -650,8 +689,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
         else:
             if not _are_sessions_equal(X, y):
                 raise ValueError(
-                    f"Invalid number of samples or labels sessions: provide one session for single-session training, "
-                    f"and make sure the number of samples in X and y need match, "
+                    "Invalid number of samples or labels sessions: provide one session for single-session training, "
+                    "and make sure the number of samples in X and y match, "
                     f"got {len(X)} and {[len(y_i) for y_i in y]}.")
             is_multisession = False
             dataset = _get_dataset(X, y)
@@ -813,7 +852,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
         # Check that same number of index
         if len(self.label_types_) != n_idx:
             raise ValueError(
-                f"Number of index invalid: labels must have the same number of index as for fitting,"
+                "Number of index invalid: labels must have the same number of index as for fitting,"
                 f"expects {len(self.label_types_)}, got {n_idx} idx.")
 
         for i in range(len(self.label_types_)):  # for each index
@@ -826,12 +865,12 @@ class CEBRA(BaseEstimator, TransformerMixin):
                     > 1):  # is there more than one feature in the index
                 if label_types_idx[1][1] != y[i].shape[1]:
                     raise ValueError(
-                        f"Labels invalid: must have the same number of features as the ones used for fitting,"
+                        "Labels invalid: must have the same number of features as the ones used for fitting,"
                         f"expects {label_types_idx[1]}, got {y[i].shape}.")
 
             if label_types_idx[0] != y[i].dtype:
                 raise ValueError(
-                    f"Labels invalid: must have the same type of features as the ones used for fitting,"
+                    "Labels invalid: must have the same type of features as the ones used for fitting,"
                     f"expects {label_types_idx[0]}, got {y[i].dtype}.")
 
     def _prepare_fit(
@@ -858,6 +897,8 @@ class CEBRA(BaseEstimator, TransformerMixin):
         self.device_ = sklearn_utils.check_device(self.device)
         self.offset_ = self._compute_offset()
         dataset, is_multisession = self._prepare_data(X, y)
+
+        dataset.set_masks(self.masking_kwargs)
 
         loader, solver_name = self._prepare_loader(
             dataset,
@@ -1018,14 +1059,12 @@ class CEBRA(BaseEstimator, TransformerMixin):
 
         # Save variables of interest as semi-private attributes
         self.model_ = model
-        self.n_features_ = ([
-            loader.dataset.get_input_dimension(session_id)
-            for session_id in range(loader.dataset.num_sessions)
-        ] if is_multisession else loader.dataset.input_dimension)
+
+        self.n_features_ = solver.n_features
+        self.num_sessions_ = solver.num_sessions
         self.solver_ = solver
         self.n_features_in_ = ([model[n].num_input for n in range(len(model))]
                                if is_multisession else model.num_input)
-        self.num_sessions_ = loader.dataset.num_sessions if is_multisession else None
 
         return self
 
@@ -1194,7 +1233,7 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> cebra_model = cebra.CEBRA(max_iterations=10)
             >>> cebra_model.fit(dataset)
             CEBRA(max_iterations=10)
-            >>> embedding = cebra_model.transform(dataset)
+            >>> embedding = cebra_model.transform(dataset, batch_size=200)
 
         """
         sklearn_utils_validation.check_is_fitted(self, "n_features_")
@@ -1220,60 +1259,6 @@ class CEBRA(BaseEstimator, TransformerMixin):
                 batch_size=batch_size)
 
         return output.detach().cpu().numpy()
-
-    # Deprecated, kept for testing.
-    def transform_deprecated(self,
-                             X: Union[npt.NDArray, torch.Tensor],
-                             session_id: Optional[int] = None) -> npt.NDArray:
-        """Transform an input sequence and return the embedding.
-
-        Args:
-            X: A numpy array or torch tensor of size ``time x dimension``.
-            session_id: The session ID, an :py:class:`int` between 0 and :py:attr:`num_sessions` for
-                multisession, set to ``None`` for single session.
-
-        Returns:
-            A :py:func:`numpy.array` of size ``time x output_dimension``.
-
-        Example:
-
-            >>> import cebra
-            >>> import numpy as np
-            >>> dataset =  np.random.uniform(0, 1, (1000, 30))
-            >>> cebra_model = cebra.CEBRA(max_iterations=10)
-            >>> cebra_model.fit(dataset)
-            CEBRA(max_iterations=10)
-            >>> embedding = cebra_model.transform(dataset)
-
-        """
-
-        sklearn_utils_validation.check_is_fitted(self, "n_features_")
-        model, offset = self._select_model(X, session_id)
-
-        # Input validation
-        X = sklearn_utils.check_input_array(X, min_samples=len(self.offset_))
-        input_dtype = X.dtype
-
-        with torch.no_grad():
-            model.eval()
-
-            if self.pad_before_transform:
-                X = np.pad(X, ((offset.left, offset.right - 1), (0, 0)),
-                           mode="edge")
-            X = torch.from_numpy(X).float().to(self.device_)
-
-            if isinstance(model, cebra.models.ConvolutionalModelMixin):
-                # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
-                X = X.transpose(1, 0).unsqueeze(0)
-                output = model(X).cpu().numpy().squeeze(0).transpose(1, 0)
-            else:
-                # Standard evaluation, (T, C, dt)
-                output = model(X).cpu().numpy()
-
-        if input_dtype == "float64":
-            return output.astype(input_dtype)
-
-        return output
 
     def fit_transform(
         self,
@@ -1317,6 +1302,15 @@ class CEBRA(BaseEstimator, TransformerMixin):
                  callback_frequency=callback_frequency)
         return self.transform(X)
 
+    def __sklearn_tags__(self):
+        # NOTE(stes): from 1.6.dev, this is the new way to specify tags
+        # https://scikit-learn.org/dev/developers/develop.html
+        # https://github.com/scikit-learn/scikit-learn/pull/29677#issuecomment-2334229165
+        tags = super().__sklearn_tags__()
+        tags.non_deterministic = True
+        return tags
+
+    @available_if(check_version)
     def _more_tags(self):
         # NOTE(stes): This tag is needed as seeding is not fully implemented in the
         # current version of CEBRA.
@@ -1416,15 +1410,22 @@ class CEBRA(BaseEstimator, TransformerMixin):
     def load(cls,
              filename: str,
              backend: Literal["auto", "sklearn", "torch"] = "auto",
+             weights_only: bool = None,
              **kwargs) -> "CEBRA":
         """Load a model from disk.
 
         Args:
             filename: The path to the file in which to save the trained model.
             backend: A string identifying the used backend.
+            weights_only: Indicates whether unpickler should be restricted to loading only tensors, primitive types,
+                dictionaries and any types added via :py:func:`torch.serialization.add_safe_globals`.
+                See :py:func:`torch.load` with ``weights_only=True`` for more details. It it recommended to leave this
+                at the default value of ``None``, which sets the argument to ``False`` for torch<2.6, and ``True`` for
+                higher versions of torch. If you experience issues with loading custom models (specified outside
+                of the CEBRA package), you can try to set this to ``False`` if you trust the source of the model.
             kwargs: Optional keyword arguments passed directly to the loader.
 
-        Return:
+        Returns:
             The model to load.
 
         Note:
@@ -1434,7 +1435,6 @@ class CEBRA(BaseEstimator, TransformerMixin):
             For information about the file format please refer to :py:meth:`cebra.CEBRA.save`.
 
         Example:
-
             >>> import cebra
             >>> import numpy as np
             >>> import tempfile
@@ -1448,16 +1448,14 @@ class CEBRA(BaseEstimator, TransformerMixin):
             >>> loaded_model = cebra.CEBRA.load(tmp_file)
             >>> embedding = loaded_model.transform(dataset)
             >>> tmp_file.unlink()
-
         """
-
         supported_backends = ["auto", "sklearn", "torch"]
         if backend not in supported_backends:
             raise NotImplementedError(
                 f"Unsupported backend: '{backend}'. Supported backends are: {', '.join(supported_backends)}"
             )
 
-        checkpoint = torch.load(filename, **kwargs)
+        checkpoint = _safe_torch_load(filename, weights_only, **kwargs)
 
         if backend == "auto":
             backend = "sklearn" if isinstance(checkpoint, dict) else "torch"
