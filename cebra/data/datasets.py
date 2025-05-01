@@ -453,7 +453,6 @@ class UnifiedDataset(DatasetCollection):
 
     def __init__(self, *datasets: cebra_data.SingleSessionDataset):
         super().__init__(*datasets)
-        self.shuffled_neurons = False
 
     @property
     def input_dimension(self) -> int:
