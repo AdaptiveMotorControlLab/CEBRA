@@ -7,20 +7,15 @@ import cebra.data.mask as mask
 
 
 class MaskedMixin:
+    """A mixin class for applying masking to data.
 
-    def __init__(self):
-        """Initialize the MaskedMixin class.
-
-        Note:
-            This class is designed to be used as a mixin for other classes.
-            It provides functionality to apply masking to data.
-            The class should be initialized with the `__init__` method of the
-            parent class to ensure proper initialization.
-            The `set_masks` method should be called to set the masking types
-            and their corresponding probabilities.
-        """
-        # Initialization so that no maskins is applied
-        self.masks = []  # a list of Mask instances
+    Note:
+        This class is designed to be used as a mixin for other classes.
+        It provides functionality to apply masking to data.
+        The `set_masks` method should be called to set the masking types
+        and their corresponding probabilities.
+    """
+    masks = []  # a list of Mask instances
 
     def set_masks(self, masking: Optional[Dict[str, float]] = None) -> None:
         """Set the mask type and probability for the dataset.
