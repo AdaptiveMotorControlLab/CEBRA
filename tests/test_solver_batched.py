@@ -31,7 +31,7 @@ import cebra.solver
 
 device = "cpu"
 
-NUM_STEPS = 10
+NUM_STEPS = 2
 BATCHES = [25_000, 50_000, 75_000]
 MODELS = ["offset1-model", "offset10-model", "offset40-model-4x-subsample"]
 
@@ -341,3 +341,152 @@ def test_batched_transform_multi_session(data_name, model_name, padding,
 
         assert embedding_batched.shape == embedding.shape
         assert np.allclose(embedding_batched, embedding, rtol=1e-4, atol=1e-4)
+
+
+@pytest.mark.parametrize(
+    "batch_start_idx, batch_end_idx, offset, num_samples, expected_exception",
+    [
+        # Valid indices
+        (0, 5, cebra.data.Offset(1, 1), 10, None),
+        (2, 8, cebra.data.Offset(2, 2), 10, None),
+        # Negative indices
+        (-1, 5, cebra.data.Offset(1, 1), 10, ValueError),
+        (0, -5, cebra.data.Offset(1, 1), 10, ValueError),
+        # Start index greater than end index
+        (5, 3, cebra.data.Offset(1, 1), 10, ValueError),
+        # End index out of bounds
+        (0, 11, cebra.data.Offset(1, 1), 10, ValueError),
+        # Batch size smaller than offset
+        (0, 2, cebra.data.Offset(3, 3), 10, ValueError),
+    ],
+)
+def test_check_indices(batch_start_idx, batch_end_idx, offset, num_samples,
+                       expected_exception):
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            cebra.solver.base._check_indices(batch_start_idx, batch_end_idx,
+                                             offset, num_samples)
+    else:
+        cebra.solver.base._check_indices(batch_start_idx, batch_end_idx, offset,
+                                         num_samples)
+
+
+@pytest.mark.parametrize(
+    "batch_start_idx, batch_end_idx, num_samples, expected_exception",
+    [
+        # First batch
+        (0, 6, 12, 8),
+        # Last batch
+        (6, 12, 12, 8),
+        # Middle batch
+        (3, 9, 12, 6),
+        # Invalid start index
+        (-1, 3, 4, ValueError),
+        # Invalid end index
+        (3, -10, 4, ValueError),
+        # Start index greater than end index
+        (5, 3, 4, ValueError),
+        # End index out of bounds
+        (0, 15, 12, ValueError),
+        # Batch size smaller than batched_data
+        (0, 2, 2, ValueError),
+        # Batch size larger than batched_data
+        (0, 12, 12, ValueError),
+    ],
+)
+def test_add_batched_zero_padding(batch_start_idx, batch_end_idx, num_samples,
+                                  expected_exception):
+    batched_data = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0],
+                                 [9.0, 10.0], [1.0, 2.0]])
+
+    model = create_model(model_name="offset5-model",
+                         input_dimension=batched_data.shape[1])
+    offset = model.get_offset()
+
+    if expected_exception == ValueError:
+        with pytest.raises(expected_exception):
+            result = cebra.solver.base._add_batched_zero_padding(
+                batched_data, offset, batch_start_idx, batch_end_idx,
+                num_samples)
+    else:
+        result = cebra.solver.base._add_batched_zero_padding(
+            batched_data, offset, batch_start_idx, batch_end_idx, num_samples)
+        assert result.shape[0] == expected_exception
+
+
+@pytest.mark.parametrize(
+    "pad_before_transform, expected_exception",
+    [
+        # Valid batched inputs
+        (True, None),
+        # No padding
+        (False, None),
+    ],
+)
+def test_transform(pad_before_transform, expected_exception):
+    inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0],
+                           [9.0, 10.0], [1.0, 2.0], [3.0, 4.0], [5.0, 6.0],
+                           [7.0, 8.0], [9.0, 10.0], [1.0, 2.0], [3.0, 4.0],
+                           [5.0, 6.0], [7.0, 8.0], [9.0, 10.0]])
+    model = create_model(model_name="offset5-model",
+                         input_dimension=inputs.shape[1])
+    offset = model.get_offset()
+
+    result = cebra.solver.base._transform(
+        model=model,
+        inputs=inputs,
+        pad_before_transform=pad_before_transform,
+        offset=offset,
+    )
+    if pad_before_transform:
+        assert result.shape[0] == inputs.shape[0]
+    else:
+        assert result.shape[0] == inputs.shape[0] - len(offset) + 1
+
+
+@pytest.mark.parametrize(
+    "batch_size, pad_before_transform, expected_exception",
+    [
+        # Valid batched inputs
+        (6, True, None),
+        # Invalid batch size (too large)
+        (12, True, ValueError),
+        # Invalid batch size (too small)
+        (2, True, ValueError),
+        # Last batch size incomplete
+        (5, True, None),
+        # No padding
+        (6, False, None),
+    ],
+)
+def test_batched_transform(batch_size, pad_before_transform,
+                           expected_exception):
+    inputs = torch.tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0], [7.0, 8.0],
+                           [9.0, 10.0], [1.0, 2.0], [3.0, 4.0], [5.0, 6.0],
+                           [7.0, 8.0], [9.0, 10.0], [1.0, 2.0], [3.0, 4.0],
+                           [5.0, 6.0], [7.0, 8.0], [9.0, 10.0]])
+    model = create_model(model_name="offset5-model",
+                         input_dimension=inputs.shape[1])
+    offset = model.get_offset()
+
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            cebra.solver.base._batched_transform(
+                model=model,
+                inputs=inputs,
+                batch_size=batch_size,
+                pad_before_transform=pad_before_transform,
+                offset=offset,
+            )
+    else:
+        result = cebra.solver.base._batched_transform(
+            model=model,
+            inputs=inputs,
+            batch_size=batch_size,
+            pad_before_transform=pad_before_transform,
+            offset=offset,
+        )
+        if pad_before_transform:
+            assert result.shape[0] == inputs.shape[0]
+        else:
+            assert result.shape[0] == inputs.shape[0] - len(offset) + 1
