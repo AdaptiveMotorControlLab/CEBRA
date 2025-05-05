@@ -27,6 +27,7 @@ import torch
 
 import cebra
 import cebra.integrations.sklearn.cebra as cebra_sklearn_cebra
+import cebra.integrations.sklearn.helpers as cebra_sklearn_helpers
 import cebra.integrations.sklearn.metrics as cebra_sklearn_metrics
 
 
@@ -383,6 +384,36 @@ def test_sklearn_runs_consistency():
     with pytest.raises(ValueError, match="Invalid.*embeddings"):
         _, _, _ = cebra_sklearn_metrics.consistency_score(
             invalid_embeddings_runs, between="runs")
+
+
+def test_align_embeddings():
+    # Example data
+    np.random.seed(42)
+    embedding1 = np.random.uniform(0, 1, (10000, 4))
+    embedding2 = np.random.uniform(0, 1, (10000, 10))
+    embedding3 = np.random.uniform(0, 1, (8000, 6))
+    embeddings_datasets = [embedding1, embedding2, embedding3]
+
+    labels1 = np.random.uniform(0, 1, (10000,))
+    labels2 = np.random.uniform(0, 1, (10000,))
+    labels3 = np.random.uniform(0, 1, (8000,))
+    labels_datasets = [labels1, labels2, labels3]
+
+    embeddings = cebra_sklearn_helpers.align_embeddings(
+        embeddings=embeddings_datasets,
+        labels=labels_datasets,
+        normalize=False,
+        n_bins=100)
+
+    normalized_embeddings = cebra_sklearn_helpers.align_embeddings(
+        embeddings=embeddings_datasets,
+        labels=labels_datasets,
+        normalize=True,
+        n_bins=100)
+
+    assert len(embeddings) == len(embeddings_datasets)
+    assert len(normalized_embeddings) == len(embeddings_datasets)
+    assert len(embeddings) == len(normalized_embeddings)
 
 
 @pytest.mark.parametrize("seed", [42, 24, 10])
