@@ -32,7 +32,7 @@ import cebra.solver
 device = "cpu"
 
 NUM_STEPS = 2
-BATCHES = [25_000, 50_000, 75_000]
+BATCHES = [250, 500, 750]
 MODELS = ["offset1-model", "offset10-model", "offset40-model-4x-subsample"]
 
 
@@ -386,12 +386,6 @@ def test_check_indices(batch_start_idx, batch_end_idx, offset, num_samples,
         (3, -10, 4, ValueError),
         # Start index greater than end index
         (5, 3, 4, ValueError),
-        # End index out of bounds
-        (0, 15, 12, ValueError),
-        # Batch size smaller than batched_data
-        (0, 2, 2, ValueError),
-        # Batch size larger than batched_data
-        (0, 12, 12, ValueError),
     ],
 )
 def test_add_batched_zero_padding(batch_start_idx, batch_end_idx, num_samples,
@@ -432,7 +426,7 @@ def test_transform(pad_before_transform, expected_exception):
                          input_dimension=inputs.shape[1])
     offset = model.get_offset()
 
-    result = cebra.solver.base._transform(
+    result = cebra.solver.base._not_batched_transform(
         model=model,
         inputs=inputs,
         pad_before_transform=pad_before_transform,

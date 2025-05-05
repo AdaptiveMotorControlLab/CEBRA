@@ -46,6 +46,10 @@ def cebra_transform_deprecated(cebra_model,
         stacklevel=2)
 
     sklearn_utils_validation.check_is_fitted(cebra_model, "n_features_")
+
+    if isinstance(X, np.ndarray):
+        X = torch.from_numpy(X)
+
     model, offset = cebra_model._select_model(X, session_id)
 
     # Input validation

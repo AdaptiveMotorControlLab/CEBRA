@@ -22,10 +22,9 @@
 """Single session solvers embed a single pair of time series."""
 
 import copy
-from typing import List, Optional, Tuple, Union
+from typing import Optional
 
 import literate_dataclasses as dataclasses
-import numpy.typing as npt
 import torch
 
 import cebra
@@ -74,7 +73,7 @@ class SingleSessionSolver(abc_.Solver):
         Args:
             loader: Loader used to fit the solver.
         """
-        self.num_sessions = None
+        #self.num_sessions = None
         self.n_features = loader.dataset.input_dimension
 
     def _check_is_inputs_valid(self, inputs: torch.Tensor, session_id: int):
@@ -89,6 +88,7 @@ class SingleSessionSolver(abc_.Solver):
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
         """
+        super()._check_is_inputs_valid(inputs, session_id=session_id)
         if self.n_features != inputs.shape[1]:
             raise ValueError(
                 f"Invalid input shape: model for session {session_id} requires an input of shape"
@@ -109,29 +109,20 @@ class SingleSessionSolver(abc_.Solver):
                 f"Invalid session_id {session_id}: single session models only takes an optional null session_id."
             )
 
-    def _select_model(
-        self, inputs: Union[torch.Tensor,
-                            List[torch.Tensor]], session_id: Optional[int]
-    ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
-               cebra.data.datatypes.Offset]:
-        """ Select the (trained) model based on the input dimension and session ID.
+    def _get_model(self, session_id: Optional[int] = None):
+        """Get the model for the given session ID.
 
         Args:
-            inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
 
         Returns:
-            The model (first returns) and the offset of the model (second returns).
+            The model for the given session ID.
         """
         self._check_is_session_id_valid(session_id=session_id)
         self._check_is_fitted()
-        self._check_is_inputs_valid(inputs, session_id=session_id)
-
-        model = self.model
-        offset = model.get_offset()
-        return model, offset
+        return self.model
 
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
         """Given a batch of input examples, computes the feature representation/embedding.
@@ -177,7 +168,8 @@ class SingleSessionSolver(abc_.Solver):
 
 @register("single-session-aux")
 @dataclasses.dataclass
-class SingleSessionAuxVariableSolver(SingleSessionSolver):
+class SingleSessionAuxVariableSolver(SingleSessionSolver,
+                                     abc_.AuxiliaryVariableSolver):
     """Single session training for reference and positive/negative samples.
 
     This solver processes reference samples with a model different from
@@ -204,90 +196,26 @@ class SingleSessionAuxVariableSolver(SingleSessionSolver):
             self.reference_model = copy.deepcopy(self.model)
             self.reference_model.to(self.model.device)
 
-    def _select_model(
-        self,
-        inputs: Union[torch.Tensor, List[torch.Tensor]],
-        session_id: Optional[int] = None,
-        use_reference_model: bool = False,
-    ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
-               cebra.data.datatypes.Offset]:
-        """ Select the model based on the input dimension and session ID.
+    def _get_model(self,
+                   session_id: Optional[int] = None,
+                   use_reference_model: bool = False):
+        """Get the model for the given session ID.
 
         Args:
-            inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
-            use_reference_model: Flag for using ``reference_model``.
 
         Returns:
-            The model (first returns) and the offset of the model (second returns).
+            The model for the given session ID.
         """
-        self._check_is_inputs_valid(inputs, session_id=session_id)
         self._check_is_session_id_valid(session_id=session_id)
-
+        self._check_is_fitted()
         if use_reference_model:
-            model = self.reference_model
+            model = self.reference_model[session_id]
         else:
-            model = self.model
-
-        if hasattr(model, 'get_offset'):
-            offset = model.get_offset()
-        else:
-            offset = None
-        return model, offset
-
-    @torch.no_grad()
-    def transform(self,
-                  inputs: Union[torch.Tensor, List[torch.Tensor], npt.NDArray],
-                  pad_before_transform: bool = True,
-                  session_id: Optional[int] = None,
-                  batch_size: Optional[int] = None,
-                  use_reference_model: bool = False) -> torch.Tensor:
-        """Compute the embedding.
-        This function by default use ``model`` that was trained to encode the positive
-        and negative samples. To use ``reference_model`` instead of ``model``
-        ``use_reference_model`` should be equal ``True``.
-        Args:
-            inputs: The input signal
-            use_reference_model: Flag for using ``reference_model``
-        Returns:
-            The output embedding.
-        """
-        if isinstance(inputs, list):
-            raise NotImplementedError(
-                "Inputs to transform() should be the data for a single session."
-            )
-        elif not isinstance(inputs, torch.Tensor):
-            raise ValueError(
-                f"Inputs should be a torch.Tensor, not {type(inputs)}.")
-
-        if not hasattr(self, "history") and len(self.history) > 0:
-            raise ValueError(
-                f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
-                "appropriate arguments before using this estimator.")
-        model, offset = self._select_model(
-            inputs, session_id, use_reference_model=use_reference_model)
-
-        if len(offset) < 2 and pad_before_transform:
-            pad_before_transform = False
-
-        model.eval()
-        if batch_size is not None:
-            output = abc_._batched_transform(
-                model=model,
-                inputs=inputs,
-                offset=offset,
-                batch_size=batch_size,
-                pad_before_transform=pad_before_transform,
-            )
-        else:
-            output = abc_._transform(model=model,
-                                     inputs=inputs,
-                                     offset=offset,
-                                     pad_before_transform=pad_before_transform)
-
-        return output
+            model = self.model[session_id]
+        return model
 
     def _compute_features(
         self,
@@ -358,29 +286,20 @@ class SingleSessionHybridSolver(abc_.MultiobjectiveSolver, SingleSessionSolver):
                                 behavior_neg), cebra.data.Batch(
                                     time_ref, time_pos, time_neg)
 
-    def _select_model(
-        self, inputs: Union[torch.Tensor,
-                            List[torch.Tensor]], session_id: Optional[int]
-    ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
-               cebra.data.datatypes.Offset]:
-        """ Select the (trained) model based on the input dimension and session ID.
+    def _get_model(self, session_id: Optional[int] = None):
+        """Get the model for the given session ID.
 
         Args:
-            inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
 
         Returns:
-            The model (first returns) and the offset of the model (second returns).
+            The model for the given session ID.
         """
         self._check_is_session_id_valid(session_id=session_id)
         self._check_is_fitted()
-        self._check_is_inputs_valid(inputs, session_id=session_id)
-
-        model = self.model.module
-        offset = model.get_offset()
-        return model, offset
+        return self.model.module
 
 
 @register("single-session-full")

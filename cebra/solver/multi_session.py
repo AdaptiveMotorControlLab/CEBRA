@@ -22,9 +22,8 @@
 """Solver implementations for multi-session datasetes."""
 
 import copy
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional
 
-import numpy.typing as npt
 import torch
 
 import cebra
@@ -52,11 +51,11 @@ class MultiSessionSolver(abc_.Solver):
         Yields:
             The parameters of the model.
         """
-        if session_id is not None:
-            for parameter in self.model[session_id].parameters():
-                yield parameter
+        self._check_is_session_id_valid(session_id=session_id)
 
-        # If session_id is None, it can still iterate over the criterion
+        for parameter in self.model[session_id].parameters():
+            yield parameter
+
         for parameter in self.criterion.parameters():
             yield parameter
 
@@ -165,6 +164,7 @@ class MultiSessionSolver(abc_.Solver):
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
         """
+        super()._check_is_inputs_valid(inputs, session_id=session_id)
         if self.n_features[session_id] != inputs.shape[1]:
             raise ValueError(
                 f"Invalid input shape: model for session {session_id} requires an input of shape"
@@ -189,25 +189,20 @@ class MultiSessionSolver(abc_.Solver):
                 f"Invalid session_id {session_id}: session_id for the current multisession model must be between 0 and {self.num_sessions-1}."
             )
 
-    def _select_model(self, inputs: torch.Tensor, session_id: Optional[int]):
-        """ Select the (trained) model based on the input dimension and session ID.
+    def _get_model(self, session_id: Optional[int] = None):
+        """Get the model for the given session ID.
 
         Args:
-            inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
 
         Returns:
-            The model (first returns) and the offset of the model (second returns).
+            The model for the given session ID.
         """
         self._check_is_session_id_valid(session_id=session_id)
         self._check_is_fitted()
-        self._check_is_inputs_valid(inputs, session_id=session_id)
-
-        model = self.model[session_id]
-        offset = model.get_offset()
-        return model, offset
+        return self.model[session_id]
 
     def validation(self, loader, session_id: Optional[int] = None):
         """Compute score of the model on data.
@@ -240,7 +235,8 @@ class MultiSessionSolver(abc_.Solver):
 
 
 @register("multi-session-aux")
-class MultiSessionAuxVariableSolver(MultiSessionSolver):
+class MultiSessionAuxVariableSolver(MultiSessionSolver,
+                                    abc_.AuxiliaryVariableSolver):
     """Multi session training, contrasting neural data against behavior."""
 
     _variant_name = "multi-session-aux"
@@ -289,82 +285,23 @@ class MultiSessionAuxVariableSolver(MultiSessionSolver):
             negative=neg.view(-1, num_features),
         )
 
-    def _select_model(
-        self,
-        inputs: Union[torch.Tensor, List[torch.Tensor]],
-        session_id: Optional[int] = None,
-        use_reference_model: bool = False,
-    ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
-               cebra.data.datatypes.Offset]:
-        """ Select the model based on the input dimension and session ID.
+    def _get_model(self,
+                   session_id: Optional[int] = None,
+                   use_reference_model: bool = False):
+        """Get the model for the given session ID.
 
         Args:
-            inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
 
         Returns:
-            The model (first returns) and the offset of the model (second returns).
+            The model for the given session ID.
         """
-        self._check_is_inputs_valid(inputs, session_id=session_id)
         self._check_is_session_id_valid(session_id=session_id)
-
+        self._check_is_fitted()
         if use_reference_model:
             model = self.reference_model[session_id]
         else:
             model = self.model[session_id]
-        offset = model.get_offset()
-        return model, offset
-
-    @torch.no_grad()
-    def transform(self,
-                  inputs: Union[torch.Tensor, List[torch.Tensor], npt.NDArray],
-                  pad_before_transform: bool = True,
-                  session_id: Optional[int] = None,
-                  batch_size: Optional[int] = None,
-                  use_reference_model: bool = False) -> torch.Tensor:
-        """Compute the embedding.
-        This function by default use ``model`` that was trained to encode the positive
-        and negative samples. To use ``reference_model`` instead of ``model``
-        ``use_reference_model`` should be equal ``True``.
-        Args:
-            inputs: The input signal
-            use_reference_model: Flag for using ``reference_model``
-        Returns:
-            The output embedding.
-        """
-        if isinstance(inputs, list):
-            raise NotImplementedError(
-                "Inputs to transform() should be the data for a single session."
-            )
-        elif not isinstance(inputs, torch.Tensor):
-            raise ValueError(
-                f"Inputs should be a torch.Tensor, not {type(inputs)}.")
-
-        if not hasattr(self, "history") and len(self.history) > 0:
-            raise ValueError(
-                f"This {type(self).__name__} instance is not fitted yet. Call 'fit' with "
-                "appropriate arguments before using this estimator.")
-        model, offset = self._select_model(
-            inputs, session_id, use_reference_model=use_reference_model)
-
-        if len(offset) < 2 and pad_before_transform:
-            pad_before_transform = False
-
-        model.eval()
-        if batch_size is not None:
-            output = abc_._batched_transform(
-                model=model,
-                inputs=inputs,
-                offset=offset,
-                batch_size=batch_size,
-                pad_before_transform=pad_before_transform,
-            )
-        else:
-            output = abc_._transform(model=model,
-                                     inputs=inputs,
-                                     offset=offset,
-                                     pad_before_transform=pad_before_transform)
-
-        return output
+        return model
