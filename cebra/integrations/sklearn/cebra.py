@@ -826,6 +826,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
 
     def _select_model(self, X: Union[npt.NDArray, torch.Tensor],
                       session_id: int):
+        if isinstance(X, np.ndarray):
+            X = torch.from_numpy(X)
         return self.solver_._select_model(X, session_id=session_id)
 
     def _check_labels_types(self, y: tuple, session_id: Optional[int] = None):
@@ -1055,7 +1057,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
         self.model_ = model
 
         self.n_features_ = solver.n_features
-        self.num_sessions_ = solver.num_sessions
+        self.num_sessions_ = solver.num_sessions if hasattr(
+            solver, "num_sessions") else None
         self.solver_ = solver
         self.n_features_in_ = ([model[n].num_input for n in range(len(model))]
                                if is_multisession else model.num_input)
@@ -1240,10 +1243,6 @@ class CEBRA(TransformerMixin, BaseEstimator):
 
         if isinstance(X, np.ndarray):
             X = torch.from_numpy(X)
-
-        if batch_size is not None and batch_size < 1:
-            raise ValueError(
-                f"Batch size should be at least 1, got {batch_size}")
 
         with torch.no_grad():
             output = self.solver_.transform(

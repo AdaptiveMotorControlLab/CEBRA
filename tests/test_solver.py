@@ -105,6 +105,53 @@ def _assert_equal(original_solver, loaded_solver):
                                original_solver.transform(X))
 
 
+def _test_single_session_transform(solver, X, offset):
+    embedding = solver.transform(X)
+    assert isinstance(embedding, torch.Tensor)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
+                                   OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
+    embedding = solver.transform(torch.Tensor(X))
+    assert isinstance(embedding, torch.Tensor)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
+                                   OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
+    embedding = solver.transform(X, session_id=0)
+    assert isinstance(embedding, torch.Tensor)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
+                                   OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
+    embedding = solver.transform(X, pad_before_transform=False)
+    assert isinstance(embedding, torch.Tensor)
+    if isinstance(solver.model, cebra.models.ResampleModelMixin):
+        assert embedding.shape == (
+            (X.shape[0] - len(offset)) // solver.model.resample_factor + 1,
+            OUTPUT_DIMENSION)
+    else:
+        assert embedding.shape == (X.shape[0] - len(offset) + 1,
+                                   OUTPUT_DIMENSION)
+
+    with pytest.raises(ValueError, match="torch.Tensor"):
+        solver.transform(X.numpy())
+    with pytest.raises(RuntimeError, match="Invalid.*session_id"):
+        embedding = solver.transform(X, session_id=2)
+
+    for param in solver.parameters():
+        assert isinstance(param, torch.Tensor)
+
+    fitted_solver = copy.deepcopy(solver)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        solver.save(temp_dir)
+        solver.load(temp_dir)
+    _assert_equal(fitted_solver, solver)
+
+
 @pytest.mark.parametrize(
     "data_name, model_architecture, loader_initfunc, solver_initfunc",
     [(dataset, model, loader, cebra.solver.SingleSessionSolver)
@@ -138,98 +185,10 @@ def test_single_session(data_name, loader_initfunc, model_architecture,
 
     solver.fit(loader)
 
-    assert solver.num_sessions is None
+    assert not hasattr(solver, 'num_sessions')
     assert solver.n_features == X.shape[1]
 
-    embedding = solver.transform(X)
-    assert isinstance(embedding, torch.Tensor)
-    if isinstance(solver.model, cebra.models.ResampleModelMixin):
-        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
-                                   OUTPUT_DIMENSION)
-    else:
-        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
-    embedding = solver.transform(torch.Tensor(X))
-    assert isinstance(embedding, torch.Tensor)
-    if isinstance(solver.model, cebra.models.ResampleModelMixin):
-        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
-                                   OUTPUT_DIMENSION)
-    else:
-        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
-    embedding = solver.transform(X, session_id=0)
-    assert isinstance(embedding, torch.Tensor)
-    if isinstance(solver.model, cebra.models.ResampleModelMixin):
-        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
-                                   OUTPUT_DIMENSION)
-    else:
-        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
-    embedding = solver.transform(X, pad_before_transform=False)
-    assert isinstance(embedding, torch.Tensor)
-    if isinstance(solver.model, cebra.models.ResampleModelMixin):
-        assert embedding.shape == (
-            (X.shape[0] - len(offset)) // solver.model.resample_factor + 1,
-            OUTPUT_DIMENSION)
-    else:
-        assert embedding.shape == (X.shape[0] - len(offset) + 1,
-                                   OUTPUT_DIMENSION)
-
-    with pytest.raises(ValueError, match="torch.Tensor"):
-        solver.transform(X.numpy())
-    with pytest.raises(RuntimeError, match="Invalid.*session_id"):
-        embedding = solver.transform(X, session_id=2)
-
-    for param in solver.parameters():
-        assert isinstance(param, torch.Tensor)
-
-    fitted_solver = copy.deepcopy(solver)
-    with tempfile.TemporaryDirectory() as temp_dir:
-        solver.save(temp_dir)
-        solver.load(temp_dir)
-    _assert_equal(fitted_solver, solver)
-
-    embedding = solver.transform(X)
-    assert isinstance(embedding, torch.Tensor)
-    if isinstance(solver.model, cebra.models.ResampleModelMixin):
-        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
-                                   OUTPUT_DIMENSION)
-    else:
-        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
-    embedding = solver.transform(torch.Tensor(X))
-    assert isinstance(embedding, torch.Tensor)
-    if isinstance(solver.model, cebra.models.ResampleModelMixin):
-        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
-                                   OUTPUT_DIMENSION)
-    else:
-        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
-    embedding = solver.transform(X, session_id=0)
-    assert isinstance(embedding, torch.Tensor)
-    if isinstance(solver.model, cebra.models.ResampleModelMixin):
-        assert embedding.shape == (X.shape[0] // solver.model.resample_factor,
-                                   OUTPUT_DIMENSION)
-    else:
-        assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
-    embedding = solver.transform(X, pad_before_transform=False)
-    assert isinstance(embedding, torch.Tensor)
-    if isinstance(solver.model, cebra.models.ResampleModelMixin):
-        assert embedding.shape == (
-            (X.shape[0] - len(offset)) // solver.model.resample_factor + 1,
-            OUTPUT_DIMENSION)
-    else:
-        assert embedding.shape == (X.shape[0] - len(offset) + 1,
-                                   OUTPUT_DIMENSION)
-
-    with pytest.raises(ValueError, match="torch.Tensor"):
-        solver.transform(X.numpy())
-    with pytest.raises(RuntimeError, match="Invalid.*session_id"):
-        embedding = solver.transform(X, session_id=2)
-
-    for param in solver.parameters():
-        assert isinstance(param, torch.Tensor)
-
-    fitted_solver = copy.deepcopy(solver)
-    with tempfile.TemporaryDirectory() as temp_dir:
-        solver.save(temp_dir)
-        solver.load(temp_dir)
-    _assert_equal(fitted_solver, solver)
+    _test_single_session_transform(solver, X, offset)
 
 
 @pytest.mark.parametrize(
@@ -265,6 +224,9 @@ def test_single_session_auxvar(data_name, loader_initfunc, model_architecture,
 
     solver.fit(loader)
 
+    assert not hasattr(solver, 'num_sessions')
+    assert solver.n_features == loader.dataset.neural.shape[1]
+
 
 @pytest.mark.parametrize(
     "data_name, model_architecture, loader_initfunc, solver_initfunc",
@@ -295,35 +257,10 @@ def test_single_session_hybrid(data_name, loader_initfunc, model_architecture,
 
     solver.fit(loader)
 
-    assert solver.num_sessions is None
+    assert not hasattr(solver, 'num_sessions')
     assert solver.n_features == X.shape[1]
 
-    embedding = solver.transform(X)
-    assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
-    embedding = solver.transform(torch.Tensor(X))
-    assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
-    embedding = solver.transform(X, session_id=0)
-    assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0], OUTPUT_DIMENSION)
-    embedding = solver.transform(X, pad_before_transform=False)
-    assert isinstance(embedding, torch.Tensor)
-    assert embedding.shape == (X.shape[0] - len(offset) + 1, OUTPUT_DIMENSION)
-
-    with pytest.raises(ValueError, match="torch.Tensor"):
-        solver.transform(X.numpy())
-    with pytest.raises(RuntimeError, match="Invalid.*session_id"):
-        embedding = solver.transform(X, session_id=2)
-
-    for param in solver.parameters():
-        assert isinstance(param, torch.Tensor)
-
-    fitted_solver = copy.deepcopy(solver)
-    with tempfile.TemporaryDirectory() as temp_dir:
-        solver.save(temp_dir)
-        solver.load(temp_dir)
-    _assert_equal(fitted_solver, solver)
+    _test_single_session_transform(solver, X, offset)
 
 
 @pytest.mark.parametrize(
@@ -397,7 +334,7 @@ def test_multi_session(data_name, loader_initfunc, model_architecture,
 
     with pytest.raises(RuntimeError, match="No.*session_id"):
         embedding = solver.transform(X[0])
-    with pytest.raises(ValueError, match="single.*session"):
+    with pytest.raises(RuntimeError, match="session_id.*provided"):
         embedding = solver.transform(X)
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = solver.transform(X[0], session_id=5)

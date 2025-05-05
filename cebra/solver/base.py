@@ -36,7 +36,6 @@ import warnings
 from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import literate_dataclasses as dataclasses
-import numpy.typing as npt
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -104,6 +103,15 @@ def _add_batched_zero_padding(batched_data: torch.Tensor,
     Returns:
         The padded batch.
     """
+    if batch_start_idx > batch_end_idx:
+        raise ValueError(
+            f"batch_start_idx ({batch_start_idx}) cannot be greater than batch_end_idx ({batch_end_idx})."
+        )
+    if batch_start_idx < 0 or batch_end_idx < 0:
+        raise ValueError(
+            f"batch_start_idx ({batch_start_idx}) and batch_end_idx ({batch_end_idx}) must be positive integers."
+        )
+
     reversed_dims = torch.arange(batched_data.ndim - 1, -1, -1)
 
     if batch_start_idx == 0:  # First batch
@@ -179,7 +187,7 @@ def _inference_transform(model: cebra.models.Model,
     return output
 
 
-def _transform(
+def _not_batched_transform(
     model: cebra.models.Model,
     inputs: torch.Tensor,
     pad_before_transform: bool,
@@ -253,9 +261,11 @@ def _batched_transform(model: cebra.models.Model, inputs: torch.Tensor,
         if batch_idx == (len(index_dataloader) - 1):
             # last batch, incomplete
             index_batch = torch.cat((last_batch, index_batch), dim=0)
-            assert index_batch[-1] + 1 == len(inputs), (
-                f"Last batch index {index_batch[-1]} + 1 should be equal to the length of inputs {len(inputs)}."
-            )
+
+            if index_batch[-1] + 1 != len(inputs):
+                raise ValueError(
+                    f"Last batch index {index_batch[-1]} + 1 should be equal to the length of inputs {len(inputs)}."
+                )
 
         # Batch start and end so that `batch_size` size with the last batch including 2 batches
         batch_start_idx, batch_end_idx = index_batch[0], index_batch[-1] + 1
@@ -469,9 +479,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 if logdir is not None:
                     self.save(logdir, f"checkpoint_{num_steps:#07d}.pth")
 
-        assert hasattr(self, "n_features")
-        assert hasattr(self, "num_sessions")
-
     def step(self, batch: cebra.data.Batch) -> dict:
         """Perform a single gradient update.
 
@@ -515,7 +522,10 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Returns:
             Loss averaged over iterations on data batch.
         """
-        assert (session_id is None) or (session_id == 0)
+        if session_id is not None and session_id != 0:
+            raise ValueError(
+                f"session_id should be set to None or 0, got {session_id}")
+
         iterator = self._get_loader(loader)
         total_loss = Meter()
         self.model.eval()
@@ -544,7 +554,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         )
         return decode_metric
 
-    @abc.abstractmethod
     def _check_is_inputs_valid(self, inputs: torch.Tensor, session_id: int):
         """Check that the inputs can be inferred using the selected model.
 
@@ -557,7 +566,13 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
         """
-        raise NotImplementedError
+        if isinstance(inputs, list):
+            raise ValueError(
+                "Inputs to transform() should be the data for a single session, but received a list."
+            )
+        elif not isinstance(inputs, torch.Tensor):
+            raise ValueError(
+                f"Inputs should be a torch.Tensor, not {type(inputs)}.")
 
     @abc.abstractmethod
     def _check_is_session_id_valid(self, session_id: Optional[int] = None):
@@ -568,7 +583,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
     def _select_model(
         self, inputs: Union[torch.Tensor,
                             List[torch.Tensor]], session_id: Optional[int]
@@ -584,6 +598,25 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         Returns:
             The model (first returns) and the offset of the model (second returns).
+        """
+        model = self._get_model(session_id=session_id)
+        offset = model.get_offset()
+
+        self._check_is_inputs_valid(inputs, session_id=session_id)
+        return model, offset
+
+    @abc.abstractmethod
+    def _get_model(self,
+                   session_id: Optional[int] = None) -> cebra.models.Model:
+        """Get the model to use for inference.
+
+        Args:
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Returns:
+            The model.
         """
         raise NotImplementedError
 
@@ -602,7 +635,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
     @torch.no_grad()
     def transform(self,
-                  inputs: Union[torch.Tensor, List[torch.Tensor], npt.NDArray],
+                  inputs: torch.Tensor,
                   pad_before_transform: Optional[bool] = True,
                   session_id: Optional[int] = None,
                   batch_size: Optional[int] = None) -> torch.Tensor:
@@ -627,26 +660,40 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Returns:
             The output embedding.
         """
-        if isinstance(inputs, list):
-            raise ValueError(
-                "Inputs to transform() should be the data for a single session, but received a list."
-            )
-        elif not isinstance(inputs, torch.Tensor):
-            raise ValueError(
-                f"Inputs should be a torch.Tensor, not {type(inputs)}.")
-
         self._check_is_fitted()
-
         model, offset = self._select_model(inputs, session_id)
 
         if len(offset) < 2 and pad_before_transform:
             pad_before_transform = False
 
         model.eval()
+        return self._transform(model=model,
+                               inputs=inputs,
+                               pad_before_transform=pad_before_transform,
+                               offset=offset,
+                               batch_size=batch_size)
+
+    @torch.no_grad()
+    def _transform(self, model: cebra.models.Model, inputs: torch.Tensor,
+                   pad_before_transform: bool,
+                   offset: cebra.data.datatypes.Offset,
+                   batch_size: Optional[int]) -> torch.Tensor:
+        """Compute the embedding on the inputs using the model provided.
+
+        Args:
+            model: Model to use for inference.
+            inputs: Data.
+            pad_before_transform: If True zero-pad the batched data.
+            offset: Offset of the model to consider when padding.
+            batch_size: If not None, batched inference will not be applied.
+
+        Returns:
+            The embedding.
+        """
         if batch_size is not None and inputs.shape[0] > int(
-                batch_size * 2) and not isinstance(
-                    self.model, cebra.models.ResampleModelMixin):
-            # NOTE: resampling models are not supported for batched inference.
+                batch_size * 2) and not (isinstance(
+                    self._get_model(0), cebra.models.ResampleModelMixin)):
+            # NOTE(celia): resampling models are not supported for batched inference.
             output = _batched_transform(
                 model=model,
                 inputs=inputs,
@@ -655,11 +702,11 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 pad_before_transform=pad_before_transform,
             )
         else:
-            output = _transform(model=model,
-                                inputs=inputs,
-                                offset=offset,
-                                pad_before_transform=pad_before_transform)
-
+            output = _not_batched_transform(
+                model=model,
+                inputs=inputs,
+                offset=offset,
+                pad_before_transform=pad_before_transform)
         return output
 
     @abc.abstractmethod
@@ -838,3 +885,37 @@ class MultiobjectiveSolver(Solver):
             time_neg=time_uniform.item(),
             time_total=time_loss.item(),
         )
+
+
+class AuxiliaryVariableSolver(Solver):
+
+    @torch.no_grad()
+    def transform(self,
+                  inputs: torch.Tensor,
+                  pad_before_transform: bool = True,
+                  session_id: Optional[int] = None,
+                  batch_size: Optional[int] = None,
+                  use_reference_model: bool = False) -> torch.Tensor:
+        """Compute the embedding.
+        This function by default use ``model`` that was trained to encode the positive
+        and negative samples. To use ``reference_model`` instead of ``model``
+        ``use_reference_model`` should be equal ``True``.
+        Args:
+            inputs: The input signal
+            use_reference_model: Flag for using ``reference_model``
+        Returns:
+            The output embedding.
+        """
+        self._check_is_fitted()
+        model, offset = self._select_model(
+            inputs, session_id, use_reference_model=use_reference_model)
+
+        if len(offset) < 2 and pad_before_transform:
+            pad_before_transform = False
+
+        model.eval()
+        return self._transform(model=model,
+                               inputs=inputs,
+                               pad_before_transform=pad_before_transform,
+                               offset=offset,
+                               batch_size=batch_size)

@@ -320,7 +320,7 @@ def test_sklearn(model_architecture, device):
         model_architecture=model_architecture,
         time_offsets=10,
         learning_rate=3e-4,
-        max_iterations=5,
+        max_iterations=2,
         device=device,
         output_dimension=output_dimension,
         batch_size=42,
@@ -374,9 +374,9 @@ def test_sklearn(model_architecture, device):
 
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = cebra_model.transform(X, session_id=2)
-    with pytest.raises(ValueError, match="Batch.*size"):
+    with pytest.raises(ValueError, match="batch_size"):
         embedding = cebra_model.transform(X, batch_size=0)
-    with pytest.raises(ValueError, match="Batch.*size"):
+    with pytest.raises(ValueError, match="batch_size"):
         embedding = cebra_model.transform(X, batch_size=-10)
     with pytest.raises(ValueError, match="Invalid.*labels"):
         cebra_model.fit(X, [y_c1, y_c1_s2])
@@ -420,7 +420,7 @@ def test_sklearn(model_architecture, device):
         embedding = cebra_model.transform(X_s2, session_id=0)
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X, session_id=1)
-    with pytest.raises(RuntimeError, match="No.*session_id"):
+    with pytest.raises(RuntimeError, match="session_id.*provided"):
         embedding = cebra_model.transform(X)
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = cebra_model.transform(X, session_id=2)
@@ -447,7 +447,7 @@ def test_sklearn(model_architecture, device):
         embedding = cebra_model.transform(X_s2, session_id=0)
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X, session_id=1)
-    with pytest.raises(RuntimeError, match="No.*session_id"):
+    with pytest.raises(RuntimeError, match="session_id.*provided"):
         embedding = cebra_model.transform(X)
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = cebra_model.transform(X, session_id=2)
@@ -483,7 +483,7 @@ def test_sklearn(model_architecture, device):
         embedding = cebra_model.transform(X_s2, session_id=2)
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X, session_id=1)
-    with pytest.raises(RuntimeError, match="No.*session_id"):
+    with pytest.raises(RuntimeError, match="session_id.*provided"):
         embedding = cebra_model.transform(X)
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = cebra_model.transform(X, session_id=3)
@@ -511,7 +511,7 @@ def test_sklearn(model_architecture, device):
         embedding = cebra_model.transform(X_s2, session_id=2)
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X, session_id=1)
-    with pytest.raises(RuntimeError, match="No.*session_id"):
+    with pytest.raises(RuntimeError, match="session_id.*provided"):
         embedding = cebra_model.transform(X)
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = cebra_model.transform(X, session_id=3)
@@ -1366,7 +1366,7 @@ def test_new_transform(model_architecture, device):
         model_architecture=model_architecture,
         time_offsets=10,
         learning_rate=3e-4,
-        max_iterations=5,
+        max_iterations=2,
         device=device,
         output_dimension=output_dimension,
         batch_size=42,
