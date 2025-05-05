@@ -22,6 +22,7 @@
 """Single session solvers embed a single pair of time series."""
 
 import copy
+from typing import Optional
 
 import literate_dataclasses as dataclasses
 import torch
@@ -38,10 +39,90 @@ class SingleSessionSolver(abc_.Solver):
     """Single session training with a symmetric encoder.
 
     This solver assumes that reference, positive and negative samples
-    are processed by the same features encoder.
+    are processed by the same features encoder and that a single session
+    is provided to that encoder.
     """
 
     _variant_name = "single-session"
+
+    def parameters(self, session_id: Optional[int] = None):
+        """Iterate over all parameters.
+
+        Args:
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Yields:
+            The parameters of the model.
+        """
+        # If session_id is invalid, it doesn't matter, since we are
+        # using a single session solver.
+        for parameter in self.model.parameters():
+            yield parameter
+
+        for parameter in self.criterion.parameters():
+            yield parameter
+
+    def _set_fitted_params(self, loader: cebra.data.Loader):
+        """Set parameters once the solver is fitted.
+
+        In single session solver, the number of session is set to None and the number of
+        features is set to the number of neurons in the dataset.
+
+        Args:
+            loader: Loader used to fit the solver.
+        """
+        #self.num_sessions = None
+        self.n_features = loader.dataset.input_dimension
+
+    def _check_is_inputs_valid(self, inputs: torch.Tensor, session_id: int):
+        """Check that the inputs can be inferred using the selected model.
+
+        Note: This method checks that the number of neurons in the input is
+        similar to the input dimension to the selected model.
+
+        Args:
+            inputs: Data to infer using the selected model.
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+        """
+        super()._check_is_inputs_valid(inputs, session_id=session_id)
+        if self.n_features != inputs.shape[1]:
+            raise ValueError(
+                f"Invalid input shape: model for session {session_id} requires an input of shape"
+                f"(n_samples, {self.n_features}), got (n_samples, {inputs.shape[1]})."
+            )
+
+    def _check_is_session_id_valid(self, session_id: Optional[int] = None):
+        """Check that the session ID provided is valid for the solver instance.
+
+        The session ID must be null or equal to 0.
+
+        Args:
+            session_id: The session ID to check.
+        """
+
+        if session_id is not None and session_id > 0:
+            raise RuntimeError(
+                f"Invalid session_id {session_id}: single session models only takes an optional null session_id."
+            )
+
+    def _get_model(self, session_id: Optional[int] = None):
+        """Get the model for the given session ID.
+
+        Args:
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Returns:
+            The model for the given session ID.
+        """
+        self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_fitted()
+        return self.model
 
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
         """Given a batch of input examples, computes the feature representation/embedding.
@@ -90,7 +171,8 @@ class SingleSessionSolver(abc_.Solver):
 
 @register("single-session-aux")
 @dataclasses.dataclass
-class SingleSessionAuxVariableSolver(abc_.Solver):
+class SingleSessionAuxVariableSolver(SingleSessionSolver,
+                                     abc_.AuxiliaryVariableSolver):
     """Single session training for reference and positive/negative samples.
 
     This solver processes reference samples with a model different from
@@ -117,7 +199,43 @@ class SingleSessionAuxVariableSolver(abc_.Solver):
             self.reference_model = copy.deepcopy(self.model)
             self.reference_model.to(self.model.device)
 
-    def _inference(self, batch):
+    def _get_model(self,
+                   session_id: Optional[int] = None,
+                   use_reference_model: bool = False):
+        """Get the model for the given session ID.
+
+        Args:
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Returns:
+            The model for the given session ID.
+        """
+        self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_fitted()
+        if use_reference_model:
+            model = self.reference_model[session_id]
+        else:
+            model = self.model[session_id]
+        return model
+
+    def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
+        """Given a batch of input examples, computes the feature representation/embedding.
+
+        The reference samples are processed with a different model than the
+        positive and negative samples.
+
+        Args:
+            batch: The input data, not necessarily aligned across the batch
+                dimension. This means that ``batch.index`` specifies the map
+                between reference/positive samples, if not equal ``None``.
+
+        Returns:
+            Processed batch of data. While the input data might not be aligned
+            across the sample dimensions, the output data should be aligned and
+            ``batch.index`` should be set to ``None``.
+        """
         batch.to(self.device)
         ref = self.reference_model(batch.reference)
         pos = self.model(batch.positive)
@@ -127,12 +245,27 @@ class SingleSessionAuxVariableSolver(abc_.Solver):
 
 @register("single-session-hybrid")
 @dataclasses.dataclass
-class SingleSessionHybridSolver(abc_.MultiobjectiveSolver):
+class SingleSessionHybridSolver(abc_.MultiobjectiveSolver, SingleSessionSolver):
     """Single session training, contrasting neural data against behavior."""
 
     _variant_name = "single-session-hybrid"
 
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
+        """Given a batch of input examples, computes the feature representation/embedding.
+
+        The samples are processed with both a time-contrastive module and a
+        behavior-contrastive module, that are part of the same model.
+
+        Args:
+            batch: The input data, not necessarily aligned across the batch
+                dimension. This means that ``batch.index`` specifies the map
+                between reference/positive samples, if not equal ``None``.
+
+        Returns:
+            Processed batch of data. While the input data might not be aligned
+            across the sample dimensions, the output data should be aligned and
+            ``batch.index`` should be set to ``None``.
+        """
         batch.to(self.device)
         behavior_ref = self.model(batch.reference)[0]
         behavior_pos = self.model(batch.positive[:int(len(batch.positive) //
@@ -144,6 +277,21 @@ class SingleSessionHybridSolver(abc_.MultiobjectiveSolver):
         return cebra.data.Batch(behavior_ref, behavior_pos,
                                 behavior_neg), cebra.data.Batch(
                                     time_ref, time_pos, time_neg)
+
+    def _get_model(self, session_id: Optional[int] = None):
+        """Get the model for the given session ID.
+
+        Args:
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Returns:
+            The model for the given session ID.
+        """
+        self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_fitted()
+        return self.model.module
 
 
 @register("single-session-full")
@@ -199,6 +347,18 @@ class BatchSingleSessionSolver(SingleSessionSolver):
             return self.model(data[0].T)
 
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
+        """Given a batch of input examples, computes the feature representation/embedding.
+
+        Args:
+            batch: The input data, not necessarily aligned across the batch
+                dimension. This means that ``batch.index`` specifies the map
+                between reference/positive samples, if not equal ``None``.
+
+        Returns:
+            Processed batch of data. While the input data might not be aligned
+            across the sample dimensions, the output data should be aligned and
+            ``batch.index`` should be set to ``None``.
+        """
         outputs = self.get_embedding(self.neural)
         idc = batch.positive - self.offset.left >= len(outputs)
         batch.positive[idc] = batch.reference[idc]

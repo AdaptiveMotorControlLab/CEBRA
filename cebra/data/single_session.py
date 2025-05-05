@@ -189,7 +189,6 @@ class ContinuousDataLoader(cebra_data.Loader):
     and become equivalent to time contrastive learning.
     """,
     )
-    time_offset: int = dataclasses.field(default=10)
     delta: float = dataclasses.field(default=0.1)
 
     def __post_init__(self):
@@ -278,7 +277,6 @@ class MixedDataLoader(cebra_data.Loader):
     """
 
     conditional: str = dataclasses.field(default="time_delta")
-    time_offset: int = dataclasses.field(default=10)
 
     @property
     def dindex(self):

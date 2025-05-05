@@ -227,6 +227,8 @@ class Loader(abc.ABC, cebra.io.HasDevice):
         doc="""A dataset instance specifying a ``__getitem__`` function.""",
     )
 
+    time_offset: int = dataclasses.field(default=10)
+
     num_steps: int = dataclasses.field(
         default=None,
         doc=

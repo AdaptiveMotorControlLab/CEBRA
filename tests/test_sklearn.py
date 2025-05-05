@@ -24,6 +24,7 @@ import tempfile
 import warnings
 
 import _util
+import _utils_deprecated
 import numpy as np
 import pkg_resources
 import pytest
@@ -231,7 +232,7 @@ def iterate_models():
     ) in itertools.product(
         [
             "offset10-model", "offset10-model-mse", "offset1-model",
-            "resample-model"
+            "offset40-model-4x-subsample"
         ],
             _DEVICES,
         ["euclidean", "cosine"],
@@ -319,7 +320,7 @@ def test_sklearn(model_architecture, device):
         model_architecture=model_architecture,
         time_offsets=10,
         learning_rate=3e-4,
-        max_iterations=5,
+        max_iterations=2,
         device=device,
         output_dimension=output_dimension,
         batch_size=42,
@@ -341,6 +342,20 @@ def test_sklearn(model_architecture, device):
     assert cebra_model.num_sessions is None
     embedding = cebra_model.transform(X)
     assert isinstance(embedding, np.ndarray)
+    embedding = cebra_model.transform(X, batch_size=50)
+    assert isinstance(embedding, np.ndarray)
+
+    if model_architecture in [
+            "offset36-model-cpu", "offset36-model-dropout-cpu",
+            "offset36-model-more-dropout-cpu",
+            "offset40-model-4x-subsample-cpu",
+            "offset20-model-4x-subsample-cpu", "offset36-model-cuda",
+            "offset36-model-dropout-cuda", "offset36-model-more-dropout-cuda",
+            "offset40-model-4x-subsample-cuda",
+            "offset20-model-4x-subsample-cuda"
+    ]:
+        with pytest.raises(ValueError, match="required.*offset.*length"):
+            embedding = cebra_model.transform(X, batch_size=10)
 
     # continuous behavior contrastive
     cebra_model.fit(X, y_c1, y_c2)
@@ -352,9 +367,17 @@ def test_sklearn(model_architecture, device):
     assert isinstance(embedding, np.ndarray)
     embedding = cebra_model.transform(X, session_id=0)
     assert isinstance(embedding, np.ndarray)
+    embedding = cebra_model.transform(X, batch_size=50)
+    assert isinstance(embedding, np.ndarray)
+    embedding = cebra_model.transform(X, session_id=0, batch_size=50)
+    assert isinstance(embedding, np.ndarray)
 
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = cebra_model.transform(X, session_id=2)
+    with pytest.raises(ValueError, match="batch_size"):
+        embedding = cebra_model.transform(X, batch_size=0)
+    with pytest.raises(ValueError, match="batch_size"):
+        embedding = cebra_model.transform(X, batch_size=-10)
     with pytest.raises(ValueError, match="Invalid.*labels"):
         cebra_model.fit(X, [y_c1, y_c1_s2])
     with pytest.raises(ValueError, match="Invalid.*samples"):
@@ -367,10 +390,14 @@ def test_sklearn(model_architecture, device):
     cebra_model.fit(X, y_d)
     embedding = cebra_model.transform(X)
     assert isinstance(embedding, np.ndarray)
+    embedding = cebra_model.transform(X, batch_size=50)
+    assert isinstance(embedding, np.ndarray)
 
     # mixed
     cebra_model.fit(X, y_c1, y_c2, y_d)
     embedding = cebra_model.transform(X)
+    assert isinstance(embedding, np.ndarray)
+    embedding = cebra_model.transform(X, batch_size=50)
     assert isinstance(embedding, np.ndarray)
 
     # multi-session discrete behavior contrastive
@@ -385,12 +412,15 @@ def test_sklearn(model_architecture, device):
     embedding = cebra_model.transform(X_s2, session_id=1)
     assert isinstance(embedding, np.ndarray)
     assert embedding.shape == (X_s2.shape[0], output_dimension)
+    embedding = cebra_model.transform(X_s2, session_id=1, batch_size=50)
+    assert isinstance(embedding, np.ndarray)
+    assert embedding.shape == (X_s2.shape[0], output_dimension)
 
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X_s2, session_id=0)
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X, session_id=1)
-    with pytest.raises(RuntimeError, match="No.*session_id"):
+    with pytest.raises(RuntimeError, match="session_id.*provided"):
         embedding = cebra_model.transform(X)
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = cebra_model.transform(X, session_id=2)
@@ -409,12 +439,15 @@ def test_sklearn(model_architecture, device):
     embedding = cebra_model.transform(X_s2, session_id=1)
     assert isinstance(embedding, np.ndarray)
     assert embedding.shape == (X_s2.shape[0], output_dimension)
+    embedding = cebra_model.transform(X_s2, session_id=1, batch_size=50)
+    assert isinstance(embedding, np.ndarray)
+    assert embedding.shape == (X_s2.shape[0], output_dimension)
 
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X_s2, session_id=0)
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X, session_id=1)
-    with pytest.raises(RuntimeError, match="No.*session_id"):
+    with pytest.raises(RuntimeError, match="session_id.*provided"):
         embedding = cebra_model.transform(X)
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = cebra_model.transform(X, session_id=2)
@@ -440,6 +473,9 @@ def test_sklearn(model_architecture, device):
     embedding = cebra_model.transform(X, session_id=2)
     assert isinstance(embedding, np.ndarray)
     assert embedding.shape == (X.shape[0], output_dimension)
+    embedding = cebra_model.transform(X, session_id=2, batch_size=50)
+    assert isinstance(embedding, np.ndarray)
+    assert embedding.shape == (X.shape[0], output_dimension)
 
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X_s2, session_id=0)
@@ -447,7 +483,7 @@ def test_sklearn(model_architecture, device):
         embedding = cebra_model.transform(X_s2, session_id=2)
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X, session_id=1)
-    with pytest.raises(RuntimeError, match="No.*session_id"):
+    with pytest.raises(RuntimeError, match="session_id.*provided"):
         embedding = cebra_model.transform(X)
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = cebra_model.transform(X, session_id=3)
@@ -465,6 +501,9 @@ def test_sklearn(model_architecture, device):
     embedding = cebra_model.transform(X, session_id=2)
     assert isinstance(embedding, np.ndarray)
     assert embedding.shape == (X.shape[0], output_dimension)
+    embedding = cebra_model.transform(X, session_id=2, batch_size=50)
+    assert isinstance(embedding, np.ndarray)
+    assert embedding.shape == (X.shape[0], output_dimension)
 
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X_s2, session_id=0)
@@ -472,7 +511,7 @@ def test_sklearn(model_architecture, device):
         embedding = cebra_model.transform(X_s2, session_id=2)
     with pytest.raises(ValueError, match="shape"):
         embedding = cebra_model.transform(X, session_id=1)
-    with pytest.raises(RuntimeError, match="No.*session_id"):
+    with pytest.raises(RuntimeError, match="session_id.*provided"):
         embedding = cebra_model.transform(X)
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
         embedding = cebra_model.transform(X, session_id=3)
@@ -709,12 +748,16 @@ def test_sklearn_adapt(model_architecture, device):
     check_first_layer_dim(cebra_model, X_s2)
     embedding = cebra_model.transform(X_s2)
     assert isinstance(embedding, np.ndarray)
+    embedding = cebra_model.transform(X_s2, batch_size=50)
+    assert isinstance(embedding, np.ndarray)
 
     cebra_model.fit(X, y_c1, y_c2, adapt=True)
     check_first_layer_dim(cebra_model, X)
     embedding = cebra_model.transform(X)
     assert isinstance(embedding, np.ndarray)
     embedding = cebra_model.transform(X, session_id=0)
+    assert isinstance(embedding, np.ndarray)
+    embedding = cebra_model.transform(X, session_id=0, batch_size=50)
     assert isinstance(embedding, np.ndarray)
 
     with pytest.raises(RuntimeError, match="Invalid.*session_id"):
@@ -728,10 +771,14 @@ def test_sklearn_adapt(model_architecture, device):
     check_first_layer_dim(cebra_model, X_s2)
     embedding = cebra_model.transform(X_s2)
     assert isinstance(embedding, np.ndarray)
+    embedding = cebra_model.transform(X_s2, batch_size=50)
+    assert isinstance(embedding, np.ndarray)
 
     cebra_model.fit(X, y_c1, y_c2, y_d, adapt=True)
     check_first_layer_dim(cebra_model, X)
     embedding = cebra_model.transform(X)
+    assert isinstance(embedding, np.ndarray)
+    embedding = cebra_model.transform(X, batch_size=50)
     assert isinstance(embedding, np.ndarray)
 
     with pytest.raises(NotImplementedError, match=".*multisession.*"):
@@ -845,8 +892,8 @@ def test_sklearn_full(model_architecture, device, pad_before_transform):
 
 
 @pytest.mark.parametrize("model_architecture,device",
-                         [("resample-model", "cpu"),
-                          ("resample5-model", "cpu")])
+                         [("offset40-model-4x-subsample", "cpu"),
+                          ("offset20-model-4x-subsample", "cpu")])
 def test_sklearn_resampling_model(model_architecture, device):
     cebra_model = cebra_sklearn_cebra.CEBRA(
         model_architecture=model_architecture,
@@ -866,10 +913,12 @@ def test_sklearn_resampling_model(model_architecture, device):
     cebra_model.fit(X, y_c1)
     output = cebra_model.transform(X)
     assert output.shape == (250, 4)
+    output = cebra_model.transform(X, batch_size=100)
+    assert output.shape == (250, 4)
 
 
 @pytest.mark.parametrize("model_architecture,device",
-                         [("resample1-model", "cpu")])
+                         [("offset4-model-2x-subsample", "cpu")])
 def test_sklearn_resampling_model_not_yet_supported(model_architecture, device):
     cebra_model = cebra_sklearn_cebra.CEBRA(
         model_architecture=model_architecture, max_iterations=5)
@@ -1291,3 +1340,207 @@ def test_check_device():
         torch.backends.mps.is_built = lambda: False
         with pytest.raises(ValueError):
             cebra_sklearn_utils.check_device(device)
+
+
+@_util.parametrize_slow(
+    arg_names="model_architecture,device",
+    fast_arguments=list(
+        itertools.islice(
+            itertools.product(
+                cebra_sklearn_cebra.CEBRA.supported_model_architectures(),
+                _DEVICES),
+            2,
+        )),
+    slow_arguments=list(
+        itertools.product(
+            cebra_sklearn_cebra.CEBRA.supported_model_architectures(),
+            _DEVICES)),
+)
+def test_new_transform(model_architecture, device):
+    """
+    This is a test that the original sklearn transform returns the same output as
+    the new sklearn transform that uses the pytorch solver transform.
+    """
+    output_dimension = 4
+    cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture=model_architecture,
+        time_offsets=10,
+        learning_rate=3e-4,
+        max_iterations=2,
+        device=device,
+        output_dimension=output_dimension,
+        batch_size=42,
+        verbose=True,
+    )
+
+    # example dataset
+    X = np.random.uniform(0, 1, (1000, 50))
+    X_s2 = np.random.uniform(0, 1, (800, 30))
+    y_c1 = np.random.uniform(0, 1, (1000, 5))
+    y_c1_s2 = np.random.uniform(0, 1, (800, 5))
+    y_c2 = np.random.uniform(0, 1, (1000, 2))
+    y_d = np.random.randint(0, 10, (1000,))
+    y_d_s2 = np.random.randint(0, 10, (800,))
+
+    # time contrastive
+    cebra_model.fit(X)
+    embedding1 = cebra_model.transform(X)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model, X)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    # continuous behavior contrastive
+    cebra_model.fit(X, y_c1, y_c2)
+    assert cebra_model.num_sessions is None
+
+    embedding1 = cebra_model.transform(X)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model, X)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    embedding1 = cebra_model.transform(torch.Tensor(X))
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(
+        cebra_model, torch.Tensor(X))
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    embedding1 = cebra_model.transform(torch.Tensor(X), session_id=0)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              torch.Tensor(X),
+                                                              session_id=0)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    # tensor input
+    cebra_model.fit(torch.Tensor(X), torch.Tensor(y_c1), torch.Tensor(y_c2))
+
+    # discrete behavior contrastive
+    cebra_model.fit(X, y_d)
+    embedding1 = cebra_model.transform(X)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model, X)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    # mixed
+    cebra_model.fit(X, y_c1, y_c2, y_d)
+    embedding1 = cebra_model.transform(X)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model, X)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    # multi-session discrete behavior contrastive
+    cebra_model.fit([X, X_s2], [y_d, y_d_s2])
+
+    embedding1 = cebra_model.transform(X, session_id=0)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              X,
+                                                              session_id=0)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    embedding1 = cebra_model.transform(torch.Tensor(X), session_id=0)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              torch.Tensor(X),
+                                                              session_id=0)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    embedding1 = cebra_model.transform(X_s2, session_id=1)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              X_s2,
+                                                              session_id=1)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    # multi-session continuous behavior contrastive
+    cebra_model.fit([X, X_s2], [y_c1, y_c1_s2])
+
+    embedding1 = cebra_model.transform(X, session_id=0)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              X,
+                                                              session_id=0)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    embedding1 = cebra_model.transform(torch.Tensor(X), session_id=0)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              torch.Tensor(X),
+                                                              session_id=0)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    embedding1 = cebra_model.transform(X_s2, session_id=1)
+    embedding2 = cebra_model.transform(X_s2, session_id=1)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    # multi-session tensor inputs
+    cebra_model.fit(
+        [torch.Tensor(X), torch.Tensor(X_s2)],
+        [torch.Tensor(y_c1), torch.Tensor(y_c1_s2)],
+    )
+
+    # multi-session discrete behavior contrastive, more than two sessions
+    cebra_model.fit([X, X_s2, X], [y_d, y_d_s2, y_d])
+
+    embedding1 = cebra_model.transform(X, session_id=0)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              X,
+                                                              session_id=0)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    embedding1 = cebra_model.transform(X_s2, session_id=1)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              X_s2,
+                                                              session_id=1)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    embedding1 = cebra_model.transform(X, session_id=2)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              X,
+                                                              session_id=2)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    # multi-session continuous behavior contrastive, more than two sessions
+    cebra_model.fit([X, X_s2, X], [y_c1, y_c1_s2, y_c1])
+
+    embedding1 = cebra_model.transform(X, session_id=0)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              X,
+                                                              session_id=0)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    embedding1 = cebra_model.transform(X_s2, session_id=1)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              X_s2,
+                                                              session_id=1)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+    embedding1 = cebra_model.transform(X, session_id=2)
+    embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
+                                                              X,
+                                                              session_id=2)
+    assert np.allclose(embedding1, embedding2, rtol=1e-5,
+                       atol=1e-8), "Arrays are not close enough"
+
+
+def test_last_incomplete_batch_smaller_than_offset():
+    """
+    When offset of the model is larger than the remaining samples in the
+    last batch, an error could happen. We merge the penultimate
+    and last batches together to avoid this.
+    """
+    train = cebra.data.TensorDataset(neural=np.random.rand(20111, 100),
+                                     continuous=np.random.rand(20111, 2))
+
+    model = cebra.CEBRA(max_iterations=2,
+                        model_architecture="offset36-model-more-dropout",
+                        device="cpu")
+    model.fit(train.neural, train.continuous)
+
+    _ = model.transform(train.neural, batch_size=300)
