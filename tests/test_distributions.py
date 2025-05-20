@@ -43,7 +43,7 @@ def prepare(N=1000, n=128, d=5, probs=[0.3, 0.1, 0.6], device="cpu"):
     continuous = torch.randn(N, d).to(device)
 
     rand = torch.from_numpy(np.random.randint(0, N, (n,))).to(device)
-    qidx = discrete[rand].to(device)
+    _ = discrete[rand].to(device)
     query = continuous[rand] + 0.1 * torch.randn(n, d).to(device)
     query = query.to(device)
 
@@ -173,7 +173,7 @@ def test_mixed():
         discrete, continuous)
 
     reference_idx = distribution.sample_prior(10)
-    positive_idx = distribution.sample_conditional(reference_idx)
+    _ = distribution.sample_conditional(reference_idx)
 
     # The conditional distribution p(· | disc, cont) should yield
     # samples where the label exactly matches the reference sample.
@@ -193,7 +193,7 @@ def test_continuous(benchmark):
     def _test_distribution(dist):
         distribution = dist(continuous)
         reference_idx = distribution.sample_prior(10)
-        positive_idx = distribution.sample_conditional(reference_idx)
+        _ = distribution.sample_conditional(reference_idx)
         return distribution
 
     distribution = _test_distribution(
@@ -411,3 +411,16 @@ def test_new_delta_normal_with_multidimensional_index(delta, numerical_check):
         pytest.skip(
             "multivariate delta distribution can not accurately sample with the "
             "given parameters. TODO: Add a warning message for these cases.")
+
+
+@pytest.mark.parametrize("time_offset", [1, 5, 10])
+def test_unified_distribution(time_offset):
+    dataset = cebra_datasets.init("demo-continuous-unified")
+    sampler = cebra_distr.UnifiedSampler(dataset, time_offset=time_offset)
+
+    num_samples = 5
+    sample = sampler.sample_prior(num_samples)
+    assert sample.shape == (dataset.num_sessions, num_samples)
+
+    positive = sampler.sample_conditional(sample)
+    assert positive.shape == (dataset.num_sessions, num_samples)

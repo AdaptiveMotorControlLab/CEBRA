@@ -684,7 +684,7 @@ class _ConsistencyPlot(_BasePlot):
                 else:
                     heatmap_values[i, j] = score_dict[label_i, label_j]
 
-        return np.minimum(heatmap_values * 100, 99)
+        return heatmap_values * 100
 
     def _create_text(self):
         """Create the text to add in the confusion matrix grid and the title."""

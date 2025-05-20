@@ -20,7 +20,6 @@
 # limitations under the License.
 #
 import itertools
-from typing import List
 
 import pytest
 import torch

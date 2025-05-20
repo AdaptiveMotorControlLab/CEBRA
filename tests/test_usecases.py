@@ -29,7 +29,6 @@ cebra version we test against.
 """
 
 import itertools
-import pickle
 
 import numpy as np
 import pytest

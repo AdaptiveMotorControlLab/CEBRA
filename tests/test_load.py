@@ -22,10 +22,7 @@
 import itertools
 import pathlib
 import pickle
-import platform
 import tempfile
-import unittest
-from unittest.mock import patch
 
 import h5py
 import hdf5storage
@@ -125,7 +122,7 @@ def generate_numpy_confounder(filename, dtype):
 
 
 @register("npz")
-def generate_numpy_path(filename, dtype):
+def generate_numpy_path_2(filename, dtype):
     A = np.arange(1000, dtype=dtype).reshape(10, 100)
     np.savez(filename, array=A, other_data="test")
     loaded_A = cebra_load.load(pathlib.Path(filename))
@@ -251,7 +248,7 @@ def generate_h5_no_array(filename, dtype):
 def generate_h5_dataframe(filename, dtype):
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     loaded_A = cebra_load.load(filename, key="df_A")
     return A, loaded_A
 
@@ -261,7 +258,7 @@ def generate_h5_dataframe_columns(filename, dtype):
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     A_col = A[:, :2]
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     loaded_A = cebra_load.load(filename, key="df_A", columns=["a", "b"])
     return A_col, loaded_A
 
@@ -272,8 +269,8 @@ def generate_h5_multi_dataframe(filename, dtype):
     B = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
     df_B = pd.DataFrame(np.array(B), columns=["c", "d", "e"])
-    df_A.to_hdf(filename, "df_A")
-    df_B.to_hdf(filename, "df_B")
+    df_A.to_hdf(filename, key="df_A")
+    df_B.to_hdf(filename, key="df_B")
     loaded_A = cebra_load.load(filename, key="df_A")
     return A, loaded_A
 
@@ -282,7 +279,7 @@ def generate_h5_multi_dataframe(filename, dtype):
 def generate_h5_single_dataframe_no_key(filename, dtype):
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]).astype(dtype)
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     loaded_A = cebra_load.load(filename)
     return A, loaded_A
 
@@ -293,8 +290,8 @@ def generate_h5_multi_dataframe_no_key(filename, dtype):
     B = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]).astype(dtype)
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
     df_B = pd.DataFrame(np.array(B), columns=["c", "d", "e"])
-    df_A.to_hdf(filename, "df_A")
-    df_B.to_hdf(filename, "df_B")
+    df_A.to_hdf(filename, key="df_A")
+    df_B.to_hdf(filename, key="df_B")
     _ = cebra_load.load(filename)
 
 
@@ -307,7 +304,7 @@ def generate_h5_multicol_dataframe(filename, dtype):
     df_A = pd.DataFrame(A,
                         columns=pd.MultiIndex.from_product([animals,
                                                             keypoints]))
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     loaded_A = cebra_load.load(filename, key="df_A")
     return A, loaded_A
 
@@ -316,7 +313,7 @@ def generate_h5_multicol_dataframe(filename, dtype):
 def generate_h5_dataframe_invalid_key(filename, dtype):
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]).astype(dtype)
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     _ = cebra_load.load(filename, key="df_B")
 
 
@@ -324,7 +321,7 @@ def generate_h5_dataframe_invalid_key(filename, dtype):
 def generate_h5_dataframe_invalid_column(filename, dtype):
     A = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]).astype(dtype)
     df_A = pd.DataFrame(np.array(A), columns=["a", "b", "c"])
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     _ = cebra_load.load(filename, key="df_A", columns=["d", "b"])
 
 
@@ -337,7 +334,7 @@ def generate_h5_multicol_dataframe_columns(filename, dtype):
     df_A = pd.DataFrame(A,
                         columns=pd.MultiIndex.from_product([animals,
                                                             keypoints]))
-    df_A.to_hdf(filename, "df_A")
+    df_A.to_hdf(filename, key="df_A")
     _ = cebra_load.load(filename, key="df_A", columns=["a", "b"])
 
 
@@ -418,7 +415,7 @@ def generate_csv_path(filename, dtype):
 
 @register_error("csv")
 def generate_csv_empty_file(filename, dtype):
-    with open(filename, "w") as creating_new_csv_file:
+    with open(filename, "w") as _:
         pass
     _ = cebra_load.load(filename)
 
@@ -619,7 +616,6 @@ def generate_pickle_invalid_key(filename, dtype):
 
 @register_error("pkl", "p")
 def generate_pickle_no_array(filename, dtype):
-    A = np.arange(1000, dtype=dtype).reshape(10, 100)
     with open(filename, "wb") as f:
         pickle.dump({"A": "test_1", "B": "test_2"}, f)
     _ = cebra_load.load(filename)

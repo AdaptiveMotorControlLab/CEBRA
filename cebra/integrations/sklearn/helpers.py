@@ -155,6 +155,8 @@ def align_embeddings(
                 quantized_sample / np.linalg.norm(quantized_sample, axis=0)
                 for quantized_sample in quantized_embedding
             ]
+            quantized_embeddings.append(quantized_embedding_norm)
+        else:
+            quantized_embeddings.append(quantized_embedding)
 
-        quantized_embeddings.append(quantized_embedding_norm)
     return quantized_embeddings

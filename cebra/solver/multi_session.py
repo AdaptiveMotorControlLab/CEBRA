@@ -21,6 +21,7 @@
 #
 """Solver implementations for multi-session datasetes."""
 
+import copy
 from typing import List, Optional
 
 import torch
@@ -40,10 +41,20 @@ class MultiSessionSolver(abc_.Solver):
     _variant_name = "multi-session"
 
     def parameters(self, session_id: Optional[int] = None):
-        """Iterate over all parameters."""
-        if session_id is not None:
-            for parameter in self.model[session_id].parameters():
-                yield parameter
+        """Iterate over all parameters.
+
+        Args:
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Yields:
+            The parameters of the model.
+        """
+        self._check_is_session_id_valid(session_id=session_id)
+
+        for parameter in self.model[session_id].parameters():
+            yield parameter
 
         for parameter in self.criterion.parameters():
             yield parameter
@@ -69,10 +80,11 @@ class MultiSessionSolver(abc_.Solver):
             across the sample dimensions, the output data should be aligned and
             ``batch.index`` should be set to ``None``.
         """
-        batch.to(self.device)
-        ref = torch.stack([model(batch.reference)], dim=0)
-        pos = torch.stack([model(batch.positive)], dim=0)
-        neg = torch.stack([model(batch.negative)], dim=0)
+        ref, pos, neg = self._compute_features(batch, model)
+
+        ref = ref.unsqueeze(0)
+        pos = pos.unsqueeze(0)
+        neg = neg.unsqueeze(0)
 
         pos = self._mix(pos, batch.index_reversed)
 
@@ -152,6 +164,7 @@ class MultiSessionSolver(abc_.Solver):
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
         """
+        super()._check_is_inputs_valid(inputs, session_id=session_id)
         if self.n_features[session_id] != inputs.shape[1]:
             raise ValueError(
                 f"Invalid input shape: model for session {session_id} requires an input of shape"
@@ -161,12 +174,12 @@ class MultiSessionSolver(abc_.Solver):
     def _check_is_session_id_valid(self, session_id: Optional[int]):
         """Check that the session ID provided is valid for the solver instance.
 
-        The session ID must be non-null and between 0 and the number session in the dataset.
+        The session ID must be non-null and between 0 and the number session
+        in the dataset.
 
         Args:
             session_id: The session ID to check.
         """
-
         if session_id is None:
             raise RuntimeError(
                 "No session_id provided: multisession model requires a session_id to choose the model corresponding to your data shape."
@@ -176,24 +189,20 @@ class MultiSessionSolver(abc_.Solver):
                 f"Invalid session_id {session_id}: session_id for the current multisession model must be between 0 and {self.num_sessions-1}."
             )
 
-    def _select_model(self, inputs: torch.Tensor, session_id: Optional[int]):
-        """ Select the model based on the input dimension and session ID.
+    def _get_model(self, session_id: Optional[int] = None):
+        """Get the model for the given session ID.
 
         Args:
-            inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
 
         Returns:
-            The model (first returns) and the offset of the model (second returns).
+            The model for the given session ID.
         """
         self._check_is_session_id_valid(session_id=session_id)
-        self._check_is_inputs_valid(inputs, session_id=session_id)
-
-        model = self.model[session_id]
-        offset = model.get_offset()
-        return model, offset
+        self._check_is_fitted()
+        return self.model[session_id]
 
     def validation(self, loader, session_id: Optional[int] = None):
         """Compute score of the model on data.
@@ -226,13 +235,36 @@ class MultiSessionSolver(abc_.Solver):
 
 
 @register("multi-session-aux")
-class MultiSessionAuxVariableSolver(MultiSessionSolver):
+class MultiSessionAuxVariableSolver(MultiSessionSolver,
+                                    abc_.AuxiliaryVariableSolver):
     """Multi session training, contrasting neural data against behavior."""
 
     _variant_name = "multi-session-aux"
-    reference_model: torch.nn.Module
+    reference_model: torch.nn.Module = None
 
-    def _inference(self, batches):
+    def __post_init__(self):
+        super().__post_init__()
+        if self.reference_model is None:
+            # NOTE(stes): This should work, according to this thread
+            # https://discuss.pytorch.org/t/can-i-deepcopy-a-model/52192/19
+            # and create a true copy of the model.
+            self.reference_model = copy.deepcopy(self.model)
+            self.reference_model.to(self.device)
+
+    def _inference(self, batches: List[cebra.data.Batch]) -> cebra.data.Batch:
+        """Given batches of input examples, computes the feature representations/embeddings.
+
+        Args:
+            batches: A list of input data, not necessarily aligned across the batch
+                dimension. This means that ``batch.index`` specifies the map
+                between reference/positive samples, if not equal ``None``.
+
+        Returns:
+            Processed batch of data. While the input data might not be aligned
+            across the sample dimensions, the output data should be aligned and
+            ``batch.index`` should be set to ``None``.
+
+        """
         refs = []
         poss = []
         negs = []
@@ -252,3 +284,24 @@ class MultiSessionAuxVariableSolver(MultiSessionSolver):
             positive=pos.view(-1, num_features),
             negative=neg.view(-1, num_features),
         )
+
+    def _get_model(self,
+                   session_id: Optional[int] = None,
+                   use_reference_model: bool = False):
+        """Get the model for the given session ID.
+
+        Args:
+            session_id: The session ID, an :py:class:`int` between 0 and
+                the number of sessions -1 for multisession, and set to
+                ``None`` for single session.
+
+        Returns:
+            The model for the given session ID.
+        """
+        self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_fitted()
+        if use_reference_model:
+            model = self.reference_model[session_id]
+        else:
+            model = self.model[session_id]
+        return model
