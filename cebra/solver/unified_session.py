@@ -21,7 +21,7 @@
 #
 """Solver implementations for unified-session datasets."""
 
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import literate_dataclasses as dataclasses
 import numpy as np
@@ -93,9 +93,10 @@ class UnifiedSolver(abc_.Solver):
                 f"(n_samples, {self.n_features}), got (n_samples, {inputs.shape[1]})."
             )
 
-    def _check_is_session_id_valid(self,
-                                   session_id: Optional[int] = None
-                                  ):  # same as multi
+    def _check_is_session_id_valid(
+        self,
+        session_id: Optional[int] = None,
+    ):  # same as multi
         """Check that the session ID provided is valid for the solver instance.
 
         The session ID must be non-null and between 0 and the number session in the dataset.
@@ -106,33 +107,27 @@ class UnifiedSolver(abc_.Solver):
 
         if session_id is None:
             raise RuntimeError(
-                "No session_id provided: multisession model requires a session_id to choose the model corresponding to your data shape."
+                "No session_id provided: unified model requires a session_id as the target session to use to align the sessions."
             )
         if session_id >= self.num_sessions or session_id < 0:
             raise RuntimeError(
-                f"Invalid session_id {session_id}: session_id for the current multisession model must be between 0 and {self.num_sessions-1}."
+                f"Invalid session_id {session_id}: session_id for the current unified model must be between 0 and {self.num_sessions-1}."
             )
 
-    def _select_model(
-        self,
-        inputs: Union[torch.Tensor, List[torch.Tensor]],
-        session_id: Optional[int] = None
-    ) -> Tuple[Union[List[torch.nn.Module], torch.nn.Module],
-               cebra.data.datatypes.Offset]:
-        """ Select the model based on the input dimension and session ID.
+    def _get_model(self, session_id: Optional[int] = None):
+        """Get the model for the given session ID.
 
         Args:
-            inputs: Data to infer using the selected model.
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
                 ``None`` for single session.
 
         Returns:
-            The model (first returns) and the offset of the model (second returns).
+            The model for the given session ID.
         """
-        model = self.model
-        offset = model.get_offset()
-        return model, offset
+        self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_fitted()
+        return self.model
 
     def _single_model_inference(self, batch: cebra.data.Batch,
                                 model: torch.nn.Module) -> cebra.data.Batch:
@@ -249,13 +244,26 @@ class UnifiedSolver(abc_.Solver):
                 ref_idx=torch.arange(batch_start, batch_end),
                 session_id=session_id).to(self.device)
 
-            refs_data_batch = [
+            refs_data_batch = torch.cat([
                 session[refs_idx_batch[session_id]]
                 for session_id, session in enumerate(dataset.iter_sessions())
-            ]
-            refs_data_batch_embeddings.append(super().transform(
-                torch.cat(refs_data_batch, dim=1).squeeze(),
-                pad_before_transform=pad_before_transform))
+            ],
+                                        dim=1).squeeze()
+            # refs_data_batch_embeddings.append(super().transform(
+            #     torch.cat(refs_data_batch, dim=1).squeeze(),
+            #     pad_before_transform=pad_before_transform))
+
+            if len(self.model.get_offset()) < 2 and pad_before_transform:
+                pad_before_transform = False
+
+            self.model.eval()
+            refs_data_batch_embeddings.append(
+                self._transform(model=self.model,
+                                inputs=refs_data_batch,
+                                pad_before_transform=pad_before_transform,
+                                offset=self.model.get_offset(),
+                                batch_size=batch_size))
+
         return torch.cat(refs_data_batch_embeddings, dim=0)
 
     @torch.no_grad()
