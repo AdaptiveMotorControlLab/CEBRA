@@ -51,6 +51,7 @@ CEBRA_LOAD_SAFE_GLOBALS = [
     np.dtypes.Float64DType, np.dtypes.Int64DType
 ]
 
+
 def check_version(estimator):
     # NOTE(stes): required as a check for the old way of specifying tags
     # https://github.com/scikit-learn/scikit-learn/pull/29677#issuecomment-2334229165
@@ -74,7 +75,6 @@ def _safe_torch_load(filename, weights_only, **kwargs):
             checkpoint = torch.load(filename, weights_only=True, **kwargs)
 
     return checkpoint
-
 
 
 def _init_loader(
@@ -129,7 +129,7 @@ def _init_loader(
         (not is_cont, not is_disc, is_multi),
     ]
     if any(all(combination) for combination in incompatible_combinations):
-        raise ValueError(f"Invalid index combination.\n"
+        raise ValueError("Invalid index combination.\n"
                          f"Continuous: {is_cont},\n"
                          f"Discrete: {is_disc},\n"
                          f"Hybrid training: {is_hybrid},\n"
@@ -293,7 +293,7 @@ def _init_loader(
                         "single-session",
                     )
 
-    error_message = (f"Invalid index combination.\n"
+    error_message = ("Invalid index combination.\n"
                      f"Continuous: {is_cont},\n"
                      f"Discrete: {is_disc},\n"
                      f"Hybrid training: {is_hybrid},\n"
@@ -340,7 +340,7 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
     if missing_keys:
         raise ValueError(
             f"Missing keys in data dictionary: {', '.join(missing_keys)}. "
-            f"You can try loading the CEBRA model with the torch backend.")
+            "You can try loading the CEBRA model with the torch backend.")
 
     args, state, state_dict = cebra_info['args'], cebra_info[
         'state'], cebra_info['state_dict']
@@ -656,12 +656,12 @@ class CEBRA(TransformerMixin, BaseEstimator):
             # TODO(celia): to make it work for multiple set of index. For now, y should be a tuple of one list only
             if isinstance(y, tuple) and len(y) > 1:
                 raise NotImplementedError(
-                    f"Support for multiple set of index is not implemented in multissesion training, "
+                    "Support for multiple set of index is not implemented in multissesion training, "
                     f"got {len(y)} sets of indexes.")
 
             if not _are_sessions_equal(X, y):
                 raise ValueError(
-                    f"Invalid number of sessions: number of sessions in X and y need to match, "
+                    "Invalid number of sessions: number of sessions in X and y need to match, "
                     f"got X:{len(X)} and y:{[len(y_i) for y_i in y]}.")
 
             for session in range(len(X)):
@@ -685,8 +685,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
         else:
             if not _are_sessions_equal(X, y):
                 raise ValueError(
-                    f"Invalid number of samples or labels sessions: provide one session for single-session training, "
-                    f"and make sure the number of samples in X and y need match, "
+                    "Invalid number of samples or labels sessions: provide one session for single-session training, "
+                    "and make sure the number of samples in X and y match, "
                     f"got {len(X)} and {[len(y_i) for y_i in y]}.")
             is_multisession = False
             dataset = _get_dataset(X, y)
@@ -813,8 +813,6 @@ class CEBRA(TransformerMixin, BaseEstimator):
                             "receptive fields/offsets larger than 1 via the sklearn API. "
                             "Please use a different model, or revert to the pytorch "
                             "API for training.")
-
-                d.configure_for(model[n])
         else:
             if not isinstance(model, cebra.models.ConvolutionalModelMixin):
                 if len(model.get_offset()) > 1:
@@ -824,37 +822,13 @@ class CEBRA(TransformerMixin, BaseEstimator):
                         "Please use a different model, or revert to the pytorch "
                         "API for training.")
 
-            dataset.configure_for(model)
+        dataset.configure_for(model)
 
     def _select_model(self, X: Union[npt.NDArray, torch.Tensor],
                       session_id: int):
-        # Choose the model and get its corresponding offset
-        if self.num_sessions is not None:  # multisession implementation
-            if session_id is None:
-                raise RuntimeError(
-                    "No session_id provided: multisession model requires a session_id to choose the model corresponding to your data shape."
-                )
-            if session_id >= self.num_sessions or session_id < 0:
-                raise RuntimeError(
-                    f"Invalid session_id {session_id}: session_id for the current multisession model must be between 0 and {self.num_sessions-1}."
-                )
-            if self.n_features_[session_id] != X.shape[1]:
-                raise ValueError(
-                    f"Invalid input shape: model for session {session_id} requires an input of shape"
-                    f"(n_samples, {self.n_features_[session_id]}), got (n_samples, {X.shape[1]})."
-                )
-
-            model = self.model_[session_id]
-            model.to(self.device_)
-        else:  # single session
-            if session_id is not None and session_id > 0:
-                raise RuntimeError(
-                    f"Invalid session_id {session_id}: single session models only takes an optional null session_id."
-                )
-            model = self.model_
-
-        offset = model.get_offset()
-        return model, offset
+        if isinstance(X, np.ndarray):
+            X = torch.from_numpy(X)
+        return self.solver_._select_model(X, session_id=session_id)
 
     def _check_labels_types(self, y: tuple, session_id: Optional[int] = None):
         """Check that the input labels are compatible with the labels used to fit the model.
@@ -876,7 +850,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
         # Check that same number of index
         if len(self.label_types_) != n_idx:
             raise ValueError(
-                f"Number of index invalid: labels must have the same number of index as for fitting,"
+                "Number of index invalid: labels must have the same number of index as for fitting,"
                 f"expects {len(self.label_types_)}, got {n_idx} idx.")
 
         for i in range(len(self.label_types_)):  # for each index
@@ -889,12 +863,12 @@ class CEBRA(TransformerMixin, BaseEstimator):
                     > 1):  # is there more than one feature in the index
                 if label_types_idx[1][1] != y[i].shape[1]:
                     raise ValueError(
-                        f"Labels invalid: must have the same number of features as the ones used for fitting,"
+                        "Labels invalid: must have the same number of features as the ones used for fitting,"
                         f"expects {label_types_idx[1]}, got {y[i].shape}.")
 
             if label_types_idx[0] != y[i].dtype:
                 raise ValueError(
-                    f"Labels invalid: must have the same type of features as the ones used for fitting,"
+                    "Labels invalid: must have the same type of features as the ones used for fitting,"
                     f"expects {label_types_idx[0]}, got {y[i].dtype}.")
 
     def _prepare_fit(
@@ -1081,14 +1055,13 @@ class CEBRA(TransformerMixin, BaseEstimator):
 
         # Save variables of interest as semi-private attributes
         self.model_ = model
-        self.n_features_ = ([
-            loader.dataset.get_input_dimension(session_id)
-            for session_id in range(loader.dataset.num_sessions)
-        ] if is_multisession else loader.dataset.input_dimension)
+
+        self.n_features_ = solver.n_features
+        self.num_sessions_ = solver.num_sessions if hasattr(
+            solver, "num_sessions") else None
         self.solver_ = solver
         self.n_features_in_ = ([model[n].num_input for n in range(len(model))]
                                if is_multisession else model.num_input)
-        self.num_sessions_ = loader.dataset.num_sessions if is_multisession else None
 
         return self
 
@@ -1236,11 +1209,13 @@ class CEBRA(TransformerMixin, BaseEstimator):
 
     def transform(self,
                   X: Union[npt.NDArray, torch.Tensor],
+                  batch_size: Optional[int] = None,
                   session_id: Optional[int] = None) -> npt.NDArray:
         """Transform an input sequence and return the embedding.
 
         Args:
             X: A numpy array or torch tensor of size ``time x dimension``.
+            batch_size:
             session_id: The session ID, an :py:class:`int` between 0 and :py:attr:`num_sessions` for
                 multisession, set to ``None`` for single session.
 
@@ -1255,37 +1230,28 @@ class CEBRA(TransformerMixin, BaseEstimator):
             >>> cebra_model = cebra.CEBRA(max_iterations=10)
             >>> cebra_model.fit(dataset)
             CEBRA(max_iterations=10)
-            >>> embedding = cebra_model.transform(dataset)
+            >>> embedding = cebra_model.transform(dataset, batch_size=200)
 
         """
-
         sklearn_utils_validation.check_is_fitted(self, "n_features_")
-        model, offset = self._select_model(X, session_id)
+        self.solver_._check_is_session_id_valid(session_id=session_id)
 
-        # Input validation
+        if torch.is_tensor(X):
+            X = X.detach().cpu()
+
         X = sklearn_utils.check_input_array(X, min_samples=len(self.offset_))
-        input_dtype = X.dtype
+
+        if isinstance(X, np.ndarray):
+            X = torch.from_numpy(X)
 
         with torch.no_grad():
-            model.eval()
+            output = self.solver_.transform(
+                inputs=X,
+                pad_before_transform=self.pad_before_transform,
+                session_id=session_id,
+                batch_size=batch_size)
 
-            if self.pad_before_transform:
-                X = np.pad(X, ((offset.left, offset.right - 1), (0, 0)),
-                           mode="edge")
-            X = torch.from_numpy(X).float().to(self.device_)
-
-            if isinstance(model, cebra.models.ConvolutionalModelMixin):
-                # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
-                X = X.transpose(1, 0).unsqueeze(0)
-                output = model(X).cpu().numpy().squeeze(0).transpose(1, 0)
-            else:
-                # Standard evaluation, (T, C, dt)
-                output = model(X).cpu().numpy()
-
-        if input_dtype == "float64":
-            return output.astype(input_dtype)
-
-        return output
+        return output.detach().cpu().numpy()
 
     def fit_transform(
         self,
@@ -1500,6 +1466,11 @@ class CEBRA(TransformerMixin, BaseEstimator):
             cebra_ = _load_cebra_with_sklearn_backend(checkpoint)
         else:
             cebra_ = _check_type_checkpoint(checkpoint)
+
+        n_features = cebra_.n_features_
+        cebra_.solver_.n_features = ([
+            session_n_features for session_n_features in n_features
+        ] if isinstance(n_features, list) else n_features)
 
         return cebra_
 

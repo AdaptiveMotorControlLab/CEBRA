@@ -53,6 +53,7 @@ import cebra
 import cebra.data
 import cebra.io
 import cebra.models
+import cebra.solver.single_session as cebra_solver_single
 from cebra.solver import register
 from cebra.solver.base import Solver
 from cebra.solver.schedulers import Scheduler
@@ -154,7 +155,7 @@ class MultiObjectiveConfig:
         if len(set(self.feature_ranges_tuple)) != len(
                 self.feature_ranges_tuple):
             raise RuntimeError(
-                f"Feature ranges are not unique. Please check again and remove the duplicates. "
+                "Feature ranges are not unique. Please check again and remove the duplicates. "
                 f"Feature ranges: {self.feature_ranges_tuple}")
 
         print("Creating MultiCriterion")
@@ -187,7 +188,7 @@ class MultiObjectiveConfig:
 
 
 @dataclasses.dataclass
-class MultiobjectiveSolverBase(Solver):
+class MultiobjectiveSolverBase(cebra_solver_single.SingleSessionSolver):
 
     feature_ranges: List[slice] = None
     renormalize: bool = None
@@ -208,6 +209,13 @@ class MultiobjectiveSolverBase(Solver):
             feature_ranges=self.feature_ranges,
             renormalize=self.renormalize,
         )
+
+    def parameters(self, session_id: Optional[int] = None):
+        """Iterate over all parameters."""
+        super().parameters(session_id=session_id)
+
+        for parameter in self.regularizer.parameters():
+            yield parameter
 
     def fit(self,
             loader: cebra.data.Loader,
@@ -241,6 +249,7 @@ class MultiobjectiveSolverBase(Solver):
                 save_hook(solver=self, step=num_steps)
             return stats_val
 
+        self._set_fitted_params(loader)
         self.to(loader.device)
 
         iterator = self._get_loader(loader,
@@ -393,11 +402,14 @@ class MultiobjectiveSolverBase(Solver):
         logger=None,
         weights_loss: Optional[List[float]] = None,
     ):
+        loader.dataset.configure_for(self.model)
+        iterator = self._get_loader(loader)
+
         self.model.eval()
         total_loss = Meter()
 
         losses_dict = {}
-        for _, batch in enumerate(loader):
+        for _, batch in iterator:
             predictions = self._inference(batch)
             losses = self.criterion(predictions)
 
@@ -443,37 +455,6 @@ class MultiobjectiveSolverBase(Solver):
         sum_loss_valid = total_loss.average
         self.log.setdefault(("sum_loss_val",), []).append(sum_loss_valid)
         return stats_val
-
-    @torch.no_grad()
-    def transform(self, inputs: torch.Tensor) -> torch.Tensor:
-        offset = self.model.get_offset()
-        self.model.eval()
-        X = inputs.cpu().numpy()
-        X = np.pad(X, ((offset.left, offset.right - 1), (0, 0)), mode="edge")
-        X = torch.from_numpy(X).float().to(self.device)
-
-        if isinstance(self.model.module, cebra.models.ConvolutionalModelMixin):
-            # Fully convolutional evaluation, switch (T, C) -> (1, C, T)
-            X = X.transpose(1, 0).unsqueeze(0)
-            outputs = self.model(X)
-
-            # switch back from (1, C, T) -> (T, C)
-            if isinstance(outputs, torch.Tensor):
-                assert outputs.dim() == 3 and outputs.shape[0] == 1
-                outputs = outputs.squeeze(0).transpose(1, 0)
-            elif isinstance(outputs, tuple):
-                assert all(tensor.dim() == 3 and tensor.shape[0] == 1
-                           for tensor in outputs)
-                outputs = (
-                    output.squeeze(0).transpose(1, 0) for output in outputs)
-                outputs = tuple(outputs)
-            else:
-                raise ValueError("Invalid condition in solver.transform")
-        else:
-            # Standard evaluation, (T, C, dt)
-            outputs = self.model(X)
-
-        return outputs
 
 
 @register("supervised-solver-xcebra")

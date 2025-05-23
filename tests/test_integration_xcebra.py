@@ -1,5 +1,7 @@
 import pickle
 
+import _utils_deprecated
+import numpy as np
 import pytest
 import torch
 
@@ -150,3 +152,39 @@ def test_synthetic_data_training(synthetic_data, device):
     assert Z2_hat.shape == Z2.shape, f"Incorrect Z2 embedding dimension: {Z2_hat.shape}"
     assert not torch.isnan(Z1_hat).any(), "NaN values in Z1 embedding"
     assert not torch.isnan(Z2_hat).any(), "NaN values in Z2 embedding"
+
+    # Test the transform
+    solver.model.split_outputs = False
+    transform_embedding = solver.transform(data.neural.to(device))
+    assert transform_embedding.shape[
+        1] == n_latents, "Incorrect embedding dimension"
+    assert not torch.isnan(transform_embedding).any(), "NaN values in embedding"
+    assert np.allclose(embedding, transform_embedding, rtol=1e-4, atol=1e-4)
+
+    # Test the transform with batching
+    batched_embedding = solver.transform(data.neural.to(device), batch_size=512)
+    assert batched_embedding.shape[
+        1] == n_latents, "Incorrect embedding dimension"
+    assert not torch.isnan(batched_embedding).any(), "NaN values in embedding"
+    assert np.allclose(embedding, batched_embedding, rtol=1e-4, atol=1e-4)
+
+    assert np.allclose(transform_embedding,
+                       batched_embedding,
+                       rtol=1e-4,
+                       atol=1e-4)
+
+    # Test and compare the previous transform (transform_deprecated)
+    deprecated_transform_embedding = _utils_deprecated.multiobjective_transform_deprecated(
+        solver, data.neural.to(device))
+    assert np.allclose(embedding,
+                       deprecated_transform_embedding,
+                       rtol=1e-4,
+                       atol=1e-4)
+    assert np.allclose(transform_embedding,
+                       deprecated_transform_embedding,
+                       rtol=1e-4,
+                       atol=1e-4)
+    assert np.allclose(batched_embedding,
+                       deprecated_transform_embedding,
+                       rtol=1e-4,
+                       atol=1e-4)

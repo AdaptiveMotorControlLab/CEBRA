@@ -32,7 +32,7 @@ import cebra.data
 import cebra.io
 from cebra.datasets import register
 
-_DEFAULT_NUM_TIMEPOINTS = 100000
+_DEFAULT_NUM_TIMEPOINTS = 1_000
 
 
 class DemoDataset(cebra.data.SingleSessionDataset):
