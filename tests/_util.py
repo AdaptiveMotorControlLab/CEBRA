@@ -74,3 +74,8 @@ def parametrize_with_checks_slow(fast_arguments, slow_arguments):
                 slow_arg, generate_only=True))[0] for slow_arg in slow_arguments
     ]
     return parametrize_slow("estimator,check", fast_params, slow_params)
+
+
+def parametrize_device(func):
+    _devices = ("cpu", "cuda") if torch.cuda.is_available() else ("cpu",)
+    return pytest.mark.parametrize("device", _devices)(func)

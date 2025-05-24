@@ -41,9 +41,7 @@ def _get_loader(data_name, loader_initfunc):
     loader = loader_initfunc(data, **kwargs)
     return loader, data
 
-
 OUTPUT_DIMENSION = 3
-
 
 def _make_model(dataset, model_architecture="offset10-model"):
     # TODO flexible input dimension
@@ -349,3 +347,55 @@ def test_multi_session(data_name, loader_initfunc, model_architecture,
         solver.save(temp_dir)
         solver.load(temp_dir)
     _assert_equal(fitted_solver, solver)
+
+
+def _make_val_data(dataset):
+    if isinstance(dataset, cebra.datasets.demo.DemoDataset):
+        return dataset.neural
+    elif isinstance(dataset, cebra.datasets.demo.DemoDatasetUnified):
+        return [session.neural for session in dataset.iter_sessions()], [
+            session.continuous_index for session in dataset.iter_sessions()
+        ]
+
+
+@pytest.mark.parametrize(
+    "data_name, model_architecture, loader_initfunc, solver_initfunc",
+    [(dataset, model, loader, cebra.solver.UnifiedSolver)
+     for dataset, loader in [
+         ("demo-continuous-unified", cebra.data.UnifiedLoader),
+     ]
+     for model in ["offset1-model", "offset10-model"]])
+def test_unified_session(data_name, model_architecture, loader_initfunc,
+                         solver_initfunc):
+    loader, data = _get_loader(data_name, loader_initfunc)
+    model = _make_model(data, model_architecture)
+    data.configure_for(model)
+    offset = model.get_offset()
+
+    criterion = cebra.models.InfoNCE()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+
+    solver = solver_initfunc(model=model,
+                             criterion=criterion,
+                             optimizer=optimizer)
+
+    batch = next(iter(loader))
+    assert batch.reference.shape == (32, loader.dataset.input_dimension,
+                                     len(offset))
+
+    log = solver.step(batch)
+    assert isinstance(log, dict)
+
+    solver.fit(loader)
+    data, labels = _make_val_data(loader.dataset)
+
+    assert solver.num_sessions == 3
+    assert solver.n_features == sum(
+        [data[i].shape[1] for i in range(len(data))])
+
+    for i in range(loader.dataset.num_sessions):
+        emb = solver.transform(data, labels, session_id=i)
+        assert emb.shape == (loader.dataset.num_timepoints, 3)
+
+        emb = solver.transform(data, labels, session_id=i, batch_size=300)
+        assert emb.shape == (loader.dataset.num_timepoints, 3)
