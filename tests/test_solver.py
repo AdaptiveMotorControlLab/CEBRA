@@ -41,9 +41,7 @@ def _get_loader(data_name, loader_initfunc):
     loader = loader_initfunc(data, **kwargs)
     return loader, data
 
-
 OUTPUT_DIMENSION = 3
-
 
 def _make_model(dataset, model_architecture="offset10-model"):
     # TODO flexible input dimension

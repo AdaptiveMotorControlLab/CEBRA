@@ -396,7 +396,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     @abc.abstractmethod
     def parameters(self, session_id: Optional[int] = None):
         """Iterate over all parameters of the model.
-
         Args:
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to

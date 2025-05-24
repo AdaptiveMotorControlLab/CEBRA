@@ -36,6 +36,7 @@ _DEFAULT_NUM_TIMEPOINTS = 1_000
 NUMS_NEURAL = [3, 4, 5]
 
 
+
 class DemoDataset(cebra.data.SingleSessionDataset):
 
     def __init__(self, num_timepoints=_DEFAULT_NUM_TIMEPOINTS, num_neural=4):
