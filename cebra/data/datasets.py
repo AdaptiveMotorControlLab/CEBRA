@@ -490,14 +490,26 @@ class UnifiedDataset(DatasetCollection):
         """
         batches = self._get_batches(index)
 
-        return cebra_data.Batch(
-            reference=self.apply_mask(
-                torch.cat([batch.reference for batch in batches], dim=1)),
-            positive=self.apply_mask(
-                torch.cat([batch.positive for batch in batches], dim=1)),
-            negative=self.apply_mask(
-                torch.cat([batch.negative for batch in batches], dim=1)),
-        )
+        if hasattr(self, "apply_mask"):
+            # If the dataset has a mask, apply it to the data.
+            batch = cebra_data.Batch(
+                reference=self.apply_mask(
+                    torch.cat([batch.reference for batch in batches], dim=1)),
+                positive=self.apply_mask(
+                    torch.cat([batch.positive for batch in batches], dim=1)),
+                negative=self.apply_mask(
+                    torch.cat([batch.negative for batch in batches], dim=1)),
+            )
+        else:
+            batch = cebra_data.Batch(
+                reference=torch.cat([batch.reference for batch in batches],
+                                    dim=1),
+                positive=torch.cat([batch.positive for batch in batches],
+                                   dim=1),
+                negative=torch.cat([batch.negative for batch in batches],
+                                   dim=1),
+            )
+        return batch
 
     def __getitem__(self, args) -> List[Batch]:
         """Return a set of samples from all sessions."""

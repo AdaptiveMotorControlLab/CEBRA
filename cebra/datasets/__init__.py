@@ -97,8 +97,6 @@ try:
     from cebra.datasets.hippocampus import *
     from cebra.datasets.monkey_reaching import *
     from cebra.datasets.synthetic_data import *
-    from cebra.datasets.perich import *
-    from cebra.datasets.nlb import *
 except ModuleNotFoundError as e:
     warnings.warn(f"Could not initialize one or more datasets: {e}. "
                   f"For using the datasets, consider installing the "

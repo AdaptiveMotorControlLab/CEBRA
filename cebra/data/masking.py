@@ -75,6 +75,9 @@ class MaskedMixin:
         Returns:
             torch.Tensor: The masked data.
         """
+        if data.dim() == 2:
+            data = data.unsqueeze(0)
+
         if data.dim() != 3:
             raise ValueError(
                 f"Data must be a 3D tensor, but got {data.dim()}D tensor.")

@@ -65,7 +65,7 @@ class UnifiedSolver(abc_.Solver):
     def _check_is_inputs_valid(self, inputs: Union[torch.Tensor,
                                                    List[torch.Tensor]],
                                session_id: int):
-        """Check that the inputs can be infered using the selected model.
+        """Check that the inputs can be inferred using the selected model.
 
         Note: This method checks that the number of neurons in the input is
         similar to the input dimension to the selected model.
@@ -236,7 +236,7 @@ class UnifiedSolver(abc_.Solver):
             if batch_start == batch_range[-2]:  # one before last batch
                 last_start = batch_start
                 continue
-            if batch_start == batch_range[-1]:  # last batch, likely uncomplete
+            if batch_start == batch_range[-1]:  # last batch, likely incomplete
                 batch_start = last_start
                 batch_end = len(dataset.get_session(session_id))
 
@@ -274,7 +274,7 @@ class UnifiedSolver(abc_.Solver):
             pad_before_transform: bool = True,
             padding_mode: str = "zero",
             batch_size: Optional[int] = 100) -> torch.Tensor:
-        """Compute the embedding for the `session_id`th session of the dataset without labels alignement.
+        """Compute the embedding for the `session_id`th session of the dataset without labels alignment.
 
         By padding the channels that don't correspond to the {session_id}th session, we can
         use a single session solver without behavioral alignment.
@@ -291,13 +291,13 @@ class UnifiedSolver(abc_.Solver):
             padding_mode: The mode to use for padding. Padding is done in the following
                 ways, either by padding all the other sessions to the length of the
                 {session_id}th session, or by resampling all sessions in a random way:
-                - `time`: pads the inputs that are not infered to the maximum length of
-                    the session and then zeros so that the lenght is the same as the
+                - `time`: pads the inputs that are not inferred to the maximum length of
+                    the session and then zeros so that the length is the same as the
                     {session_id}th session length.
-                - `zero`: pads the inputs that are not infered with zeros so that the
-                    lenght is the same as the {session_id}th session length.
-                - `poisson`: pads the inputs that are not infered with a poisson distribution
-                    so that the lenght is the same as the {session_id}th session length.
+                - `zero`: pads the inputs that are not inferred with zeros so that the
+                    length is the same as the {session_id}th session length.
+                - `poisson`: pads the inputs that are not inferred with a poisson distribution
+                    so that the length is the same as the {session_id}th session length.
                 - `random`: pads all sessions with random values sampled from a normal
                     distribution.
                 - `random_poisson`: pads all sessions with random values sampled from a

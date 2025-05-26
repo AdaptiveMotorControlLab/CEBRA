@@ -151,7 +151,7 @@ class RandomTimestepMask(Mask):
         Args:
             data: batch of size (batch_idx, feature_dim, seq_len). With seq_len
                 corresponding to the offset.
-            mask_ratio: Proportion of timesteps masked. Not necessarly consecutive.
+            mask_ratio: Proportion of timesteps masked. Not necessarliy consecutive.
                 Default value 0.3 comes from the MtM paper: https://arxiv.org/pdf/2407.14668v2
 
         Returns:
@@ -273,7 +273,7 @@ class TimeBlockMask(Mask):
         return "TimeBlockMask"
 
     def apply_mask(self, data: torch.Tensor) -> torch.Tensor:
-        """ Apply continguous block masking on the time dimension.
+        """ Apply contiguous block masking on the time dimension.
 
         When choosing which block of timesteps to mask, each timestep is considered
         a candidate starting time-step with probability ``self.sampled_rate`` where

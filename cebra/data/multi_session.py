@@ -96,15 +96,31 @@ class MultiSessionDataset(cebra_data.Dataset):
 
     def load_batch(self, index: BatchIndex) -> List[Batch]:
         """Return the data at the specified index location."""
-        return [
-            cebra_data.Batch(
-                reference=session[index.reference[session_id]],
-                positive=session[index.positive[session_id]],
-                negative=session[index.negative[session_id]],
-                index=index.index,
-                index_reversed=index.index_reversed,
-            ) for session_id, session in enumerate(self.iter_sessions())
-        ]
+
+        if hasattr(self, "apply_mask"):
+            batch = [
+                cebra_data.Batch(
+                    reference=self.apply_mask(
+                        session[index.reference[session_id]]),
+                    positive=self.apply_mask(
+                        session[index.positive[session_id]]),
+                    negative=self.apply_mask(
+                        session[index.negative[session_id]]),
+                    index=index.index,
+                    index_reversed=index.index_reversed,
+                ) for session_id, session in enumerate(self.iter_sessions())
+            ]
+        else:
+            batch = [
+                cebra_data.Batch(
+                    reference=session[index.reference[session_id]],
+                    positive=session[index.positive[session_id]],
+                    negative=session[index.negative[session_id]],
+                    index=index.index,
+                    index_reversed=index.index_reversed,
+                ) for session_id, session in enumerate(self.iter_sessions())
+            ]
+        return batch
 
     def configure_for(self, model: "cebra.models.Model"):
         """Configure the dataset offset for the provided model.

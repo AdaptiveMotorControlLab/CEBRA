@@ -498,7 +498,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
             arguments.
             |Default:| ``(('betas', (0.9, 0.999)), ('eps', 1e-08), ('weight_decay', 0), ('amsgrad', False))``
         masking_kwargs (dict):
-            TODO(celia)
+            A dictionary of masking types and their corresponding required masking values. The keys are the
+            names of the Mask instances.
 
     Example:
 
