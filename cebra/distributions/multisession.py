@@ -505,13 +505,13 @@ class UnifiedSampler(MultisessionSampler):
                             session_id: int) -> torch.Tensor:
         """Sample sessions based on a reference session.
 
-        Reference samples for the ``session_id``th session were first sampled uniformly, as in
+        Reference samples for the ``session_id`` th session were first sampled uniformly, as in
         the py:class:`~.MultisessionSampler`. Then, reference samples for the other sessions
         are sampled so that they are as close as the corresponding auxiliary variables in
         the reference session.
 
         Note: similar to ``sample_condiditonal`` but at the level of the sessions, sampling ref idx in each
-        session so that they are close to the ref idx in the reference session (``session_id``th session).
+        session so that they are close to the ref idx in the reference session (``session_id`` th session).
 
         Args:
             ref_idx: Uniformly sampled ``idx`` for the reference session, ``(num_samples, )``, values
