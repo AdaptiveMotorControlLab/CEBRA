@@ -202,7 +202,7 @@ def test_apply_mask_with_invalid_input():
 
     with pytest.raises(ValueError, match="Data must be a 3D tensor"):
         data = torch.ones(
-            (10, 20))  # Invalid tensor shape (missing offset dimension)
+            (10, 20, 30, 40))  # Invalid tensor shape (extra dimension)
         mixin.apply_mask(data)
 
     with pytest.raises(ValueError, match="Data must be a float32 tensor"):

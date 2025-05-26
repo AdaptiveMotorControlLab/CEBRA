@@ -178,7 +178,8 @@ class MultisessionSampler(cebra_distr.PriorDistribution,
         """The number of sessions in the index."""
         return len(self.lengths)
 
-    def mix(self, array: np.ndarray, idx: np.ndarray):
+    def mix(self, array: "npt.NDArray[np.float64]",
+            idx: "npt.NDArray[np.int64]"):
         """Re-order array elements according to the given index mapping.
 
         The given array should be of the shape ``(session, batch, ...)`` and the
@@ -439,7 +440,7 @@ class UnifiedSampler(MultisessionSampler):
     """
 
     def sample_all_uniform_prior(self,
-                                 num_samples: int) -> npt.NDArray[np.int64]:
+                                 num_samples: int) -> "npt.NDArray[np.int64]":
         """Returns uniformly sampled index for all sessions of the dataset.
 
         Args:
@@ -451,9 +452,10 @@ class UnifiedSampler(MultisessionSampler):
         """
         return super().sample_prior(num_samples=num_samples)
 
-    def sample_prior(self,
-                     num_samples: int,
-                     session_id: Optional[int] = None) -> npt.NDArray[np.int64]:
+    def sample_prior(
+            self,
+            num_samples: int,
+            session_id: Optional[int] = None) -> "npt.NDArray[np.int64]":
         """Return uniformly sampled indices for all sessions.
 
         First, the reference indexes in a reference session are uniformly sampled.
@@ -506,7 +508,7 @@ class UnifiedSampler(MultisessionSampler):
                             session_id: int) -> torch.Tensor:
         """Sample sessions based on a reference session.
 
-        Reference samples for the ``(session_id)``th session were first sampled uniformly, as in
+        Reference samples for the ``session_id``th session were first sampled uniformly, as in
         the py:class:`~.MultisessionSampler`. Then, reference samples for the other sessions
         are sampled so that they are as close as the corresponding auxiliary variables in
         the reference session.
@@ -516,7 +518,7 @@ class UnifiedSampler(MultisessionSampler):
 
         Args:
             ref_idx: Uniformly sampled ``idx`` for the reference session, ``(num_samples, )``, values
-            can be in ``[0, len(get_session[session_id])]``.
+                can be in ``[0, len(session)]``.
             session_id: Session ID of the reference session, whose ``idx`` are present in ``ref_idx``.
 
         Returns:
@@ -557,7 +559,7 @@ class UnifiedSampler(MultisessionSampler):
         return all_idx
 
     def sample_conditional(
-            self, reference_idx: npt.NDArray[np.int64]) -> torch.Tensor:
+            self, reference_idx: "npt.NDArray[np.int64]") -> torch.Tensor:
         """Sample from the conditional distribution.
 
         Contrary to the :py:class:`MultisessionSampler`, conditional distribution
