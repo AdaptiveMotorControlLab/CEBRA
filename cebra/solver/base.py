@@ -396,6 +396,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
     @abc.abstractmethod
     def parameters(self, session_id: Optional[int] = None):
         """Iterate over all parameters of the model.
+
         Args:
             session_id: The session ID, an :py:class:`int` between 0 and
                 the number of sessions -1 for multisession, and set to
@@ -412,6 +413,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         model: Optional[torch.nn.Module] = None
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Compute the features of the reference, positive and negative samples.
+
         Args:
             batch: The input data, not necessarily aligned across the batch
                 dimension. This means that ``batch.index`` specifies the map
