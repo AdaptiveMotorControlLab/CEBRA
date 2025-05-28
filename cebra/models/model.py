@@ -32,8 +32,6 @@ import cebra.models.layers as cebra_layers
 from cebra.models import parametrize
 from cebra.models import register
 
-DROPOUT = 0.1
-
 
 def _check_torch_version(raise_error=False):
     current_version = tuple(
@@ -700,14 +698,20 @@ class Offset36Dropout(_OffsetModel, ConvolutionalModelMixin):
         Requires ``torch>=1.12``.
     """
 
-    def __init__(self, num_neurons, num_units, num_output, normalize=True):
+    def __init__(self,
+                 num_neurons,
+                 num_units,
+                 num_output,
+                 normalize=True,
+                 dropout=0.1):
         if num_units < 1:
             raise ValueError(
                 f"Hidden dimension needs to be at least 1, but got {num_units}."
             )
+        dropout = dropout
         super().__init__(
             nn.Conv1d(num_neurons, num_units, 2),
-            torch.nn.Dropout1d(p=DROPOUT),
+            torch.nn.Dropout1d(p=dropout),
             nn.GELU(),
             *self._make_layers(num_units, num_layers=16),
             nn.Conv1d(num_units, num_output, 3),
@@ -736,16 +740,22 @@ class Offset36Dropoutv2(_OffsetModel, ConvolutionalModelMixin):
             for _ in range(n)
         ]
 
-    def __init__(self, num_neurons, num_units, num_output, normalize=True):
+    def __init__(self,
+                 num_neurons,
+                 num_units,
+                 num_output,
+                 normalize=True,
+                 dropout=0.1):
         if num_units < 1:
             raise ValueError(
                 f"Hidden dimension needs to be at least 1, but got {num_units}."
             )
+        dropout = dropout
         super().__init__(
             nn.Conv1d(num_neurons, num_units, 2),
-            torch.nn.Dropout1d(p=DROPOUT),
+            torch.nn.Dropout1d(p=dropout),
             nn.GELU(),
-            *self._make_layers(num_units, p=DROPOUT, n=16),
+            *self._make_layers(num_units, p=dropout, n=16),
             nn.Conv1d(num_units, num_output, 3),
             num_input=num_neurons,
             num_output=num_output,

@@ -22,8 +22,7 @@
 """Single session solvers embed a single pair of time series."""
 
 import copy
-from typing import Optional, Tuple
-
+from typing import Optional
 
 import literate_dataclasses as dataclasses
 import torch
@@ -45,25 +44,6 @@ class SingleSessionSolver(abc_.Solver):
     """
 
     _variant_name = "single-session"
-
-    def parameters(self, session_id: Optional[int] = None):
-        """Iterate over all parameters.
-
-        Args:
-            session_id: The session ID, an :py:class:`int` between 0 and
-                the number of sessions -1 for multisession, and set to
-                ``None`` for single session.
-
-        Yields:
-            The parameters of the model.
-        """
-        # If session_id is invalid, it doesn't matter, since we are
-        # using a single session solver.
-        for parameter in self.model.parameters():
-            yield parameter
-
-        for parameter in self.criterion.parameters():
-            yield parameter
 
     def _set_fitted_params(self, loader: cebra.data.Loader):
         """Set parameters once the solver is fitted.
@@ -138,7 +118,10 @@ class SingleSessionSolver(abc_.Solver):
             across the sample dimensions, the output data should be aligned and
             ``batch.index`` should be set to ``None``.
         """
-        ref, pos, neg = self._compute_features(batch)
+        batch.to(self.device)
+        ref = self.model(batch.reference)
+        neg = self.model(batch.negative)
+        pos = self.model(batch.positive)
         return cebra.data.Batch(ref, pos, neg)
 
     def get_embedding(self, data: torch.Tensor) -> torch.Tensor:
@@ -217,17 +200,6 @@ class SingleSessionAuxVariableSolver(SingleSessionSolver,
         else:
             model = self.model[session_id]
         return model
-
-    def _compute_features(
-        self,
-        batch: cebra.data.Batch,
-        model: Optional[torch.nn.Module] = None
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        batch.to(self.device)
-        ref = self.reference_model(batch.reference)
-        pos = self.model(batch.positive)
-        neg = self.model(batch.negative)
-        return ref, pos, neg
 
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
         """Given a batch of input examples, computes the feature representation/embedding.

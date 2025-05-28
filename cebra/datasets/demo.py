@@ -33,8 +33,7 @@ import cebra.io
 from cebra.datasets import register
 
 _DEFAULT_NUM_TIMEPOINTS = 1_000
-NUMS_NEURAL = [3, 4, 5]
-
+_NUMS_NEURAL = [3, 4, 5]
 
 
 class DemoDataset(cebra.data.SingleSessionDataset):
@@ -119,7 +118,7 @@ class MultiDiscrete(cebra.data.DatasetCollection):
 
     def __init__(
         self,
-        nums_neural=NUMS_NEURAL,
+        nums_neural=_NUMS_NEURAL,
         num_timepoints=_DEFAULT_NUM_TIMEPOINTS,
     ):
         super().__init__(*[
@@ -133,7 +132,7 @@ class MultiContinuous(cebra.data.DatasetCollection):
 
     def __init__(
         self,
-        nums_neural=NUMS_NEURAL,
+        nums_neural=_NUMS_NEURAL,
         num_behavior=5,
         num_timepoints=_DEFAULT_NUM_TIMEPOINTS,
     ):
@@ -148,7 +147,7 @@ class MultiContinuous(cebra.data.DatasetCollection):
 # @register("demo-mixed-multisession")
 class MultiMixed(cebra.data.DatasetCollection):
 
-    def __init__(self, nums_neural=NUMS_NEURAL, num_behavior=5):
+    def __init__(self, nums_neural=_NUMS_NEURAL, num_behavior=5):
         super().__init__(*[
             DemoDatasetMixed(_DEFAULT_NUM_TIMEPOINTS, num_neural, num_behavior)
             for num_neural in nums_neural
@@ -160,7 +159,7 @@ class DemoDatasetUnified(cebra.data.UnifiedDataset):
 
     def __init__(
         self,
-        nums_neural=NUMS_NEURAL,
+        nums_neural=_NUMS_NEURAL,
         num_behavior=5,
         num_timepoints=_DEFAULT_NUM_TIMEPOINTS,
     ):

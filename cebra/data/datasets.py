@@ -32,6 +32,7 @@ import cebra.data as cebra_data
 import cebra.data.masking as cebra_data_masking
 import cebra.helper as cebra_helper
 import cebra.io as cebra_io
+import cebra.models
 from cebra.data.datatypes import Batch
 from cebra.data.datatypes import BatchIndex
 from cebra.data.datatypes import Offset
@@ -474,6 +475,18 @@ class UnifiedDataset(DatasetCollection):
                     index.negative[session_id]],
             ) for session_id in range(self.num_sessions)
         ]
+
+    def configure_for(self, model: "cebra.models.Model"):
+        """Configure the dataset offset for the provided model.
+
+        Call this function before indexing the dataset. This sets the
+        :py:attr:`~.Dataset.offset` attribute of the dataset.
+
+        Args:
+            model: The model to configure the dataset for.
+        """
+        for i, session in enumerate(self.iter_sessions()):
+            session.configure_for(model)
 
     def load_batch(self, index: BatchIndex) -> Batch:
         """Return the data at the specified index location.

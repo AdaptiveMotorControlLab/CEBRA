@@ -42,14 +42,6 @@ class UnifiedSolver(abc_.Solver):
 
     _variant_name = "unified-session"
 
-    def parameters(self, session_id: Optional[int] = None):  # same as single
-        """Iterate over all parameters."""
-        for parameter in self.model.parameters():
-            yield parameter
-
-        for parameter in self.criterion.parameters():
-            yield parameter
-
     def _set_fitted_params(self, loader: cebra.data.Loader):  # mix
         """Set parameters once the solver is fitted.
 
@@ -144,7 +136,11 @@ class UnifiedSolver(abc_.Solver):
             across the sample dimensions, the output data should be aligned and
             ``batch.index`` should be set to ``None``.
         """
-        ref, pos, neg = self._compute_features(batch, model)
+        batch.to(self.device)
+        ref = model(batch.reference)
+        pos = model(batch.positive)
+        neg = model(batch.negative)
+
         ref = ref.unsqueeze(0)
         pos = pos.unsqueeze(0)
         neg = neg.unsqueeze(0)
@@ -249,9 +245,6 @@ class UnifiedSolver(abc_.Solver):
                 for session_id, session in enumerate(dataset.iter_sessions())
             ],
                                         dim=1).squeeze()
-            # refs_data_batch_embeddings.append(super().transform(
-            #     torch.cat(refs_data_batch, dim=1).squeeze(),
-            #     pad_before_transform=pad_before_transform))
 
             if len(self.model.get_offset()) < 2 and pad_before_transform:
                 pad_before_transform = False
@@ -360,8 +353,18 @@ class UnifiedSolver(abc_.Solver):
                  decode: str = "ridge",
                  max_sessions: int = 5,
                  max_timesteps: int = 512) -> float:
-        # Sample a fixed number of sessions to compute the decoding score
-        # Sample a fixed number of timesteps to compute the decoding score (always the first ones)
+        """Sample a fixed number of sessions to compute the decoding score.
+
+        Args:
+            train_loader: The training data loader.
+            valid_loader: The validation data loader, if available.
+            decode: The type of decoder to use, either "knn" or "ridge".
+            max_sessions: The maximum number of sessions to sample for decoding.
+            max_timesteps: The maximum number of timesteps to consider for each session.
+        Returns:
+            The average decoding score across the sampled sessions. If a validation loader is provided,
+            returns a tuple of the average training score and the average validation score.
+        """
         if train_loader.dataset.num_sessions > max_sessions:
             sessions = np.random.choice(np.arange(
                 train_loader.dataset.num_sessions),

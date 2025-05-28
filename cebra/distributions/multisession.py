@@ -487,10 +487,14 @@ class UnifiedSampler(MultisessionSampler):
                    reference_idx: torch.Tensor,
                    session_id: int,
                    aligned: bool = False) -> torch.Tensor:
-        """
+        """Get the query for the given reference indices.
 
         Args:
-            aligned: If True, no time difference is added to the query.
+            reference_idx: Reference indices, with dimension ``(num_samples, )``.
+            session_id: Session ID of the reference session, whose ``idx`` are present in
+                ``reference_idx``.
+            aligned: If True, no time difference is added to the query. Otherwise, a
+                random time difference is added to the query.
         """
         cum_idx = reference_idx + self.lengths[session_id]
         if aligned:
@@ -540,7 +544,7 @@ class UnifiedSampler(MultisessionSampler):
             # except for the session_id provided
             if i == session_id:
                 continue
-            # different query for each. more robust to variance.
+            # NOTE(celia): this is code to get different query for each. Unused for now.
             #query = self._get_query(reference_idx=ref_idx,
             #                        session_id=session_id,
             #                        aligned=False)

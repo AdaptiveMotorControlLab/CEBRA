@@ -18,18 +18,15 @@ import copy
 import pytest
 import torch
 
-import cebra.data.mask
-from cebra.data.masking import MaskedMixin
-
-#### Tests for Mask class ####
+import cebra.data.masking
 
 
 @pytest.mark.parametrize("mask", [
-    cebra.data.mask.RandomNeuronMask,
-    cebra.data.mask.RandomTimestepMask,
-    cebra.data.mask.NeuronBlockMask,
+    cebra.data.masking.RandomNeuronMask,
+    cebra.data.masking.RandomTimestepMask,
+    cebra.data.masking.NeuronBlockMask,
 ])
-def test_random_mask(mask: cebra.data.mask.Mask):
+def test_random_mask(mask: cebra.data.masking.Mask):
     data = torch.ones(
         (10, 20,
          30))  # Example tensor with shape (batch_size, n_neurons, offset)
@@ -47,7 +44,7 @@ def test_timeblock_mask():
     data = torch.ones(
         (10, 20,
          30))  # Example tensor with shape (batch_size, n_neurons, offset)
-    mask = cebra.data.mask.TimeBlockMask(masking_value=(0.035, 10))
+    mask = cebra.data.masking.TimeBlockMask(masking_value=(0.035, 10))
     masked_data = mask.apply_mask(copy.deepcopy(data))
 
     assert masked_data.shape == data.shape, "Masked data shape should match input data shape"
@@ -57,11 +54,8 @@ def test_timeblock_mask():
         data), "Masked data should have fewer active neurons than original data"
 
 
-#### Tests for MaskedMixin class ####
-
-
 def test_masked_mixin_no_masks():
-    mixin = MaskedMixin()
+    mixin = cebra.data.masking.MaskedMixin()
     data = torch.ones(
         (10, 20,
          30))  # Example tensor with shape (batch_size, n_neurons, offset)
@@ -79,19 +73,19 @@ def test_masked_mixin_random_mask(mask):
         (10, 20,
          30))  # Example tensor with shape (batch_size, n_neurons, offset)
 
-    mixin = MaskedMixin()
-    assert mixin.masks == [], "Masks should be empty initially"
+    mixin = cebra.data.masking.MaskedMixin()
+    assert mixin._masks == [], "Masks should be empty initially"
 
     mixin.set_masks({mask: 0.5})
-    assert len(mixin.masks) == 1, "One mask should be set"
-    assert isinstance(mixin.masks[0],
-                      getattr(cebra.data.mask,
+    assert len(mixin._masks) == 1, "One mask should be set"
+    assert isinstance(mixin._masks[0],
+                      getattr(cebra.data.masking,
                               mask)), f"Mask should be of type {mask}"
-    if isinstance(mixin.masks[0], cebra.data.mask.NeuronBlockMask):
-        assert mixin.masks[
+    if isinstance(mixin._masks[0], cebra.data.masking.NeuronBlockMask):
+        assert mixin._masks[
             0].mask_prop == 0.5, "Masking value should be set correctly"
     else:
-        assert mixin.masks[
+        assert mixin._masks[
             0].mask_ratio == 0.5, "Masking value should be set correctly"
 
     masked_data = mixin.apply_mask(copy.deepcopy(data))
@@ -100,9 +94,9 @@ def test_masked_mixin_random_mask(mask):
         data, masked_data), "Data should be modified when a mask is applied"
 
     mixin.set_masks({mask: [0.5, 0.1]})
-    assert len(mixin.masks) == 1, "One mask should be set"
-    assert isinstance(mixin.masks[0],
-                      getattr(cebra.data.mask,
+    assert len(mixin._masks) == 1, "One mask should be set"
+    assert isinstance(mixin._masks[0],
+                      getattr(cebra.data.masking,
                               mask)), f"Mask should be of type {mask}"
     masked_data = mixin.apply_mask(copy.deepcopy(data))
     assert masked_data.shape == data.shape, "Masked data shape should match input data shape"
@@ -110,9 +104,9 @@ def test_masked_mixin_random_mask(mask):
         data, masked_data), "Data should be modified when a mask is applied"
 
     mixin.set_masks({mask: (0.3, 0.9, 0.05)})
-    assert len(mixin.masks) == 1, "One mask should be set"
-    assert isinstance(mixin.masks[0],
-                      getattr(cebra.data.mask,
+    assert len(mixin._masks) == 1, "One mask should be set"
+    assert isinstance(mixin._masks[0],
+                      getattr(cebra.data.masking,
                               mask)), f"Mask should be of type {mask}"
     masked_data = mixin.apply_mask(copy.deepcopy(data))
     assert masked_data.shape == data.shape, "Masked data shape should match input data shape"
@@ -121,7 +115,7 @@ def test_masked_mixin_random_mask(mask):
 
 
 def test_apply_mask_with_time_block_mask():
-    mixin = MaskedMixin()
+    mixin = cebra.data.masking.MaskedMixin()
 
     with pytest.raises(AssertionError, match="sampled_rate.*masked_seq_len"):
         mixin.set_masks({"TimeBlockMask": 0.2})
@@ -153,7 +147,7 @@ def test_apply_mask_with_time_block_mask():
 
 
 def test_multiple_masks_mixin():
-    mixin = MaskedMixin()
+    mixin = cebra.data.masking.MaskedMixin()
     mixin.set_masks({"RandomNeuronMask": 0.5, "RandomTimestepMask": 0.3})
     data = torch.ones(
         (10, 20,
@@ -176,7 +170,7 @@ def test_multiple_masks_mixin():
 
 
 def test_single_dim_input():
-    mixin = MaskedMixin()
+    mixin = cebra.data.masking.MaskedMixin()
     mixin.set_masks({"RandomNeuronMask": 0.5})
     data = torch.ones((10, 1, 30))  # Single neuron
     masked_data = mixin.apply_mask(copy.deepcopy(data))
@@ -185,7 +179,7 @@ def test_single_dim_input():
     assert not torch.equal(
         data, masked_data), "Data should be modified even with a single neuron"
 
-    mixin = MaskedMixin()
+    mixin = cebra.data.masking.MaskedMixin()
     mixin.set_masks({"RandomTimestepMask": 0.5})
     data = torch.ones((10, 20, 1))  # Single timestep
     masked_data = mixin.apply_mask(copy.deepcopy(data))
@@ -197,7 +191,7 @@ def test_single_dim_input():
 
 
 def test_apply_mask_with_invalid_input():
-    mixin = MaskedMixin()
+    mixin = cebra.data.masking.MaskedMixin()
     mixin.set_masks({"RandomNeuronMask": 0.5})
 
     with pytest.raises(ValueError, match="Data must be a 3D tensor"):
@@ -211,7 +205,7 @@ def test_apply_mask_with_invalid_input():
 
 
 def test_apply_mask_with_chunk_size():
-    mixin = MaskedMixin()
+    mixin = cebra.data.masking.MaskedMixin()
     mixin.set_masks({"RandomNeuronMask": 0.5})
     data = torch.ones((10000, 20, 30))  # Large tensor to test chunking
     masked_data = mixin.apply_mask(copy.deepcopy(data), chunk_size=1000)

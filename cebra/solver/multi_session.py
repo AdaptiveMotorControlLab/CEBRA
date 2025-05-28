@@ -80,7 +80,10 @@ class MultiSessionSolver(abc_.Solver):
             across the sample dimensions, the output data should be aligned and
             ``batch.index`` should be set to ``None``.
         """
-        ref, pos, neg = self._compute_features(batch, model)
+        batch.to(self.device)
+        ref = model(batch.reference)
+        pos = model(batch.positive)
+        neg = model(batch.negative)
 
         ref = ref.unsqueeze(0)
         pos = pos.unsqueeze(0)
