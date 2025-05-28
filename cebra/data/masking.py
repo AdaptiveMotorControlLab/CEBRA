@@ -21,8 +21,8 @@ import numpy as np
 import torch
 
 __all__ = [
-    "Mask", "RandomNeuronMask", "RandomTimestepMask", "NeuronBlockMask",
-    "TimeBlockMask"
+    "MaskedMixin", "Mask", "RandomNeuronMask", "RandomTimestepMask",
+    "NeuronBlockMask", "TimeBlockMask"
 ]
 
 
