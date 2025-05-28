@@ -499,7 +499,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
             |Default:| ``(('betas', (0.9, 0.999)), ('eps', 1e-08), ('weight_decay', 0), ('amsgrad', False))``
         masking_kwargs (tuple):
             A Tuple of masking types and their corresponding required masking values. The keys are the
-            names of the Mask instances and formating should be ``((key, value), (key, value))``.
+            names of the Mask instances and formatting should be ``((key, value), (key, value))``.
             |Default:| ``None``.
 
     Example:
