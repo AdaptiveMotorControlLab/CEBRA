@@ -28,11 +28,11 @@ import numpy as np
 import numpy.typing as npt
 import torch
 
+import cebra
 import cebra.data as cebra_data
 import cebra.data.masking as cebra_data_masking
 import cebra.helper as cebra_helper
 import cebra.io as cebra_io
-import cebra.models
 from cebra.data.datatypes import Batch
 from cebra.data.datatypes import BatchIndex
 from cebra.data.datatypes import Offset

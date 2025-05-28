@@ -393,7 +393,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """Total number of parameters in the encoder and criterion."""
         return sum(p.numel() for p in self.parameters())
 
-    @abc.abstractmethod
     def parameters(self, session_id: Optional[int] = None):
         """Iterate over all parameters of the model.
 
