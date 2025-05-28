@@ -19,7 +19,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Solver implementations for unified-session datasets."""
+"""Unified session solver for multi-session contrastive learning.
+
+We added support for training contrastive models on unified-session datasets.
+This allows users to align and embed multiple sessions into a common latent
+space using a single shared model.
+
+This module implements the :py:class:`~cebra.solver.unified.UnifiedSolver`, which
+is designed for training a single embedding model across multiple recording sessions.
+Unlike the standard multi-session solvers, the unified session approach uses
+a global model that requires session-specific information for sampling but maintains
+a shared representation across all data.
+
+Features:
+- Single model inference across all sessions.
+- Batched transform.
+- Compatibility with :py:class:`~cebra.data.UnifiedDataset` and :py:class:`~cebra.data.UnifiedLoader`.
+
+See Also:
+    :py:class:`~cebra.solver.base.Solver`
+    :py:class:`~cebra.data.UnifiedDataset`
+    :py:class:`~cebra.data.UnifiedLoader`
+"""
 
 from typing import List, Optional, Union
 
@@ -258,93 +279,6 @@ class UnifiedSolver(abc_.Solver):
                                 batch_size=batch_size))
 
         return torch.cat(refs_data_batch_embeddings, dim=0)
-
-    @torch.no_grad()
-    def single_session_transform(
-            self,
-            inputs: Union[torch.Tensor, List[torch.Tensor]],
-            session_id: Optional[int] = None,
-            pad_before_transform: bool = True,
-            padding_mode: str = "zero",
-            batch_size: Optional[int] = 100) -> torch.Tensor:
-        """Compute the embedding for the `session_id`th session of the dataset without labels alignment.
-
-        By padding the channels that don't correspond to the {session_id}th session, we can
-        use a single session solver without behavioral alignment.
-
-        Note: The embedding will not benefit from the behavioral alignment, and consequently
-        from the information contained in the other sessions. We expect single session encoder
-        behavioral decoding performances.
-
-        Args:
-            inputs: The input signal for all sessions.
-            session_id: The session ID, an :py:class:`int` between 0 and
-                the number of sessions.
-            pad_before_transform: If True, pads the input before applying the transform.
-            padding_mode: The mode to use for padding. Padding is done in the following
-                ways, either by padding all the other sessions to the length of the
-                {session_id}th session, or by resampling all sessions in a random way:
-                - `time`: pads the inputs that are not inferred to the maximum length of
-                    the session and then zeros so that the length is the same as the
-                    {session_id}th session length.
-                - `zero`: pads the inputs that are not inferred with zeros so that the
-                    length is the same as the {session_id}th session length.
-                - `poisson`: pads the inputs that are not inferred with a poisson distribution
-                    so that the length is the same as the {session_id}th session length.
-                - `random`: pads all sessions with random values sampled from a normal
-                    distribution.
-                - `random_poisson`: pads all sessions with random values sampled from a
-                    poisson distribution.
-
-            batch_size: If not None, batched inference will be applied.
-
-        Returns:
-            The output embedding for the session corresponding to the provided ID `session_id`. The shape
-            is (num_samples(session_id), output_dimension)``.
-        """
-        inputs = [session.to(self.device) for session in inputs]
-
-        zero_shape = inputs[session_id].shape[0]
-
-        if padding_mode == "time" or padding_mode == "zero" or padding_mode == "poisson":
-            for i in range(len(inputs)):
-                if i != session_id:
-                    if padding_mode == "time":
-                        if inputs[i].shape[0] >= zero_shape:
-                            inputs[i] = inputs[i][:zero_shape]
-                        else:
-                            inputs[i] = torch.cat(
-                                (inputs[i],
-                                 torch.zeros(
-                                     (zero_shape - inputs[i].shape[0],
-                                      inputs[i].shape[1])).to(self.device)))
-                    if padding_mode == "poisson":
-                        inputs[i] = torch.poisson(
-                            torch.ones((zero_shape, inputs[i].shape[1])))
-                    if padding_mode == "zero":
-                        inputs[i] = torch.zeros(
-                            (zero_shape, inputs[i].shape[1]))
-            padded_inputs = torch.cat(
-                [session.to(self.device) for session in inputs], dim=1)
-
-        elif padding_mode == "random_poisson":
-            padded_inputs = torch.poisson(
-                torch.ones((zero_shape, self.n_features)))
-        elif padding_mode == "random":
-            padded_inputs = torch.normal(
-                torch.zeros((zero_shape, self.n_features)),
-                torch.ones((zero_shape, self.n_features)))
-
-        else:
-            raise ValueError(
-                f"Invalid padding mode: {padding_mode}. "
-                "Choose from 'time', 'zero', 'poisson', 'random', or 'random_poisson'."
-            )
-
-        # Single session solver transform call
-        return super().transform(inputs=padded_inputs,
-                                 pad_before_transform=pad_before_transform,
-                                 batch_size=batch_size)
 
     @torch.no_grad()
     def decoding(self,
