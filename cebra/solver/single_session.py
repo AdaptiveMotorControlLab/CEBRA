@@ -120,8 +120,8 @@ class SingleSessionSolver(abc_.Solver):
         """
         batch.to(self.device)
         ref = self.model(batch.reference)
-        neg = self.model(batch.negative)
         pos = self.model(batch.positive)
+        neg = self.model(batch.negative)
         return cebra.data.Batch(ref, pos, neg)
 
     def get_embedding(self, data: torch.Tensor) -> torch.Tensor:
