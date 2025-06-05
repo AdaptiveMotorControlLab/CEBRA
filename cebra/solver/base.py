@@ -393,7 +393,6 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """Total number of parameters in the encoder and criterion."""
         return sum(p.numel() for p in self.parameters())
 
-    @abc.abstractmethod
     def parameters(self, session_id: Optional[int] = None):
         """Iterate over all parameters of the model.
 
@@ -405,7 +404,11 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         Yields:
             The parameters of the model.
         """
-        raise NotImplementedError
+        for parameter in self.model.parameters():
+            yield parameter
+
+        for parameter in self.criterion.parameters():
+            yield parameter
 
     def _get_loader(self, loader):
         return ProgressBar(

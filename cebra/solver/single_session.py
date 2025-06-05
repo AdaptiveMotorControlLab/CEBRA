@@ -45,25 +45,6 @@ class SingleSessionSolver(abc_.Solver):
 
     _variant_name = "single-session"
 
-    def parameters(self, session_id: Optional[int] = None):
-        """Iterate over all parameters.
-
-        Args:
-            session_id: The session ID, an :py:class:`int` between 0 and
-                the number of sessions -1 for multisession, and set to
-                ``None`` for single session.
-
-        Yields:
-            The parameters of the model.
-        """
-        # If session_id is invalid, it doesn't matter, since we are
-        # using a single session solver.
-        for parameter in self.model.parameters():
-            yield parameter
-
-        for parameter in self.criterion.parameters():
-            yield parameter
-
     def _set_fitted_params(self, loader: cebra.data.Loader):
         """Set parameters once the solver is fitted.
 

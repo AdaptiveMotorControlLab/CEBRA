@@ -491,12 +491,16 @@ class CEBRA(TransformerMixin, BaseEstimator):
         hybrid (bool):
             If ``True``, the model will be trained using both the time-contrastive and the selected
             behavior-constrastive loss functions. |Default:| ``False``.
-        optimizer_kwargs (dict):
+        optimizer_kwargs (tuple):
             Additional optimization parameters. These have the form ``((key, value), (key, value))`` and
             are passed to the PyTorch optimizer specified through the ``optimizer`` argument. Refer to the
             optimizer documentation in :py:mod:`torch.optim` for further information on how to format the
             arguments.
             |Default:| ``(('betas', (0.9, 0.999)), ('eps', 1e-08), ('weight_decay', 0), ('amsgrad', False))``
+        masking_kwargs (tuple):
+            A Tuple of masking types and their corresponding required masking values. The keys are the
+            names of the Mask instances and formatting should be ``((key, value), (key, value))``.
+            |Default:| ``None``.
 
     Example:
 
@@ -570,6 +574,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
             ("weight_decay", 0),
             ("amsgrad", False),
         ),
+        masking_kwargs: Tuple[Tuple[str, Union[float, List[float],
+                                               Tuple[float, ...]]], ...] = None,
     ):
         self.__dict__.update(locals())
 
@@ -895,6 +901,9 @@ class CEBRA(TransformerMixin, BaseEstimator):
         self.device_ = sklearn_utils.check_device(self.device)
         self.offset_ = self._compute_offset()
         dataset, is_multisession = self._prepare_data(X, y)
+
+        if self.masking_kwargs:
+            dataset.set_masks(dict(self.masking_kwargs))
 
         loader, solver_name = self._prepare_loader(
             dataset,

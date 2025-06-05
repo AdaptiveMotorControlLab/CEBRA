@@ -42,5 +42,6 @@ from cebra.solver.regularized import *
 from cebra.solver.schedulers import *
 from cebra.solver.single_session import *
 from cebra.solver.supervised import *
+from cebra.solver.unified_session import *
 
 cebra.registry.add_docstring(__name__)

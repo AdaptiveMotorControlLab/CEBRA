@@ -63,11 +63,21 @@ class SingleSessionDataset(cebra_data.Dataset):
 
     def load_batch(self, index: BatchIndex) -> Batch:
         """Return the data at the specified index location."""
-        return Batch(
-            positive=self[index.positive],
-            negative=self[index.negative],
-            reference=self[index.reference],
-        )
+
+        if hasattr(self, "apply_mask"):
+            # If the dataset has a mask, apply it to the data.
+            batch = Batch(
+                positive=self.apply_mask(self[index.positive]),
+                negative=self.apply_mask(self[index.negative]),
+                reference=self.apply_mask(self[index.reference]),
+            )
+        else:
+            batch = Batch(
+                positive=self[index.positive],
+                negative=self[index.negative],
+                reference=self[index.reference],
+            )
+        return batch
 
 
 @dataclasses.dataclass

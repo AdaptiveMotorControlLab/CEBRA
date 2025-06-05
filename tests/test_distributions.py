@@ -411,3 +411,16 @@ def test_new_delta_normal_with_multidimensional_index(delta, numerical_check):
         pytest.skip(
             "multivariate delta distribution can not accurately sample with the "
             "given parameters. TODO: Add a warning message for these cases.")
+
+
+@pytest.mark.parametrize("time_offset", [1, 5, 10])
+def test_unified_distribution(time_offset):
+    dataset = cebra_datasets.init("demo-continuous-unified")
+    sampler = cebra_distr.UnifiedSampler(dataset, time_offset=time_offset)
+
+    num_samples = 5
+    sample = sampler.sample_prior(num_samples)
+    assert sample.shape == (dataset.num_sessions, num_samples)
+
+    positive = sampler.sample_conditional(sample)
+    assert positive.shape == (dataset.num_sessions, num_samples)

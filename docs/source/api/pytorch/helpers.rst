@@ -35,3 +35,11 @@ Data helpers
 .. automodule:: cebra.data.helper
    :members:
    :show-inheritance:
+
+
+Masking helpers
+----------------
+
+.. automodule:: cebra.data.masking
+   :members:
+   :show-inheritance:
