@@ -270,7 +270,9 @@ nbsphinx_thumbnails = {
     "demo_notebooks/Demo_dandi_NeuroDataReHack_2023":
         "_static/thumbnails/dandi_demo_monkey.png",
     "demo_notebooks/Demo_xCEBRA_RatInABox":
-        "_static/thumbnails/xCEBRA.png"
+        "_static/thumbnails/xCEBRA.png",
+    "demo_notebooks/Demo_hippocampus_unified":
+        "_static/thumbnails/UnifiedCEBRA.png"
 }
 
 rst_prolog = r"""
