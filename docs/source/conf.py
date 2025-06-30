@@ -272,7 +272,9 @@ nbsphinx_thumbnails = {
     "demo_notebooks/Demo_xCEBRA_RatInABox":
         "_static/thumbnails/xCEBRA.png",
     "demo_notebooks/Demo_hippocampus_unified":
-        "_static/thumbnails/UnifiedCEBRA.png"
+        "_static/thumbnails/UnifiedCEBRA.png",
+    "demo_notebooks/Demo_DeepLabCut_CEBRA":
+        "_static/thumbnails/DeepLabCutCEBRA.png"
 }
 
 rst_prolog = r"""
