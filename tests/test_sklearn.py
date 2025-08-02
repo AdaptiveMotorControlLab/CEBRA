@@ -1544,3 +1544,20 @@ def test_last_incomplete_batch_smaller_than_offset():
     model.fit(train.neural, train.continuous)
 
     _ = model.transform(train.neural, batch_size=300)
+
+
+@pytest.mark.parametrize("batch_size,num_negatives", [
+    (None, None),
+    (100, None),
+    (100, 100),
+])
+def test_num_negatives(batch_size, num_negatives):
+    train = cebra.data.TensorDataset(neural=np.random.rand(20111, 100),
+                                     continuous=np.random.rand(20111, 2))
+
+    model = cebra.CEBRA(max_iterations=2,
+                        batch_size=batch_size,
+                        num_negatives=num_negatives,
+                        device="cpu")
+    model.fit(train.neural, train.continuous)
+    _ = model.transform(train.neural)
