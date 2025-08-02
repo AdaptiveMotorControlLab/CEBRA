@@ -288,7 +288,8 @@ class Loader(abc.ABC, cebra.io.HasDevice):
 
 
         Note:
-            From version 0.7.0 onwards, `num_negatives` parameter was added to allow
-            specifying a different number of negative samples compared to the batch size.
+            From version 0.7.0 onwards, specifying the ``num_samples`` and
+            ``num_negatives`` directly was deprecated. Please set these
+            variables via the attributes ``batch_size`` and ``num_negatives``.
         """
         raise NotImplementedError()
