@@ -198,8 +198,11 @@ class DiscreteMultiSessionDataLoader(MultiSessionLoader):
     # Overwrite sampler with the discrete implementation
     # Generalize MultisessionSampler to avoid doing this?
     def __post_init__(self):
+        # NOTE(stes): __post_init__ from superclass is intentionally not called.
         self.sampler = cebra.distributions.DiscreteMultisessionSampler(
             self.dataset)
+        if self.num_negatives is None:
+            self.num_negatives = self.batch_size
 
     @property
     def index(self):
@@ -235,7 +238,9 @@ class UnifiedLoader(ContinuousMultiSessionDataLoader):
         self.sampler = cebra.distributions.UnifiedSampler(
             self.dataset, self.time_offset)
 
-    def get_indices(self, num_samples: int) -> BatchIndex:
+    def get_indices(self,
+                    num_samples: int,
+                    num_negatives: int = None) -> BatchIndex:
         """Sample and return the specified number of indices.
 
         The elements of the returned ``BatchIndex`` will be used to index the
