@@ -160,9 +160,7 @@ class MultiSessionLoader(cebra_data.Loader):
 
     # NOTE(stes): In the longer run, we need to unify the API here; the num_samples argument
     # is not used in the multi-session case, which is different to the single session samples.
-    def get_indices(self,
-                    num_samples: int,
-                    num_negatives: int = None) -> List[BatchIndex]:
+    def get_indices(self) -> List[BatchIndex]:
         ref_idx = self.sampler.sample_prior(self.batch_size)
         neg_idx = self.sampler.sample_prior(self.num_negatives)
         pos_idx, idx, idx_rev = self.sampler.sample_conditional(ref_idx)
@@ -238,9 +236,14 @@ class UnifiedLoader(ContinuousMultiSessionDataLoader):
         self.sampler = cebra.distributions.UnifiedSampler(
             self.dataset, self.time_offset)
 
-    def get_indices(self,
-                    num_samples: int,
-                    num_negatives: int = None) -> BatchIndex:
+        if self.batch_size < 2:
+            raise ValueError("UnifiedLoader does not support batch_size < 2.")
+
+        if self.num_negatives < 2:
+            raise ValueError(
+                "UnifiedLoader does not support num_negatives < 2.")
+
+    def get_indices(self) -> BatchIndex:
         """Sample and return the specified number of indices.
 
         The elements of the returned ``BatchIndex`` will be used to index the
