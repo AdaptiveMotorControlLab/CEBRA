@@ -22,6 +22,7 @@
 """Base classes for datasets and loaders."""
 
 import abc
+from typing import Iterator
 
 import literate_dataclasses as dataclasses
 import torch
@@ -254,19 +255,25 @@ class Loader(abc.ABC, cebra.io.HasDevice):
             raise ValueError(
                 f"Batch size has to be None, or a non-negative value. Got {self.batch_size}."
             )
+        if self.num_negatives is not None and self.num_negatives <= 0:
+            raise ValueError(
+                f"Number of negatives has to be None, or a non-negative value. Got {self.num_negatives}."
+            )
+
+        if self.num_negatives is None:
+            self.num_negatives = self.batch_size
 
     def __len__(self):
         """The number of batches returned when calling as an iterator."""
         return self.num_steps
 
-    def __iter__(self) -> Batch:
+    def __iter__(self) -> Iterator[Batch]:
         for _ in range(len(self)):
-            index = self.get_indices(num_samples=self.batch_size,
-                                     num_negatives=self.num_negatives)
+            index = self.get_indices()
             yield self.dataset.load_batch(index)
 
     @abc.abstractmethod
-    def get_indices(self, num_samples: int, num_negatives: int = None):
+    def get_indices(self):
         """Sample and return the specified number of indices.
 
         The elements of the returned `BatchIndex` will be used to index the
