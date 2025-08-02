@@ -236,10 +236,10 @@ class UnifiedLoader(ContinuousMultiSessionDataLoader):
         self.sampler = cebra.distributions.UnifiedSampler(
             self.dataset, self.time_offset)
 
-        if self.batch_size < 2:
+        if self.batch_size is not None and self.batch_size < 2:
             raise ValueError("UnifiedLoader does not support batch_size < 2.")
 
-        if self.num_negatives < 2:
+        if self.num_negatives is not None and self.num_negatives < 2:
             raise ValueError(
                 "UnifiedLoader does not support num_negatives < 2.")
 
