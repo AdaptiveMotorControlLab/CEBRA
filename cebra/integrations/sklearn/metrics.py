@@ -100,12 +100,12 @@ def infonce_loss(
     solver.to(cebra_model.device_)
     avg_loss = solver.validation(loader=loader, session_id=session_id)
     if correct_by_batchsize:
-        if cebra_model.batch_size is None:
+        if cebra_model.num_negatives_ is None:
             raise ValueError(
                 "Batch size is None, please provide a model with a batch size to correct the InfoNCE."
             )
         else:
-            avg_loss = avg_loss - np.log(cebra_model.batch_size)
+            avg_loss = avg_loss - np.log(cebra_model.num_negatives_)
     return avg_loss
 
 
@@ -211,7 +211,7 @@ def infonce_to_goodness_of_fit(
     Args:
         infonce: The InfoNCE loss, either a single value or an iterable of values.
         model: The trained CEBRA model.
-        batch_size: The batch size used to train the model.
+        batch_size: The batch size (or number of negatives, if different from the batch size) used to train the model.
         num_sessions: The number of sessions used to train the model.
 
     Returns:
@@ -228,19 +228,15 @@ def infonce_to_goodness_of_fit(
             )
         if not hasattr(model, "state_dict_"):
             raise RuntimeError("Fit the CEBRA model first.")
-        if model.batch_size is None:
+        if model.num_negatives_ is None:
             raise ValueError(
                 "Computing the goodness of fit is not yet supported for "
                 "models trained on the full dataset (batchsize = None). ")
-        batch_size = model.batch_size
+        batch_size = model.num_negatives_
         num_sessions = model.num_sessions_
         if num_sessions is None:
             num_sessions = 1
 
-        if model.batch_size is None:
-            raise ValueError(
-                "Computing the goodness of fit is not yet supported for "
-                "models trained on the full dataset (batchsize = None). ")
     else:
         if batch_size is None or num_sessions is None:
             raise ValueError(
