@@ -155,10 +155,14 @@ class MultiSessionLoader(cebra_data.Loader):
         super().__post_init__()
         self.sampler = cebra.distributions.MultisessionSampler(
             self.dataset, self.time_offset)
+        if self.num_negatives is None:
+            self.num_negatives = self.batch_size
 
-    def get_indices(self, num_samples: int) -> List[BatchIndex]:
+    # NOTE(stes): In the longer run, we need to unify the API here; the num_samples argument
+    # is not used in the multi-session case, which is different to the single session samples.
+    def get_indices(self, num_samples) -> List[BatchIndex]:
         ref_idx = self.sampler.sample_prior(self.batch_size)
-        neg_idx = self.sampler.sample_prior(self.batch_size)
+        neg_idx = self.sampler.sample_prior(self.num_negatives)
         pos_idx, idx, idx_rev = self.sampler.sample_conditional(ref_idx)
 
         ref_idx = torch.from_numpy(ref_idx)
@@ -251,7 +255,7 @@ class UnifiedLoader(ContinuousMultiSessionDataLoader):
             Batch indices for the reference, positive and negative samples.
         """
         ref_idx = self.sampler.sample_prior(self.batch_size)
-        neg_idx = self.sampler.sample_prior(self.batch_size)
+        neg_idx = self.sampler.sample_prior(self.num_negatives)
 
         pos_idx = self.sampler.sample_conditional(ref_idx)
 
