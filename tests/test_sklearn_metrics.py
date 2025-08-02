@@ -482,14 +482,22 @@ def test_goodness_of_fit_history(seed):
 
 
 @pytest.mark.parametrize("seed", [42, 24, 10])
-def test_infonce_to_goodness_of_fit(seed):
+@pytest.mark.parametrize("batch_size", [100, 200])
+@pytest.mark.parametrize("num_negatives", [None, 100, 200])
+def test_infonce_to_goodness_of_fit(seed, batch_size, num_negatives):
     """Test the conversion from InfoNCE loss to goodness of fit metric."""
+    nats_to_bits = np.log2(np.e)
+
     # Test with model
     cebra_model = cebra_sklearn_cebra.CEBRA(
         model_architecture="offset10-model",
         max_iterations=5,
-        batch_size=128,
+        batch_size=batch_size,
+        num_negatives=num_negatives,
     )
+    if num_negatives is None:
+        num_negatives = batch_size
+
     generator = torch.Generator().manual_seed(seed)
     X = torch.rand(1000, 50, dtype=torch.float32, generator=generator)
     cebra_model.fit(X)
@@ -498,6 +506,7 @@ def test_infonce_to_goodness_of_fit(seed):
     gof = cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0,
                                                            model=cebra_model)
     assert isinstance(gof, float)
+    assert np.isclose(gof, (np.log(num_negatives) - 1.0) * nats_to_bits)
 
     # Test array of values
     infonce_values = np.array([1.0, 2.0, 3.0])
@@ -505,12 +514,14 @@ def test_infonce_to_goodness_of_fit(seed):
         infonce_values, model=cebra_model)
     assert isinstance(gof_array, np.ndarray)
     assert gof_array.shape == infonce_values.shape
+    assert np.allclose(gof_array,
+                       (np.log(num_negatives) - infonce_values) * nats_to_bits)
 
     # Test with explicit batch_size and num_sessions
-    gof = cebra_sklearn_metrics.infonce_to_goodness_of_fit(1.0,
-                                                           batch_size=128,
-                                                           num_sessions=1)
+    gof = cebra_sklearn_metrics.infonce_to_goodness_of_fit(
+        1.0, batch_size=batch_size, num_sessions=1)
     assert isinstance(gof, float)
+    assert np.isclose(gof, (np.log(batch_size) - 1.0) * nats_to_bits)
 
     # Test error cases
     with pytest.raises(ValueError, match="batch_size.*should not be provided"):
