@@ -155,10 +155,14 @@ class MultiSessionLoader(cebra_data.Loader):
         super().__post_init__()
         self.sampler = cebra.distributions.MultisessionSampler(
             self.dataset, self.time_offset)
+        if self.num_negatives is None:
+            self.num_negatives = self.batch_size
 
-    def get_indices(self, num_samples: int) -> List[BatchIndex]:
+    # NOTE(stes): In the longer run, we need to unify the API here; the num_samples argument
+    # is not used in the multi-session case, which is different to the single session samples.
+    def get_indices(self) -> List[BatchIndex]:
         ref_idx = self.sampler.sample_prior(self.batch_size)
-        neg_idx = self.sampler.sample_prior(self.batch_size)
+        neg_idx = self.sampler.sample_prior(self.num_negatives)
         pos_idx, idx, idx_rev = self.sampler.sample_conditional(ref_idx)
 
         ref_idx = torch.from_numpy(ref_idx)
@@ -192,8 +196,11 @@ class DiscreteMultiSessionDataLoader(MultiSessionLoader):
     # Overwrite sampler with the discrete implementation
     # Generalize MultisessionSampler to avoid doing this?
     def __post_init__(self):
+        # NOTE(stes): __post_init__ from superclass is intentionally not called.
         self.sampler = cebra.distributions.DiscreteMultisessionSampler(
             self.dataset)
+        if self.num_negatives is None:
+            self.num_negatives = self.batch_size
 
     @property
     def index(self):
@@ -229,7 +236,14 @@ class UnifiedLoader(ContinuousMultiSessionDataLoader):
         self.sampler = cebra.distributions.UnifiedSampler(
             self.dataset, self.time_offset)
 
-    def get_indices(self, num_samples: int) -> BatchIndex:
+        if self.batch_size is not None and self.batch_size < 2:
+            raise ValueError("UnifiedLoader does not support batch_size < 2.")
+
+        if self.num_negatives is not None and self.num_negatives < 2:
+            raise ValueError(
+                "UnifiedLoader does not support num_negatives < 2.")
+
+    def get_indices(self) -> BatchIndex:
         """Sample and return the specified number of indices.
 
         The elements of the returned ``BatchIndex`` will be used to index the
@@ -251,7 +265,7 @@ class UnifiedLoader(ContinuousMultiSessionDataLoader):
             Batch indices for the reference, positive and negative samples.
         """
         ref_idx = self.sampler.sample_prior(self.batch_size)
-        neg_idx = self.sampler.sample_prior(self.batch_size)
+        neg_idx = self.sampler.sample_prior(self.num_negatives)
 
         pos_idx = self.sampler.sample_conditional(ref_idx)
 

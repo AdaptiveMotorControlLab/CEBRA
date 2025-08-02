@@ -29,6 +29,43 @@ import cebra.io
 
 BATCH_SIZE = 32
 NUMS_NEURAL = [3, 4, 5]
+SINGLE_SESSION_LOADERS = [
+    ("demo-discrete", cebra.data.DiscreteDataLoader),
+    ("demo-continuous", cebra.data.ContinuousDataLoader),
+    ("demo-mixed", cebra.data.MixedDataLoader),
+]
+MULTI_SESSION_LOADERS = [
+    ("demo-continuous-multisession",
+     cebra.data.ContinuousMultiSessionDataLoader),
+    ("demo-discrete-multisession", cebra.data.DiscreteMultiSessionDataLoader),
+]
+LOADERS = SINGLE_SESSION_LOADERS + MULTI_SESSION_LOADERS + [
+    ("demo-continuous-unified", cebra.data.UnifiedLoader),
+]
+
+
+def _setup_functional_loader_test(data_name, loader_initfunc, device,
+                                  batch_size, num_negatives):
+    data = cebra.datasets.init(data_name)
+    data.to(device)
+    if num_negatives == "do not pass":
+        loader = loader_initfunc(data, num_steps=10, batch_size=batch_size)
+    else:
+        loader = loader_initfunc(data,
+                                 num_steps=10,
+                                 batch_size=batch_size,
+                                 num_negatives=num_negatives)
+
+    if num_negatives is None or num_negatives == "do not pass":
+        assert loader.num_negatives == batch_size
+        expected_num_negatives = batch_size
+    else:
+        assert loader.num_negatives == num_negatives
+        expected_num_negatives = num_negatives
+
+    _assert_dataset_on_correct_device(loader, device)
+
+    return loader, expected_num_negatives
 
 
 class LoadSpeed:
@@ -135,16 +172,7 @@ def _assert_device(first, second):
 
 
 @_util.parametrize_device
-@pytest.mark.parametrize(
-    "data_name, loader_initfunc",
-    [
-        ("demo-discrete", cebra.data.DiscreteDataLoader),
-        ("demo-continuous", cebra.data.ContinuousDataLoader),
-        ("demo-mixed", cebra.data.MixedDataLoader),
-        ("demo-continuous-multisession", cebra.data.MultiSessionLoader),
-        ("demo-continuous-unified", cebra.data.UnifiedLoader),
-    ],
-)
+@pytest.mark.parametrize("data_name, loader_initfunc", LOADERS)
 def test_device(data_name, loader_initfunc, device):
     if not torch.cuda.is_available():
         pytest.skip("Test only possible with CUDA.")
@@ -158,8 +186,7 @@ def test_device(data_name, loader_initfunc, device):
     assert loader.dataset == dataset
     _assert_device(loader.device, device)
     _assert_device(loader.dataset.device, device)
-
-    _assert_device(loader.get_indices(10).reference.device, device)
+    _assert_device(loader.get_indices().reference.device, device)
 
 
 @_util.parametrize_device
@@ -206,44 +233,34 @@ def _check_attributes(obj, is_list=False):
 
 
 @_util.parametrize_device
-@pytest.mark.parametrize(
-    "data_name, loader_initfunc",
-    [
-        ("demo-discrete", cebra.data.DiscreteDataLoader),
-        ("demo-continuous", cebra.data.ContinuousDataLoader),
-        ("demo-mixed", cebra.data.MixedDataLoader),
-    ],
-)
-def test_singlesession_loader(data_name, loader_initfunc, device):
-    data = cebra.datasets.init(data_name)
-    data.to(device)
-    loader = loader_initfunc(data, num_steps=10, batch_size=BATCH_SIZE)
-    _assert_dataset_on_correct_device(loader, device)
+@pytest.mark.parametrize("data_name, loader_initfunc", SINGLE_SESSION_LOADERS)
+@pytest.mark.parametrize("batch_size", [1, 32])
+@pytest.mark.parametrize("num_negatives", [None, 1, 32, "do not pass"])
+def test_singlesession_loader(data_name, loader_initfunc, device, batch_size,
+                              num_negatives):
 
-    index = loader.get_indices(100)
+    loader, expected_num_negatives = _setup_functional_loader_test(
+        data_name, loader_initfunc, device, batch_size, num_negatives)
+
+    index = loader.get_indices()
     _check_attributes(index)
 
     for batch in loader:
         _check_attributes(batch)
-        assert len(batch.positive) == BATCH_SIZE
+        assert len(batch.positive) == batch_size
+        assert len(batch.reference) == batch_size
+        assert len(batch.negative) == expected_num_negatives
 
 
 @_util.parametrize_device
-@pytest.mark.parametrize(
-    "data_name, loader_initfunc",
-    [
-        ("demo-continuous-multisession",
-         cebra.data.ContinuousMultiSessionDataLoader),
-        ("demo-discrete-multisession",
-         cebra.data.DiscreteMultiSessionDataLoader),
-    ],
-)
-def test_multisession_loader(data_name, loader_initfunc, device):
-    data = cebra.datasets.init(data_name)
-    data.to(device)
-    loader = loader_initfunc(data, num_steps=10, batch_size=BATCH_SIZE)
+@pytest.mark.parametrize("data_name, loader_initfunc", MULTI_SESSION_LOADERS)
+@pytest.mark.parametrize("batch_size", [1, 32])
+@pytest.mark.parametrize("num_negatives", [None, 1, 32, 33, "do not pass"])
+def test_multisession_loader(data_name, loader_initfunc, device, batch_size,
+                             num_negatives):
 
-    _assert_dataset_on_correct_device(loader, device)
+    loader, expected_num_negatives = _setup_functional_loader_test(
+        data_name, loader_initfunc, device, batch_size, num_negatives)
 
     # Check the sampler
     assert hasattr(loader, "sampler")
@@ -260,7 +277,7 @@ def test_multisession_loader(data_name, loader_initfunc, device):
 
     batch = next(iter(loader))
     for i, n_neurons in enumerate(NUMS_NEURAL):
-        assert batch[i].reference.shape == (BATCH_SIZE, n_neurons, 10)
+        assert batch[i].reference.shape == (batch_size, n_neurons, 10)
 
     def _mix(array, idx):
         shape = array.shape
@@ -276,18 +293,18 @@ def test_multisession_loader(data_name, loader_initfunc, device):
             dim=0).repeat(1, 1, feature_dim)
 
     dummy_prediction = _process(batch, feature_dim=6)
-    assert dummy_prediction.shape == (3, BATCH_SIZE, 6)
+    assert dummy_prediction.shape == (3, batch_size, 6)
     _mix(dummy_prediction, batch[0].index)
 
-    index = loader.get_indices(100)
-    #print(index[0])
-    #print(type(index))
+    index = loader.get_indices()
     _check_attributes(index, is_list=False)
 
     for batch in loader:
         _check_attributes(batch, is_list=True)
         for session_batch in batch:
-            assert len(session_batch.positive) == BATCH_SIZE
+            assert len(session_batch.positive) == batch_size
+            assert len(session_batch.reference) == batch_size
+            assert len(session_batch.negative) == expected_num_negatives
 
 
 @_util.parametrize_device
@@ -297,12 +314,14 @@ def test_multisession_loader(data_name, loader_initfunc, device):
         ("demo-continuous-unified", cebra.data.UnifiedLoader),
     ],
 )
-def test_unified_loader(data_name, loader_initfunc, device):
-    data = cebra.datasets.init(data_name)
-    data.to(device)
-    loader = loader_initfunc(data, num_steps=10, batch_size=BATCH_SIZE)
+# TODO(stes): unified sampler breaks for batch_size = 1; tested further below
+@pytest.mark.parametrize("batch_size", [2, 32, 100])
+@pytest.mark.parametrize("num_negatives", [None, 2, 32, 33, "do not pass"])
+def test_unified_loader_sampler(data_name, loader_initfunc, device, batch_size,
+                                num_negatives):
 
-    _assert_dataset_on_correct_device(loader, device)
+    loader, expected_num_negatives = _setup_functional_loader_test(
+        data_name, loader_initfunc, device, batch_size, num_negatives)
 
     # Check the sampler
     num_samples = 100
@@ -334,11 +353,38 @@ def test_unified_loader(data_name, loader_initfunc, device):
         pos_idx = loader.sampler.sample_conditional(all_ref_idx)
         assert pos_idx.shape == (len(NUMS_NEURAL), num_samples)
 
+
+@_util.parametrize_device
+@pytest.mark.parametrize(
+    "data_name, loader_initfunc",
+    [
+        ("demo-continuous-unified", cebra.data.UnifiedLoader),
+    ],
+)
+# TODO(stes): unified sampler breaks for batch_size = 1
+@pytest.mark.parametrize("batch_size", [1, 32, 100])
+@pytest.mark.parametrize("num_negatives", [None, 1, 32, 33, "do not pass"])
+def test_unified_loader(data_name, loader_initfunc, device, batch_size,
+                        num_negatives):
+
+    if batch_size == 1 or num_negatives == 1:
+        with pytest.raises(ValueError,
+                           match=r"UnifiedLoader does not support .* < 2"):
+            _setup_functional_loader_test(data_name, loader_initfunc, device,
+                                          batch_size, num_negatives)
+        pytest.skip(
+            "UnifiedLoader does not support batch_size < 2 or num_negatives < 2."
+        )
+
+    loader, expected_num_negatives = _setup_functional_loader_test(
+        data_name, loader_initfunc, device, batch_size, num_negatives)
+
     # Check the batch
     batch = next(iter(loader))
-    assert batch.reference.shape == (BATCH_SIZE, sum(NUMS_NEURAL), 10)
-    assert batch.positive.shape == (BATCH_SIZE, sum(NUMS_NEURAL), 10)
-    assert batch.negative.shape == (BATCH_SIZE, sum(NUMS_NEURAL), 10)
+    assert batch.reference.shape == (batch_size, sum(NUMS_NEURAL), 10)
+    assert batch.positive.shape == (batch_size, sum(NUMS_NEURAL), 10)
+    assert batch.negative.shape == (expected_num_negatives, sum(NUMS_NEURAL),
+                                    10)
 
-    index = loader.get_indices(100)
+    index = loader.get_indices()
     _check_attributes(index, is_list=False)
