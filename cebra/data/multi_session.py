@@ -160,7 +160,9 @@ class MultiSessionLoader(cebra_data.Loader):
 
     # NOTE(stes): In the longer run, we need to unify the API here; the num_samples argument
     # is not used in the multi-session case, which is different to the single session samples.
-    def get_indices(self, num_samples) -> List[BatchIndex]:
+    def get_indices(self,
+                    num_samples: int,
+                    num_negatives: int = None) -> List[BatchIndex]:
         ref_idx = self.sampler.sample_prior(self.batch_size)
         neg_idx = self.sampler.sample_prior(self.num_negatives)
         pos_idx, idx, idx_rev = self.sampler.sample_conditional(ref_idx)
