@@ -242,8 +242,8 @@ class Loader(abc.ABC, cebra.io.HasDevice):
 
     num_negatives: int = dataclasses.field(
         default=None,
-        doc="""The number of negative samples to draw for each reference.
-                                           If not specified, the batch size is used."""
+        doc=("The number of negative samples to draw for each reference. "
+             "If not specified, the batch size is used."),
     )
 
     def __post_init__(self):
@@ -273,23 +273,23 @@ class Loader(abc.ABC, cebra.io.HasDevice):
             yield self.dataset.load_batch(index)
 
     @abc.abstractmethod
-    def get_indices(self):
+    def get_indices(self, num_samples: int = None):
         """Sample and return the specified number of indices.
 
         The elements of the returned `BatchIndex` will be used to index the
         `dataset` of this data loader.
 
         Args:
-            num_samples: The size of each of the reference, positive and
-                negative samples.
+            num_samples: Deprecated. Use ``batch_size`` on the instance level
+                instead.
 
         Returns:
             batch indices for the reference, positive and negative sample.
 
-
         Note:
-            From version 0.7.0 onwards, specifying the ``num_samples`` and
-            ``num_negatives`` directly was deprecated. Please set these
-            variables via the attributes ``batch_size`` and ``num_negatives``.
+            From version 0.7.0 onwards, specifying the ``num_samples``
+            directly is deprecated and will be removed in version 0.8.0.
+            Please set ``batch_size`` and ``num_negatives`` on the instance
+            level instead.
         """
         raise NotImplementedError()
