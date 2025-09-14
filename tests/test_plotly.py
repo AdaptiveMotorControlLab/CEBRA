@@ -31,7 +31,7 @@ import cebra.integrations.sklearn.cebra as cebra_sklearn_cebra
 
 @pytest.mark.parametrize("cmap", ["viridis", "plasma", "inferno", "magma"])
 def test_colorscale(cmap):
-    cmap = matplotlib.cm.get_cmap(cmap)
+    cmap = matplotlib.colormaps.get_cmap(cmap)
     colorscale = cebra_plotly._convert_cmap2colorscale(cmap)
     assert isinstance(colorscale, list)
 
