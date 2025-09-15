@@ -87,7 +87,7 @@ class _EmbeddingInteractivePlot(_EmbeddingPlot):
         Returns:
             colorscale: List of scaled colors to plot the embeddings
         """
-        colorscale = _convert_cmap2colorscale(matplotlib.cm.get_cmap(cmap))
+        colorscale = _convert_cmap2colorscale(matplotlib.colormaps.get_cmap(cmap))
 
         return colorscale
 

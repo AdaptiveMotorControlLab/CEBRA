@@ -1235,7 +1235,7 @@ def compare_models(
 
     # check the color of the traces
     if color is None:
-        cebra_map = plt.get_cmap(cmap)
+        cebra_map = matplotlib.colormaps.get_cmap(cmap)
         colors = matplotlib.colors.ListedColormap(
             cebra_map.resampled(n_models)(np.arange(n_models))).colors
     else:
