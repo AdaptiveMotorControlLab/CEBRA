@@ -28,7 +28,7 @@ from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
 import numpy as np
 import numpy.typing as npt
 import packaging.version
-import pkg_resources
+import importlib.metadata
 import sklearn
 import sklearn.utils.validation as sklearn_utils_validation
 import torch
@@ -1397,7 +1397,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
                             'numpy_version':
                                 np.__version__,
                             'sklearn_version':
-                                pkg_resources.get_distribution("scikit-learn"
+                                importlib.metadata.distribution("scikit-learn"
                                                               ).version
                         }
                     }, filename)
