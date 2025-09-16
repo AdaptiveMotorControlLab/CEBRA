@@ -25,7 +25,7 @@ import itertools
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pkg_resources
+import packaging.version
 import pytest
 import torch
 from sklearn.exceptions import NotFittedError
@@ -190,8 +190,8 @@ def test_compare_models_with_different_versions(matplotlib_version):
     # minimum version of matplotlib
     minimum_version = "3.6"
 
-    if pkg_resources.parse_version(
-            matplotlib_version) < pkg_resources.parse_version(minimum_version):
+    if packaging.version.parse(
+            matplotlib_version) < packaging.version.parse(minimum_version):
         with pytest.raises(ImportError):
             cebra_plot.compare_models(models=fitted_models,
                                       patched_version=matplotlib_version)

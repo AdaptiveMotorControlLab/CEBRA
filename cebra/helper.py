@@ -32,7 +32,7 @@ from typing import List, Union
 
 import numpy as np
 import numpy.typing as npt
-import pkg_resources
+import packaging.version
 import requests
 import torch
 
@@ -75,8 +75,8 @@ def download_file_from_zip_url(url, *, file):
 
 def _is_mps_availabe(torch):
     available = False
-    if pkg_resources.parse_version(
-            torch.__version__) >= pkg_resources.parse_version("1.12"):
+    if packaging.version.parse(
+            torch.__version__) >= packaging.version.parse("1.12"):
         if torch.backends.mps.is_available():
             if torch.backends.mps.is_built():
                 available = True
@@ -159,17 +159,17 @@ def requires_package_version(module, version: str):
             the required ``version``.
     """
 
-    required_version = pkg_resources.parse_version(version)
+    required_version = packaging.version.parse(version)
 
     def _requires_package_version(function):
 
         @wraps(function)
         def wrapper(*args, patched_version=None, **kwargs):
             if patched_version is not None:
-                installed_version = pkg_resources.parse_version(
+                installed_version = packaging.version.parse(
                     patched_version)  # Use the patched version if provided
             else:
-                installed_version = pkg_resources.parse_version(
+                installed_version = packaging.version.parse(
                     module.__version__)
 
             if installed_version < required_version:

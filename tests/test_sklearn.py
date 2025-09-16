@@ -26,7 +26,7 @@ import warnings
 import _util
 import _utils_deprecated
 import numpy as np
-import pkg_resources
+import packaging.version
 import pytest
 import sklearn.utils.estimator_checks
 import torch
@@ -1320,8 +1320,8 @@ def test_check_device():
     with pytest.raises(ValueError):
         cebra_sklearn_utils.check_device(device)
 
-    if pkg_resources.parse_version(
-            torch.__version__) >= pkg_resources.parse_version("1.12"):
+    if packaging.version.parse(
+            torch.__version__) >= packaging.version.parse("1.12"):
 
         device = "mps"
         torch.backends.mps.is_available = lambda: True
