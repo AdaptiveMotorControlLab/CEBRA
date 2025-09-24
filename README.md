@@ -35,7 +35,12 @@ To receive updates on code releases, please 👀 watch or ⭐️ star this repos
 It can jointly use behavioral and neural data in a hypothesis- or discovery-driven manner to produce consistent, high-performance latent spaces. While it is not specific to neural and behavioral data, this is the first domain we used the tool in. This application case is to obtain a consistent representation of latent variables driving activity and behavior, improving decoding accuracy of behavioral variables over standard supervised learning, and obtaining embeddings which are robust to domain shifts.
 
 
-# Reference
+# References
+
+- 📄 **Publication April 2025**:
+  [Time-series attribution maps with regularized contrastive learning.](https://arxiv.org/abs/2502.12977)
+Steffen Schneider, Rodrigo González Laiz, Anastasiia Filipova, Markus Frey, Mackenzie Weygandt Mathis. AISTATS 2025.
+
 
 - 📄 **Publication May 2023**:
   [Learnable latent embeddings for joint behavioural and neural analysis.](https://doi.org/10.1038/s41586-023-06031-6)
