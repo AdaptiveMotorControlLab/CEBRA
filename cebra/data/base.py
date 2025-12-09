@@ -22,6 +22,7 @@
 """Base classes for datasets and loaders."""
 
 import abc
+from typing import List
 
 import literate_dataclasses as dataclasses
 import torch
@@ -145,14 +146,21 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
 
         return index[:, None] + offset[None, :]
 
-    def expand_index_in_trial(self, index, trial_ids, trial_borders):
-        """When the neural/behavior is in discrete trial, e.g) Monkey Reaching Dataset
-        the slice should be defined within the trial.
-        trial_ids is in size of a length of self.index and indicate the trial id of the index belong to.
-        trial_borders is in size of a length of self.idnex and indicate the border of each trial.
+    def expand_index_in_trial(self, index: torch.Tensor, trial_ids: List[int],
+                              trial_borders: List[int]) -> torch.Tensor:
+        """
+        
+        Note: 
+            When the neural/behavior is in discrete trial, e.g) Monkey Reaching Dataset
+            the slice should be defined within the trial.
+        
+        Args: 
+            index: A one-dimensional tensor of type long containing indices
+                to select from the dataset.
+            trial_ids: Indicate the trial id to which the index belong to, 
+                size of ``len(self.index)``.
+            trial_borders: Indicate the border of each trial, size of ``len(self.index)``.
 
-        Todo:
-            - rewrite
         """
 
         # TODO(stes) potential room for speed improvements by pre-allocating these tensors/
@@ -160,16 +168,59 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
         offset = torch.arange(-self.offset.left,
                               self.offset.right,
                               device=index.device)
-        index = torch.tensor(
-            [
-                torch.clamp(
-                    i,
-                    trial_borders[trial_ids[i]] + self.offset.left,
-                    trial_borders[trial_ids[i] + 1] - self.offset.right,
-                ) for i in index
-            ],
-            device=self.device,
-        )
+
+        index = torch.tensor([
+            torch.clamp(
+                i,
+                trial_borders[trial_ids[i]] + self.offset.left,
+                trial_borders[trial_ids[i] + 1] - self.offset.right,
+            ) for i in index
+        ],
+                             device=index.device)
+
+        print(index)
+        return index[:, None] + offset[None, :]
+
+    def expand_index_in_trial_padding(self, index: torch.Tensor,
+                                      trial_ids: List[int],
+                                      trial_borders: List[int]) -> torch.Tensor:
+        offset = torch.arange(-self.offset.left,
+                              self.offset.right,
+                              device=index.device)
+
+        base = index[:, None] + offset[None, :]
+
+        trial_borders = torch.tensor(trial_borders, device=index.device)
+        trial_ids = torch.tensor(trial_ids, device=index.device)
+
+        trial_start = trial_borders[trial_ids[index]]
+        trial_end = trial_borders[trial_ids[index] + 1] - 1
+
+        return torch.minimum(torch.maximum(base, trial_start[:, None]),
+                             trial_end[:, None])
+
+    def expand_index_forward(self, index: torch.Tensor) -> torch.Tensor:
+        """Expand the index to include the offset in the forward direction only.
+        
+        Args:
+            index: A one-dimensional tensor of type long containing indices
+                to select from the dataset.
+        
+        Returns:
+            An expanded index of shape ``(len(index), len(self.offset))``.
+            
+        
+        Note:
+            Requires the :py:attr:`offset` to be set.
+            
+        """
+        offset = torch.arange(self.offset.left + self.offset.right + 1,
+                              device=index.device)
+
+        index = torch.clamp(
+            index, 0,
+            len(self) - (self.offset.right + self.offset.left + 1))
+
         return index[:, None] + offset[None, :]
 
     @abc.abstractmethod

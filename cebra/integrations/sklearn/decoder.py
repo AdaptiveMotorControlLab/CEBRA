@@ -30,6 +30,10 @@ import sklearn
 import sklearn.base
 import sklearn.neighbors
 import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader
+from torch.utils.data import TensorDataset
 
 import cebra.helper
 
@@ -248,3 +252,81 @@ class L1LinearRegressor(Decoder):
         """
         for alpha in [0.001, 0.01, 0.1, 1, 10, 100]:
             yield dict(alpha=alpha)
+
+
+class MLPDecoder(Decoder):
+    """Decoder implementing a simple MLP in PyTorch."""
+
+    def __init__(
+        self,
+        model_type: str = "two_layers",  # "single_linear_layer" or "two_layers"
+        lr: float = 1e-3,
+        batch_size: int = 500,
+        num_epochs: int = 20,
+        device: str = "cuda",
+    ):
+        self.model_type = model_type
+        self.lr = lr
+        self.batch_size = batch_size
+        self.num_epochs = num_epochs
+        self.device = device if torch.cuda.is_available() else "cpu"
+
+    def _build_model(self, input_dim: int, output_dim: int):
+        if self.model_type == "single_linear_layer":  # Single-layer linear model
+            return nn.Linear(input_dim, output_dim)
+        elif self.model_type == "two_layers":  # Two-layer MLP with GELU non-linearity
+            return nn.Sequential(
+                nn.Linear(input_dim, 32),
+                nn.GELU(),
+                nn.Linear(32, output_dim),
+            )
+        else:
+            raise ValueError(f"Unknown hidden type: {self.hidden}")
+
+    def fit(
+        self,
+        X: Union[npt.NDArray, torch.Tensor],
+        y: Union[npt.NDArray, torch.Tensor],
+    ) -> "MLPDecoder":
+        if isinstance(X, np.ndarray):
+            X = torch.from_numpy(X).float()
+        if isinstance(y, np.ndarray):
+            y = torch.from_numpy(y).float()
+        if y.ndim == 1:
+            y = y[:, None]
+
+        self.input_dim = X.shape[1]
+        self.output_dim = y.shape[1]
+
+        self.model_ = self._build_model(self.input_dim,
+                                        self.output_dim).to(self.device)
+        optimizer = optim.Adam(self.model_.parameters(), lr=self.lr)
+        criterion = nn.MSELoss()
+
+        dataset = TensorDataset(X.to(self.device), y.to(self.device))
+        loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+
+        self.model_.train()
+        for _ in range(self.num_epochs):
+            for xb, yb in loader:
+                optimizer.zero_grad()
+                pred = self.model_(xb)
+                loss = criterion(pred, yb)
+                loss.backward()
+                optimizer.step()
+
+        return self
+
+    def predict(self, X: Union[npt.NDArray, torch.Tensor]) -> npt.NDArray:
+        if isinstance(X, np.ndarray):
+            X = torch.from_numpy(X).float()
+        self.model_.eval()
+        with torch.no_grad():
+            pred = self.model_(X.to(self.device)).cpu().numpy()
+        return pred
+
+    @staticmethod
+    def iter_hyperparams() -> Generator[dict, None, None]:
+        for lr in [1e-2, 1e-3]:
+            for hidden in ["single", "two"]:
+                yield dict(lr=lr, hidden=hidden)

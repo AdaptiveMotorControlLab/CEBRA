@@ -15,14 +15,14 @@
 #
 import abc
 import random
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 
 __all__ = [
     "MaskedMixin", "Mask", "RandomNeuronMask", "RandomTimestepMask",
-    "NeuronBlockMask", "TimeBlockMask"
+    "NeuronBlockMask", "TimeBlockMask", "SessionBlockMask"
 ]
 
 
@@ -37,29 +37,118 @@ class MaskedMixin:
     """
     _masks = []  # a list of Mask instances
 
-    def set_masks(self, masking: Optional[Dict[str, float]] = None) -> None:
-        """Set the mask type and probability for the dataset.
+    def set_masks(
+        self,
+        masking: Optional[Union[
+            Dict[str, Any],
+            List[Union[Tuple[str, Any], Dict[str, Any]]],
+        ]] = None,
+        apply_multiple_masks: bool = False,
+        fill_with_noise: bool = False,
+    ) -> None:
+        """Set the mask types and parameters for the dataset.
+
+        Supports two input formats:
+        - Dict[str, params]: One instance per mask type; replaces any previous
+          instance of the same class (backward compatible).
+        - List[ (name, params) | {name: params} ]: Adds one instance per entry,
+          allowing multiple instances of the same mask with different params.
 
         Args:
-            masking (Dict[str, float]): A dictionary of masking types and their
-                corresponding required masking values. The keys are the names
-                of the Mask instances.
+            masking: Mask configuration. See formats above.
+            apply_multiple_masks: When True, `apply_mask` will randomly pick a
+                number of configured masks and apply them all in a single call
+                (combined). When False, a single mask is sampled per call
+                (default/legacy behavior).
+            fill_with_noise: When True, masked positions are filled with Gaussian
+                noise sampled from per-neuron mean and std (computed from unmasked
+                values). When False, masked positions are zeroed (default/legacy behavior).
 
         Note:
-            By default, no masks are applied.
+            - By default, no masks are applied.
+            - When using the dict format, existing instances of the same mask
+              class are replaced. When using the list format, entries are
+              appended, allowing duplicates with different parameters.
         """
-        if masking is not None:
-            for mask_key in masking:
+        # Store strategy
+        self._apply_multiple_masks = bool(apply_multiple_masks)
+        self._fill_with_noise = bool(fill_with_noise)
+
+        if masking is None:
+            return
+
+        # Helper to resolve and create a mask instance by name and params
+        def _create_mask(mask_key: str, params: Any) -> None:
+            # First try exact match
+            if mask_key in globals():
+                cls = globals()[mask_key]
+                self._masks.append(cls(params))
+                return
+
+            # Try fuzzy match: find mask classes that start with mask_key
+            # e.g., "SessionBlockMask2" -> match "SessionBlockMask"
+            for available_mask in __all__:
+                if available_mask == "MaskedMixin" or available_mask == "Mask":
+                    continue
+                if mask_key.startswith(available_mask):
+                    cls = globals()[available_mask]
+                    self._masks.append(cls(params))
+                    return
+
+            # No match found
+            raise ValueError(
+                f"Mask type {mask_key} not supported. Supported types are {__all__}"
+            )
+
+        # Dict mode: replace-by-class semantics (backward compatible)
+        if isinstance(masking, dict):
+            for mask_key, params in masking.items():
+                # Resolve the actual mask class (supports fuzzy matching)
+                cls = None
                 if mask_key in globals():
                     cls = globals()[mask_key]
-                    self._masks = [
-                        m for m in self._masks if not isinstance(m, cls)
-                    ]
-                    self._masks.append(cls(masking[mask_key]))
+                else:
+                    # Try fuzzy match
+                    for available_mask in __all__:
+                        if available_mask == "MaskedMixin" or available_mask == "Mask":
+                            continue
+                        if mask_key.startswith(available_mask):
+                            cls = globals()[available_mask]
+                            break
+
+                if cls is None:
+                    raise ValueError(
+                        f"Mask type {mask_key} not supported. Supported types are {__all__}"
+                    )
+
+                # Remove previous instances of this class, then add one
+                self._masks = [m for m in self._masks if not isinstance(m, cls)]
+                _create_mask(mask_key, params)
+            return
+
+        # List mode: append semantics; allow duplicates of the same mask class
+        if isinstance(masking, list):
+            for entry in masking:
+                if isinstance(entry, tuple) and len(entry) == 2:
+                    mask_key, params = entry
+                    _create_mask(mask_key, params)
+                elif isinstance(entry, dict):
+                    if len(entry) != 1:
+                        raise ValueError(
+                            "Each dict entry in the masking list must have exactly one key."
+                        )
+                    mask_key, params = next(iter(entry.items()))
+                    _create_mask(mask_key, params)
                 else:
                     raise ValueError(
-                        f"Mask type {mask_key} not supported. Supported types are {masking.keys()}"
+                        "List masking entries must be either (name, params) tuples or {name: params} dicts."
                     )
+            return
+
+        # Unsupported type
+        raise ValueError(
+            "masking must be either a dict{name: params} or a list of (name, params)/{name: params} entries."
+        )
 
     def apply_mask(self,
                    data: torch.Tensor,
@@ -94,17 +183,53 @@ class MaskedMixin:
         if not self._masks:
             return data
 
-        sampled_mask = random.choice(self._masks)
-        mask = sampled_mask.apply_mask(data)
+        # Compute the mask to apply (single or combined)
+        if getattr(self, "_apply_multiple_masks", False):
+            # Randomly choose how many masks to apply (at least one, at most all)
+            num_to_apply = random.randint(1, len(self._masks))
+            selected_masks = random.sample(self._masks, num_to_apply)
 
-        num_chunks = (data.shape[0] + chunk_size -
-                      1) // chunk_size  # Compute number of chunks
+            # Start with all-ones mask and combine multiplicatively (logical AND)
+            mask = torch.ones_like(data, dtype=torch.int)
+            for m in selected_masks:
+                mask = mask.mul(m.apply_mask(data))
+        else:
+            sampled_mask = random.choice(self._masks)
+            mask = sampled_mask.apply_mask(data)
 
-        for i in range(num_chunks):
-            start, end = i * chunk_size, min((i + 1) * chunk_size,
-                                             data.shape[0])
-            data[start:end].mul_(
-                mask[start:end])  # apply mask in-place to save memory
+        # Apply masking strategy: zeros or Gaussian noise
+        if getattr(self, "_fill_with_noise", False):
+            # Fill masked positions with per-neuron Gaussian noise
+            # mask: (batch_size, n_neurons, offset) with 1=keep, 0=mask
+            inverse_mask = (mask == 0)  # True where we need to fill
+
+            # Compute per-neuron mean and std from unmasked values
+            # Shape: (batch_size, n_neurons)
+            masked_data = data * mask  # Zero out masked positions
+            sum_unmasked = masked_data.sum(dim=2)  # Sum over time
+            count_unmasked = mask.sum(dim=2).clamp(
+                min=1)  # Count valid timesteps
+            mean_per_neuron = sum_unmasked / count_unmasked  # (batch_size, n_neurons)
+
+            # Compute std
+            squared_diff = ((data - mean_per_neuron.unsqueeze(2))**2) * mask
+            var_per_neuron = squared_diff.sum(dim=2) / count_unmasked
+            std_per_neuron = var_per_neuron.sqrt().clamp(
+                min=1e-6)  # Avoid div by zero
+
+            # Generate Gaussian noise and fill masked positions
+            noise = torch.randn_like(data) * std_per_neuron.unsqueeze(
+                2) + mean_per_neuron.unsqueeze(2)
+            data = torch.where(inverse_mask, noise, data)
+        else:
+            # Legacy behavior: multiply by mask (zeros out masked positions)
+            num_chunks = (data.shape[0] + chunk_size -
+                          1) // chunk_size  # Compute number of chunks
+
+            for i in range(num_chunks):
+                start, end = i * chunk_size, min((i + 1) * chunk_size,
+                                                 data.shape[0])
+                data[start:end].mul_(mask[start:end])  # in-place for memory
 
         return data
 
@@ -245,7 +370,7 @@ class RandomTimestepMask(Mask):
         batch_idx, n_neurons, offset_length = data.shape
         mask_ratio = self._select_masking_params()
 
-        # Random mask: shape [batbatch_idxch_size, offset_length], different per batch and timestamp
+        # Random mask: shape [batch_idx, offset_length], different per batch and timestamp
         masked = torch.rand(batch_idx, offset_length,
                             device=data.device) < mask_ratio
         return (~masked).int().unsqueeze(1).expand(-1, n_neurons,
@@ -344,6 +469,132 @@ class NeuronBlockMask(Mask):
             )
 
         return selected_value
+
+
+class SessionBlockMask(Mask):
+
+    def __init__(self, masking_value: Union[List[int], Tuple[List[int], int]]):
+        super().__init__(masking_value)
+        # Handle both list and tuple (list, num_sessions) formats
+        if isinstance(masking_value, tuple):
+            self.num_neurons = masking_value[0]
+            self.fixed_num_sessions = masking_value[1]
+        else:
+            self.num_neurons = masking_value
+            self.fixed_num_sessions = None
+
+    def __name__(self):
+        return "SessionBlockMask"
+
+    def apply_mask(self, data: torch.Tensor) -> torch.Tensor:
+        """ Apply masking to contiguous blocks of neurons corresponding to sessions.
+
+        Args:
+            data: batch of size (batch_size, n_neurons, offset).
+            self.mask_prop: Proportion of neurons to mask. The neurons are masked in a
+                contiguous block.
+
+        Returns:
+            torch.Tensor: The mask, a tensor of the same size as the input data with the
+                masked neurons set to 1.
+        """
+        batch_size, n_neurons, offset_length = data.shape
+
+        if sum(self.num_neurons) != n_neurons:
+            raise ValueError(
+                f"Sum of num_neurons {sum(self.num_neurons)} defined at init does not match "
+                f"the number of neurons in the data {n_neurons}.")
+
+        num_mask, start_idx = self._select_masking_params()
+        mask = torch.ones((batch_size, n_neurons),
+                          dtype=torch.int,
+                          device=data.device)
+
+        for i in range(len(num_mask)):
+            end_idx = min(start_idx[i] + num_mask[i], n_neurons)
+            mask[:, start_idx[i]:end_idx] = 0  # set masked neurons to 0
+
+        return mask.unsqueeze(2).expand(
+            -1, -1, offset_length)  # Expand to all timesteps
+
+    def _select_masking_params(self) -> Tuple[List[int], List[int]]:
+        """
+        Select which sessions to mask.
+        If fixed_num_sessions is set (from tuple input), use that exact number.
+        Otherwise, randomly pick between 1 and len(num_neurons)-1 sessions.
+        """
+        if isinstance(self.num_neurons, list):
+            # Determine number of sessions to mask
+            if self.fixed_num_sessions is not None:
+                select_num_sessions = self.fixed_num_sessions
+            else:
+                # Select the # of sessions to mask randomly
+                select_num_sessions = random.randint(1,
+                                                     len(self.num_neurons) - 1)
+
+            # Select session indices to mask
+            select_idxs = random.sample(range(len(self.num_neurons)),
+                                        select_num_sessions)
+            num_mask, start_idx = [], []
+            for select_idx in select_idxs:
+                num_mask.append(self.num_neurons[select_idx])
+                start_idx.append(sum(self.num_neurons[:select_idx]))
+        else:
+            raise ValueError(
+                f"Number of neurons {self.num_neurons} for {self.__name__()} "
+                "should be a list of the number of neurons in each session.")
+
+        return num_mask, start_idx
+
+    def _check_masking_parameters(self, masking_value: Union[List[int],
+                                                             Tuple[List[int],
+                                                                   int]]):
+        """
+        The masking values are the number of neurons per session to mask.
+        It can be:
+        - A list of positive integers (one per session)
+        - A tuple of (list of positive integers, int) where the int is the fixed number of sessions to mask
+        """
+        if isinstance(masking_value, tuple):
+            # Validate tuple format: (list, int)
+            if len(masking_value) != 2:
+                raise ValueError(
+                    f"Tuple format for {self.__name__()} should be (list, int), "
+                    f"got tuple of length {len(masking_value)}.")
+            neuron_list, num_sessions = masking_value
+
+            # Validate the list part
+            if not isinstance(neuron_list, list):
+                raise ValueError(
+                    f"First element of tuple for {self.__name__()} should be a list, "
+                    f"got {type(neuron_list)}.")
+            if not all(isinstance(n, int) for n in neuron_list) or any(
+                    n <= 0 for n in neuron_list):
+                raise ValueError(
+                    f"Neuron list {neuron_list} for {self.__name__()} "
+                    "should be a list of positive integers.")
+
+            # Validate the int part
+            if not isinstance(num_sessions, int) or num_sessions <= 0:
+                raise ValueError(
+                    f"Second element of tuple for {self.__name__()} should be a positive integer, "
+                    f"got {num_sessions}.")
+            if num_sessions >= len(neuron_list):
+                raise ValueError(
+                    f"Number of sessions to mask ({num_sessions}) must be less than "
+                    f"total number of sessions ({len(neuron_list)}).")
+
+        elif isinstance(masking_value, list):
+            # Validate list format
+            if not all(isinstance(n, int) for n in masking_value) or any(
+                    n <= 0 for n in masking_value):
+                raise ValueError(
+                    f"Number of neurons {masking_value} for {self.__name__()} "
+                    "should be a list of positive integers.")
+        else:
+            raise ValueError(
+                f"Masking value for {self.__name__()} should be either a list of positive integers "
+                f"or a tuple of (list, int), got {type(masking_value)}.")
 
 
 class TimeBlockMask(Mask):

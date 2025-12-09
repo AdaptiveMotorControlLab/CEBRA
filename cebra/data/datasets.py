@@ -165,6 +165,43 @@ def _assert_datasets_same_device(
     return devices.pop()
 
 
+class ForwardTensorDataset(TensorDataset):
+    """A dataset that returns items on the range [idx, idx + offset).
+    
+    Note:
+        This is useful for training models on predictive neural activity (e.g., grid cells, place cells).
+    """
+
+    def __getitem__(self, index: torch.Tensor) -> torch.Tensor:
+        index = self.expand_index_forward(index)
+        return self.neural[index].transpose(2, 1)
+
+
+class TrialTensorDataset(TensorDataset):
+    """A dataset that returns items on the range [idx, idx + offset).
+    
+    Note:
+        This is useful for training models on predictive neural activity (e.g., grid cells, place cells).
+    """
+
+    def __init__(self,
+                 neural: Union[torch.Tensor, npt.NDArray],
+                 continuous: Union[torch.Tensor, npt.NDArray] = None,
+                 discrete: Union[torch.Tensor, npt.NDArray] = None,
+                 offset: Offset = Offset(0, 1),
+                 device: str = "cpu",
+                 trial_ids: Union[torch.Tensor, npt.NDArray] = None,
+                 trial_borders: Union[torch.Tensor, npt.NDArray] = None):
+        super().__init__(neural, continuous, discrete, offset, device)
+        self.trial_ids = trial_ids
+        self.trial_borders = trial_borders
+
+    def __getitem__(self, index: torch.Tensor) -> torch.Tensor:
+        index = self.expand_index_in_trial_padding(index, self.trial_ids,
+                                                   self.trial_borders)
+        return self.neural[index].transpose(2, 1)
+
+
 class DatasetCollection(cebra_data.MultiSessionDataset):
     """Multi session dataset made up of a list of datasets.
 

@@ -116,6 +116,54 @@ class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
         return self.neural[index].transpose(2, 1)
 
 
+class SingleSessionAllenCaCortex(SingleSessionAllenCa):
+    """A single mouse 30Hz calcium events dataset during the allen MOVIE1 stimulus.
+
+    A dataset of a single mouse 30Hz calcium events from the excitatory neurons in the primary visual cortex
+    during the 10 repeats of the MOVIE1 stimulus in session type A. The preprocessed data from *Deitch et al. (2021) are used.
+    The continuous labels corresponding to a DINO embedding of each stimulus frame.
+
+    Args:
+        session_id: The integer value to pick a session among 4 sessions with the largest number of recorded neruons. Choose between 0-3.
+        frame_feature_path: The path of the movie frame features.
+
+    """
+
+    def __init__(
+        self,
+        session_id: int = 680156909,
+        frame_feature_path: str = pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
+        cortex: str = "VISp",
+        neuron_type: str = "calcium_excitatory",
+    ):
+        self.path = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "allen" / "visual_drift" / "data" / f'{neuron_type}' / f'{cortex}' / f"{session_id}.mat"
+        traces = scipy.io.loadmat(self.path)
+
+        neural = traces["filtered_traces_days_events"][0, 0].transpose(1, 0)
+        self.neural = torch.from_numpy(neural).float()
+        frame_feature = torch.load(frame_feature_path)
+        self.index = frame_feature.repeat(10, 1)
+
+    def __len__(self):
+        return self.neural.size(0)
+
+    @property
+    def continuous_index(self):
+        return self.index
+
+    @property
+    def input_dimension(self):
+        return self.neural.size(1)
+
+    def __getitem__(self, index):
+        index = self.expand_index(index)
+        return self.neural[index].transpose(2, 1)
+
+
 @parametrize(
     "allen-movie1-ca-single-session-corrupt-{session_id}",
     session_id=range(len(_SINGLE_SESSION_CA)),

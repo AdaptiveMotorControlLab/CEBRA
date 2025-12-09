@@ -36,8 +36,11 @@ import warnings
 from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import literate_dataclasses as dataclasses
+import numpy as np
+import packaging.version
 import torch
 import torch.nn.functional as F
+import wandb
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
@@ -47,6 +50,31 @@ import cebra.io
 import cebra.models
 from cebra.solver.util import Meter
 from cebra.solver.util import ProgressBar
+
+# NOTE(stes): From torch 2.6 onwards, we need to specify the following list
+# when loading CEBRA models to allow weights_only = True.
+CEBRA_LOAD_SAFE_GLOBALS = [
+    cebra.data.Offset, torch.torch_version.TorchVersion, np.dtype, np.float64,
+    np.int64
+]
+
+
+def _safe_torch_load(filename, weights_only, **kwargs):
+    if weights_only is None:
+        if packaging.version.parse(
+                torch.__version__) >= packaging.version.parse("2.6.0"):
+            weights_only = True
+        else:
+            weights_only = False
+
+    if not weights_only:
+        checkpoint = torch.load(filename, weights_only=False, **kwargs)
+    else:
+        # NOTE(stes): This is only supported for torch 2.6+
+        with torch.serialization.safe_globals(CEBRA_LOAD_SAFE_GLOBALS):
+            checkpoint = torch.load(filename, weights_only=True, **kwargs)
+
+    return checkpoint
 
 
 def _check_indices(batch_start_idx: int, batch_end_idx: int,
@@ -314,6 +342,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         "temperature": []
     }))
     tqdm_on: bool = True
+    scheduler: torch.optim.lr_scheduler = None
 
     def __post_init__(self):
         cebra.io.HasDevice.__init__(self)
@@ -356,16 +385,29 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """
 
         def _contains(key):
-            if key in state_dict:
-                return True
-            elif strict:
-                raise KeyError(
-                    f"Key {key} missing in state_dict. Contains: {list(state_dict.keys())}."
-                )
+            if isinstance(state_dict, Solver):
+                if hasattr(state_dict, key):
+                    return True
+                elif strict:
+                    raise KeyError(
+                        f"Key {key} missing in state_dict. Contains: {list(state_dict.keys())}."
+                    )
+
+            elif isinstance(state_dict, dict):
+                if key in state_dict:
+                    return True
+                elif strict:
+                    raise KeyError(
+                        f"Key {key} missing in state_dict. Contains: {list(state_dict.keys())}."
+                    )
+
             return False
 
         def _get(key):
-            return state_dict.get(key)
+            if isinstance(state_dict, Solver):
+                return getattr(state_dict, key)
+            elif isinstance(state_dict, dict):
+                return state_dict.get(key)
 
         if _contains("model"):
             self.model.load_state_dict(_get("model"))
@@ -499,7 +541,13 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         loss.backward()
         self.optimizer.step()
+        if self.scheduler is not None:
+            self.scheduler.step()
         self.history.append(loss.item())
+
+        if wandb.run is not None:
+            wandb.log({"loss": loss.item()})
+
         stats = dict(
             pos=align.item(),
             neg=uniform.item(),
@@ -728,19 +776,31 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """
         raise NotImplementedError
 
-    def load(self, logdir: str, filename: str = "checkpoint.pth"):
+    def load(self,
+             logdir: str,
+             filename: str = "checkpoint.pth",
+             weights_only: bool = False):
         """Load the experiment from its checkpoint file.
 
         Args:
             logdir: Logging directory.
             filename: Checkpoint name for loading the experiment.
+            weights_only: Indicates whether unpickler should be restricted to loading only tensors, primitive types,
+                dictionaries and any types added via :py:func:`torch.serialization.add_safe_globals`.
+                See :py:func:`torch.load` with ``weights_only=True`` for more details. It it recommended to leave this
+                at the default value of ``None``, which sets the argument to ``False`` for torch<2.6, and ``True`` for
+                higher versions of torch. If you experience issues with loading custom models (specified outside
+                of the CEBRA package), you can try to set this to ``False`` if you trust the source of the model.
         """
 
         savepath = os.path.join(logdir, filename)
         if not os.path.exists(savepath):
             print("Did not find a previous experiment. Starting from scratch.")
             return
-        checkpoint = torch.load(savepath, map_location=self.device)
+
+        checkpoint = _safe_torch_load(savepath, weights_only)
+
+        #checkpoint = torch.load(savepath, map_location=self.device, weights_only=weights_only)
         self.load_state_dict(checkpoint, strict=True)
 
         n_features = self.n_features
