@@ -62,16 +62,27 @@ def parametrize_slow(arg_names, fast_arguments, slow_arguments):
     )
 
 
-def parametrize_with_checks_slow(fast_arguments, slow_arguments):
+def parametrize_with_checks_slow(fast_arguments, slow_arguments, generate_only=True):
+    """Parametrize tests with sklearn estimator checks, supporting fast/slow test modes.
+    
+    Args:
+        fast_arguments: List of estimators to use for fast tests.
+        slow_arguments: List of estimators to use for slow tests.
+        generate_only: If True, only generate tests without running them (default: True).
+                      This is passed to sklearn.utils.estimator_checks.check_estimator.
+    
+    Returns:
+        A pytest parametrize decorator configured with fast and slow test parameters.
+    """
     fast_params = [
         list(
             sklearn.utils.estimator_checks.check_estimator(
-                fast_arg, generate_only=True))[0] for fast_arg in fast_arguments
+                fast_arg, generate_only=generate_only))[0] for fast_arg in fast_arguments
     ]
     slow_params = [
         list(
             sklearn.utils.estimator_checks.check_estimator(
-                slow_arg, generate_only=True))[0] for slow_arg in slow_arguments
+                slow_arg, generate_only=generate_only))[0] for slow_arg in slow_arguments
     ]
     return parametrize_slow("estimator,check", fast_params, slow_params)
 
