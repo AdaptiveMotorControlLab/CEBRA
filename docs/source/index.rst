@@ -44,7 +44,7 @@ Please head over to the :doc:`Usage </usage>` tab to find step-by-step instructi
 
 Licensing
 ---------
-The ideas presented in our package are currently patent pending (Patent No. WO2023143843).
+The ideas presented in our package are patented (Patent_ US12499131B2).
 Since version 0.4.0, CEBRA's source is licenced under an Apache 2.0 license.
 Prior versions 0.1.0 to 0.3.1 were released for academic use only.
 
@@ -98,3 +98,4 @@ This documentation is based on the `PyData Theme`_.
 .. _`email`: mailto:mackenzie.mathis@epfl.ch
 .. _`Steffen Schneider`: https://github.com/stes
 .. _`Mackenzie Mathis`: https://github.com/MMathisLab
+.. _`Patent`: https://patents.google.com/patent/US12499131B2/
