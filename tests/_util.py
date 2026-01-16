@@ -80,6 +80,21 @@ def parametrize_with_checks_slow(fast_arguments, slow_arguments, generate_only=T
     check_estimator_sig = inspect.signature(sklearn.utils.estimator_checks.check_estimator)
     supports_generate_only = 'generate_only' in check_estimator_sig.parameters
     
+    def _get_first_check_for_estimator(estimator):
+        """Helper to get the first check for a given estimator in new sklearn API."""
+        try:
+            decorator = sklearn.utils.estimator_checks.parametrize_with_checks([estimator])
+            # Extract the generator from the decorator
+            gen = decorator.mark.args[1]
+            # Convert to list and take first element to avoid generator exhaustion issues
+            checks_list = list(gen)
+            return checks_list[0] if checks_list else None
+        except (AttributeError, IndexError, TypeError) as e:
+            raise RuntimeError(
+                f"Failed to extract checks from sklearn.utils.estimator_checks.parametrize_with_checks. "
+                f"This may be due to sklearn API changes. Error: {e}"
+            )
+    
     if supports_generate_only:
         # Old sklearn API (<= 1.4.x): use check_estimator with generate_only=True
         fast_params = [
@@ -95,19 +110,11 @@ def parametrize_with_checks_slow(fast_arguments, slow_arguments, generate_only=T
     else:
         # New sklearn API (>= 1.5): use parametrize_with_checks to get test params
         # For each estimator, get the first check
-        fast_params = []
-        for fast_arg in fast_arguments:
-            decorator = sklearn.utils.estimator_checks.parametrize_with_checks([fast_arg])
-            # Extract the generator from the decorator and get first item
-            gen = decorator.mark.args[1]
-            fast_params.append(next(gen))
-            
-        slow_params = []
-        for slow_arg in slow_arguments:
-            decorator = sklearn.utils.estimator_checks.parametrize_with_checks([slow_arg])
-            # Extract the generator from the decorator and get first item
-            gen = decorator.mark.args[1]
-            slow_params.append(next(gen))
+        fast_params = [_get_first_check_for_estimator(fast_arg) for fast_arg in fast_arguments]
+        slow_params = [_get_first_check_for_estimator(slow_arg) for slow_arg in slow_arguments]
+        # Filter out any None values
+        fast_params = [p for p in fast_params if p is not None]
+        slow_params = [p for p in slow_params if p is not None]
     
     return parametrize_slow("estimator,check", fast_params, slow_params)
 
