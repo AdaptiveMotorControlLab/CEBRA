@@ -20,6 +20,7 @@
 # limitations under the License.
 #
 import collections.abc as collections_abc
+import inspect
 
 import pytest
 import sklearn.utils.estimator_checks
@@ -69,21 +70,45 @@ def parametrize_with_checks_slow(fast_arguments, slow_arguments, generate_only=T
         fast_arguments: List of estimators to use for fast tests.
         slow_arguments: List of estimators to use for slow tests.
         generate_only: If True, only generate tests without running them (default: True).
-                      This is passed to sklearn.utils.estimator_checks.check_estimator.
+                      This parameter is only used with sklearn < 1.5. In newer versions,
+                      tests are always generated (not run immediately).
     
     Returns:
         A pytest parametrize decorator configured with fast and slow test parameters.
     """
-    fast_params = [
-        list(
-            sklearn.utils.estimator_checks.check_estimator(
-                fast_arg, generate_only=generate_only))[0] for fast_arg in fast_arguments
-    ]
-    slow_params = [
-        list(
-            sklearn.utils.estimator_checks.check_estimator(
-                slow_arg, generate_only=generate_only))[0] for slow_arg in slow_arguments
-    ]
+    # Check if check_estimator supports generate_only parameter (sklearn < 1.5)
+    check_estimator_sig = inspect.signature(sklearn.utils.estimator_checks.check_estimator)
+    supports_generate_only = 'generate_only' in check_estimator_sig.parameters
+    
+    if supports_generate_only:
+        # Old sklearn API (<= 1.4.x): use check_estimator with generate_only=True
+        fast_params = [
+            list(
+                sklearn.utils.estimator_checks.check_estimator(
+                    fast_arg, generate_only=generate_only))[0] for fast_arg in fast_arguments
+        ]
+        slow_params = [
+            list(
+                sklearn.utils.estimator_checks.check_estimator(
+                    slow_arg, generate_only=generate_only))[0] for slow_arg in slow_arguments
+        ]
+    else:
+        # New sklearn API (>= 1.5): use parametrize_with_checks to get test params
+        # For each estimator, get the first check
+        fast_params = []
+        for fast_arg in fast_arguments:
+            decorator = sklearn.utils.estimator_checks.parametrize_with_checks([fast_arg])
+            # Extract the generator from the decorator and get first item
+            gen = decorator.mark.args[1]
+            fast_params.append(next(gen))
+            
+        slow_params = []
+        for slow_arg in slow_arguments:
+            decorator = sklearn.utils.estimator_checks.parametrize_with_checks([slow_arg])
+            # Extract the generator from the decorator and get first item
+            gen = decorator.mark.args[1]
+            slow_params.append(next(gen))
+    
     return parametrize_slow("estimator,check", fast_params, slow_params)
 
 
