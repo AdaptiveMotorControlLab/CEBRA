@@ -81,10 +81,15 @@ def parametrize_with_checks_slow(fast_arguments, slow_arguments, generate_only=T
     supports_generate_only = 'generate_only' in check_estimator_sig.parameters
     
     def _get_first_check_for_estimator(estimator):
-        """Helper to get the first check for a given estimator in new sklearn API."""
+        """Helper to get the first check for a given estimator in new sklearn API.
+        
+        Note: We only return the first check to match the original behavior with [0].
+        This maintains consistency with the legacy API which also returned [0].
+        """
         try:
             decorator = sklearn.utils.estimator_checks.parametrize_with_checks([estimator])
-            # Extract the generator from the decorator
+            # Extract the generator from the decorator's internal structure
+            # Note: This accesses pytest/sklearn internals and may be fragile across versions
             gen = decorator.mark.args[1]
             # Convert to list and take first element to avoid generator exhaustion issues
             checks_list = list(gen)
