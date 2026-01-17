@@ -38,12 +38,6 @@ def cebra_transform_deprecated(cebra_model,
         >>> embedding = cebra_model.transform(dataset)
 
     """
-    warnings.warn(
-        "The method is deprecated "
-        "but kept for testing puroposes."
-        "We recommend using `transform` instead.",
-        DeprecationWarning,
-        stacklevel=2)
 
     sklearn_utils_validation.check_is_fitted(cebra_model, "n_features_")
 
