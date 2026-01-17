@@ -47,7 +47,7 @@ jobs:
           make dist
           ls dist/
           tar tvf dist/cebra-*.tar.gz
-          python3 -m twine upload --repository testpypi dist/*
+          python3 -m twine upload --verbose --repository testpypi dist/*
 
       - name: Build and publish to PyPI
         if: ${{ github.event_name == 'push' }}
@@ -58,4 +58,4 @@ jobs:
           make dist
           ls dist/
           tar tvf dist/cebra-*.tar.gz
-          python3 -m twine upload dist/*
+          python3 -m twine upload --verbose dist/*

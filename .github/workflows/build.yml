@@ -58,6 +58,9 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    env:
+      MPLBACKEND: Agg
+
     steps:
       - name: Cache dependencies
         id: pip-cache
@@ -75,10 +78,16 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install package
+        # NOTE(stes): https://github.com/twmr/pytest-sphinx/issues/69
+        # To run all tests, currently a manual install from github is required:
+        # https://github.com/twmr/pytest-sphinx/archive/refs/tags/v0.7.0.tar.gz
+        # Remove the respective line and the comment in setup.cfg once 0.7.0 is
+        # available on PyPI.
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install torch==${{ matrix.torch-version }} --extra-index-url https://download.pytorch.org/whl/cpu
           pip install '.[dev,datasets,integrations]'
+          pip install https://github.com/twmr/pytest-sphinx/archive/refs/tags/v0.7.0.tar.gz
 
       - name: Check sklearn legacy version
         if: matrix.sklearn-version == 'legacy'
