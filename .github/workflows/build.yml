@@ -32,18 +32,18 @@ jobs:
             torch-version: 2.6.0
             python-version: "3.12"
             sklearn-version: "legacy"
-          # latest torch and python
-          - os: ubuntu-latest
-            torch-version: 2.9.1
-            python-version: "3.14"
-            sklearn-version: "latest"
+          # TODO(stes): latest torch and python
+          # requires a PyTables release compatible with
+          # python 3.14. Update when new version is released.
+          #- os: ubuntu-latest
+          #  torch-version: 2.9.1
+          #  python-version: "3.14"
+          #  sklearn-version: "latest"
           # legacy torch and python
           - os: ubuntu-latest
             torch-version: 2.4.0
             python-version: "3.9"
             sklearn-version: "latest"
-
-
 
     runs-on: ${{ matrix.os }}
 
