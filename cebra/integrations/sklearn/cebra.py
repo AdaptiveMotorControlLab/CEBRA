@@ -21,6 +21,7 @@
 #
 """Define the CEBRA model."""
 
+import importlib.metadata
 import itertools
 from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
                     Union)
@@ -28,7 +29,6 @@ from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
 import numpy as np
 import numpy.typing as npt
 import packaging.version
-import importlib.metadata
 import sklearn
 import sklearn.utils.validation as sklearn_utils_validation
 import torch
@@ -46,9 +46,12 @@ import cebra.solver
 
 # NOTE(stes): From torch 2.6 onwards, we need to specify the following list
 # when loading CEBRA models to allow weights_only = True.
+# NOTE(stes): "numpy.dtypes.Int32DType" was added due to this issue with
+# windows (https://github.com/AdaptiveMotorControlLab/CEBRA/pull/281#issuecomment-3764185072)
+# on build (windows-latest, torch 2.6.0, python 3.12, latest sklearn)
 CEBRA_LOAD_SAFE_GLOBALS = [
     cebra.data.Offset, torch.torch_version.TorchVersion, np.dtype,
-    np.dtypes.Float64DType, np.dtypes.Int64DType
+    np.dtypes.Int32DType, np.dtypes.Float64DType, np.dtypes.Int64DType
 ]
 
 
@@ -1398,7 +1401,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
                                 np.__version__,
                             'sklearn_version':
                                 importlib.metadata.distribution("scikit-learn"
-                                                              ).version
+                                                               ).version
                         }
                     }, filename)
             else:
