@@ -20,7 +20,8 @@
 # limitations under the License.
 #
 import collections.abc as collections_abc
-
+import packaging.version
+import functools
 import pytest
 import sklearn.utils.estimator_checks
 import torch
@@ -63,17 +64,14 @@ def parametrize_slow(arg_names, fast_arguments, slow_arguments):
 
 
 def parametrize_with_checks_slow(fast_arguments, slow_arguments):
-    fast_params = [
-        list(
-            sklearn.utils.estimator_checks.check_estimator(
-                fast_arg, generate_only=True))[0] for fast_arg in fast_arguments
-    ]
-    slow_params = [
-        list(
-            sklearn.utils.estimator_checks.check_estimator(
-                slow_arg, generate_only=True))[0] for slow_arg in slow_arguments
-    ]
-    return parametrize_slow("estimator,check", fast_params, slow_params)
+
+    # NOTE(stes): See https://github.com/AdaptiveMotorControlLab/CEBRA/issues/280, sklearn API changed in 1.6.
+    if packaging.version.parse(sklearn.__version__) <= packaging.version.parse("1.6"):
+        generate_checks = functools.partial(sklearn.utils.estimator_checks.check_estimator, generate_only=True)
+    else:
+        generate_checks = sklearn.utils.estimator_checks.estimator_checks_generator
+    generate_params = lambda args: [next(generate_checks(arg)) for arg in args]
+    return parametrize_slow("estimator,check", generate_params(fast_arguments), generate_params(slow_arguments))
 
 
 def parametrize_device(func):
