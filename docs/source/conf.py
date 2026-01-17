@@ -236,7 +236,6 @@ html_css_files = ["css/custom.css"]
 # Right now, only python module types are problematic, in cebra.registry
 nitpick_ignore = [
     ("py:class", "module"),
-    #("py:data", "typing.Union")
 ]
 
 nbsphinx_thumbnails = {
