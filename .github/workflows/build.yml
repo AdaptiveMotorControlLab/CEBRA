@@ -15,25 +15,35 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.12"]
+        python-version: ["3.12", "3.13"]
         # We aim to support the versions on pytorch.org
         # as well as selected previous versions on
         # https://pytorch.org/get-started/previous-versions/
         torch-version: ["2.6.0", "2.9.1"]
         sklearn-version: ["latest"]
         include:
+          # windows test with standard config
           - os: windows-latest
             torch-version: 2.6.0
             python-version: "3.12"
             sklearn-version: "latest"
+          # legacy sklearn (several API differences)
           - os: ubuntu-latest
             torch-version: 2.6.0
             python-version: "3.12"
             sklearn-version: "legacy"
+          # latest torch and python
           - os: ubuntu-latest
             torch-version: 2.9.1
             python-version: "3.14"
             sklearn-version: "latest"
+          # legacy torch and python
+          - os: ubuntu-latest
+            torch-version: 2.4.0
+            python-version: "3.9"
+            sklearn-version: "latest"
+
+
 
     runs-on: ${{ matrix.os }}
 
