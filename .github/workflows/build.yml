@@ -15,7 +15,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.12", "3.14"]
+        python-version: ["3.9", "3.12"]
         # We aim to support the versions on pytorch.org
         # as well as selected previous versions on
         # https://pytorch.org/get-started/previous-versions/
@@ -30,6 +30,10 @@ jobs:
             torch-version: 2.6.0
             python-version: "3.12"
             sklearn-version: "legacy"
+          - os: ubuntu-latest
+            torch-version: 2.9.1
+            python-version: "3.14"
+            sklearn-version: "latest"
 
     runs-on: ${{ matrix.os }}
 
