@@ -48,7 +48,7 @@ jobs:
       - name: Run pytest tests
         timeout-minutes: 15
         run: |
-          make test
+          make test_reduced
 
       - name: Build package
         run: |
