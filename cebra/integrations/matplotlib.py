@@ -68,6 +68,11 @@ class _BasePlot:
         if axis is None:
             self.fig = plt.figure(figsize=figsize, dpi=dpi)
 
+    def __del__(self):
+        if hasattr(self, "fig") and self.fig is not None:
+            plt.close(self.fig)
+            self.fig = None
+
     @abc.abstractmethod
     def _define_ax(
             self, axis: Optional[matplotlib.axes.Axes]) -> matplotlib.axes.Axes:
