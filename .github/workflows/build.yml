@@ -112,7 +112,7 @@ jobs:
       - name: Run pytest tests
         timeout-minutes: 15
         run: |
-          MPLBACKEND=Agg make test
+          make test
 
       - name: Build package
         run: |
