@@ -15,17 +15,42 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.12"]
+        # NOTE(stes): We test against the oldest still supported version of python (3.10),
+        # the python version of the latest Ubuntu LTS release (3.12)
+        # and the latest python version CEBRA supports fully (3.13).
+        #
+        # Python version chart:
+        #   https://devguide.python.org/versions/
+        # Python Ubuntu LTS:
+        #   https://documentation.ubuntu.com/ubuntu-for-developers/reference/availability/python/
+        python-version: ["3.10", "3.12", "3.13"]
         # We aim to support the versions on pytorch.org
         # as well as selected previous versions on
         # https://pytorch.org/get-started/previous-versions/
-        torch-version: ["2.4.0", "2.6.0"]
+        torch-version: ["2.6.0", "2.9.1"]
         sklearn-version: ["latest"]
         include:
+          # windows test with standard config
           - os: windows-latest
-            torch-version: 2.4.0
-            python-version: "3.10"
+            torch-version: 2.6.0
+            python-version: "3.12"
             sklearn-version: "latest"
+
+          # legacy sklearn (several API differences)
+          - os: ubuntu-latest
+            torch-version: 2.6.0
+            python-version: "3.12"
+            sklearn-version: "legacy"
+
+          # TODO(stes): latest torch and python
+          # requires a PyTables release compatible with
+          # python 3.14. Update when new version is released.
+          #- os: ubuntu-latest
+          #  torch-version: 2.9.1
+          #  python-version: "3.14"
+          #  sklearn-version: "latest"
+
+          # legacy support
           - os: ubuntu-latest
             torch-version: 2.4.0
             python-version: "3.10"
@@ -82,7 +107,7 @@ jobs:
           make check_for_binary
 
       - name: Run pytest tests
-        timeout-minutes: 10
+        timeout-minutes: 15
         run: |
           make test
 

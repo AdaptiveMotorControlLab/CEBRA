@@ -1,0 +1,48 @@
+name: Python package (latest)
+
+# This is a variant of the workflow in build.yml to check incompatibilities for the
+# very latest versions of Python and the core dependencies.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Cache dependencies
+        id: pip-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-os_latest
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip setuptools wheel --pre
+          python -m pip install --pre torch --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install --pre '.[dev]'
+
+      - name: Run pytest tests
+        timeout-minutes: 15
+        run: |
+          make test_reduced
+
+      - name: Build package
+        run: |
+          make build
