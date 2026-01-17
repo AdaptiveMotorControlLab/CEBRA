@@ -9,7 +9,6 @@ sphinx-gallery==0.19.0
 sphinx-tabs==3.4.7
 sphinx-togglebutton==0.3.2
 sphinx_design==0.6.0
-sphinx_pydata_theme==0.1.0
 sphinxcontrib-applehelp==2.0.0
 sphinxcontrib-devhelp==2.0.0
 sphinxcontrib-htmlhelp==2.1.0

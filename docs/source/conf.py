@@ -109,13 +109,13 @@ napoleon_use_param = True
 napoleon_attr_annotations = True
 
 intersphinx_mapping = {
-    "python": ("https://docs.python.org/3", None),
-    "torch": ("https://pytorch.org/docs/stable/", None),
+    "python": ("https://docs.python.org/3.12/", None),
+    "torch": ("https://docs.pytorch.org/docs/stable", None),
     "sklearn": ("https://scikit-learn.org/stable", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
     "pandas": ("https://pandas.pydata.org/docs/", None),
-    "scipy": ("http://docs.scipy.org/doc/scipy/reference/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy", None),
     "joblib": ("https://joblib.readthedocs.io/en/latest/", None),
     "plotly": ("https://plotly.com/python-api-reference/", None)
 }
