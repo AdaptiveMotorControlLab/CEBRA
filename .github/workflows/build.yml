@@ -58,6 +58,9 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    env:
+      MPLBACKEND: Agg
+
     steps:
       - name: Cache dependencies
         id: pip-cache
@@ -109,7 +112,7 @@ jobs:
       - name: Run pytest tests
         timeout-minutes: 15
         run: |
-          make test
+          MPLBACKEND=Agg make test
 
       - name: Build package
         run: |
