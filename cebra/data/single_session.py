@@ -152,11 +152,6 @@ class DiscreteDataLoader(cebra_data.Loader):
         The negative samples will be sampled from the same distribution as the
         reference examples.
 
-        Args:
-            num_samples: The number of samples (batch size) of the returned
-                :py:class:`cebra.data.datatypes.BatchIndex`.
-            num_negatives: The number of negative samples. If None, defaults to num_samples.
-
         Returns:
             Indices for reference, positive and negatives samples.
         """
@@ -258,10 +253,6 @@ class ContinuousDataLoader(cebra_data.Loader):
         The positive samples will be sampled conditional on the reference
         samples according to the specified ``conditional`` distribution.
 
-        Args:
-            num_samples: The number of samples (batch size) of the returned
-                :py:class:`cebra.data.datatypes.BatchIndex`.
-
         Returns:
             Indices for reference, positive and negatives samples.
         """
@@ -319,11 +310,6 @@ class MixedDataLoader(cebra_data.Loader):
         the reference samples, and then sampled as in the
         :py:class:`ContinuousDataLoader`, or just sampled based on the
         conditional variable.
-
-        Args:
-            num_samples: The number of samples (batch size) of the returned
-                :py:class:`cebra.data.datatypes.BatchIndex`.
-            num_negatives: The number of negative samples. If None, defaults to num_samples.
 
         Returns:
             Indices for reference, positive and negatives samples.
@@ -433,18 +419,13 @@ class HybridDataLoader(cebra_data.Loader):
         """Samples indices for reference, positive and negative examples.
 
         The reference and negative samples will be sampled uniformly from
-        all available time steps, and a total of ``num_samples + num_negatives`` will be
-        returned for both.
+        all available time steps, and a total of ``self.batch_size + self.num_negatives``
+        will be returned for both.
 
-        For the positive samples, ``num_samples`` are sampled according to the
-        behavior conditional distribution, and another ``num_samples`` are
-        sampled according to the dime contrastive distribution. The indices
+        For the positive samples, ``self.batch_size`` samples are sampled according to the
+        behavior conditional distribution, and another ``self.batch_size`` samples are
+        sampled according to the time contrastive distribution. The indices
         for the positive samples are concatenated across the first dimension.
-
-        Args:
-            num_samples: The number of samples (batch size) of the returned
-                :py:class:`cebra.data.datatypes.BatchIndex`.
-            num_negatives: The number of negative samples. If None, defaults to num_samples.
 
         Returns:
             Indices for reference, positive and negatives samples.
