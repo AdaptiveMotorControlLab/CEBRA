@@ -504,6 +504,9 @@ class CEBRA(TransformerMixin, BaseEstimator):
             A Tuple of masking types and their corresponding required masking values. The keys are the
             names of the Mask instances and formatting should be ``((key, value), (key, value))``.
             |Default:| ``None``.
+        num_negatives (int):
+            The number of negative samples to use for training. If ``None``, the number of negative samples
+            will be set to the batch size. |Default:| ``None``.
 
     Example:
 
@@ -579,6 +582,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
         ),
         masking_kwargs: Tuple[Tuple[str, Union[float, List[float],
                                                Tuple[float, ...]]], ...] = None,
+        num_negatives: int = None,
     ):
         self.__dict__.update(locals())
 
@@ -594,6 +598,17 @@ class CEBRA(TransformerMixin, BaseEstimator):
             It will be None for single session.
         """
         return self.num_sessions_
+
+    @property
+    def num_negatives_(self) -> Optional[int]:
+        """The number of negative examples.
+
+        If the model is trained using the full dataset (``batch_size`` is ``None``), this
+        function will return ``None``.
+        """
+        if self.num_negatives is None:
+            return self.batch_size
+        return self.num_negatives
 
     @property
     def state_dict_(self) -> dict:
@@ -731,6 +746,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
                 dataset=dataset,
                 batch_size=self.batch_size,
                 num_steps=max_iterations,
+                num_negatives=self.num_negatives,
             ),
             extra_kwargs=dict(
                 time_offsets=self.time_offsets,

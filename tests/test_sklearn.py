@@ -1544,3 +1544,47 @@ def test_last_incomplete_batch_smaller_than_offset():
     model.fit(train.neural, train.continuous)
 
     _ = model.transform(train.neural, batch_size=300)
+
+
+@pytest.mark.parametrize("batch_size,num_negatives", [
+    (None, None),
+    (100, None),
+    (100, 100),
+    (100, 50),
+    (100, 150),
+])
+def test_num_negatives(batch_size, num_negatives):
+    train = cebra.data.TensorDataset(neural=np.random.rand(20111, 100),
+                                     continuous=np.random.rand(20111, 2))
+
+    model = cebra.CEBRA(max_iterations=2,
+                        batch_size=batch_size,
+                        num_negatives=num_negatives,
+                        device="cpu")
+    model.fit(train.neural, train.continuous)
+    _ = model.transform(train.neural)
+
+    # Model attributes match the parameters
+    assert model.num_negatives == num_negatives
+    assert model.batch_size == batch_size
+
+    # The post-training model attribute matches the effective num negatives
+    assert model.num_negatives_ == batch_size if num_negatives is None else num_negatives
+
+
+def test_num_negatives_full_dataset():
+
+    model = cebra.CEBRA(max_iterations=2,
+                        batch_size=None,
+                        num_negatives=100,
+                        device="cpu")
+    with pytest.raises(
+            ValueError,
+            match="Number of negatives cannot be set for FullDataLoader"):
+        model.fit(np.zeros((1000, 100)))
+
+    # This variant will work (both set to None)
+    cebra.CEBRA(max_iterations=2,
+                batch_size=None,
+                num_negatives=None,
+                device="cpu").fit(np.zeros((1000, 100)))
