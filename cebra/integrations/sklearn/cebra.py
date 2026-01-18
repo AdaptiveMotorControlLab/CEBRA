@@ -600,8 +600,12 @@ class CEBRA(TransformerMixin, BaseEstimator):
         return self.num_sessions_
 
     @property
-    def num_negatives_(self) -> int:
-        """The number of negative examples."""
+    def num_negatives_(self) -> Optional[int]:
+        """The number of negative examples.
+
+        If the model is trained using the full dataset (``batch_size`` is ``None``), this
+        function will return ``None``.
+        """
         if self.num_negatives is None:
             return self.batch_size
         return self.num_negatives
