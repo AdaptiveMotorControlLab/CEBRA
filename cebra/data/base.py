@@ -273,7 +273,7 @@ class Loader(abc.ABC, cebra.io.HasDevice):
             yield self.dataset.load_batch(index)
 
     @abc.abstractmethod
-    def get_indices(self, num_samples: int = None):
+    def get_indices(self, *, num_samples: int = None):
         """Sample and return the specified number of indices.
 
         The elements of the returned `BatchIndex` will be used to index the
