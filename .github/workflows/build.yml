@@ -27,7 +27,7 @@ jobs:
         # We aim to support the versions on pytorch.org
         # as well as selected previous versions on
         # https://pytorch.org/get-started/previous-versions/
-        torch-version: ["2.6.0", "2.9.1"]
+        torch-version: ["2.6.0", "2.10.0"]
         sklearn-version: ["latest"]
         include:
           # windows test with standard config
