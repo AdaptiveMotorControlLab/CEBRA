@@ -169,7 +169,8 @@ class _DLCLoader:
         pred_xy = []
         for i, _ in enumerate(self.dlc_df.index):
             data = (self.dlc_df.iloc[i].loc[self.scorer].loc[
-                self.keypoints_list].to_numpy().reshape(-1, len(dlc_df_coords)))
+                self.keypoints_list].to_numpy().copy().reshape(
+                    -1, len(dlc_df_coords)))
 
             # Handles nan values with interpolation
             if i > 0 and i < len(self.dlc_df) - 1:

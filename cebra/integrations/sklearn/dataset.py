@@ -110,6 +110,9 @@ class SklearnDataset(cebra.data.SingleSessionDataset):
         # one sample is a conservative default here to ensure that sklearn tests
         # passes with the correct error messages.
         X = cebra_sklearn_utils.check_input_array(X, min_samples=2)
+        # Ensure array is writable (pandas 3.0+ may return read-only arrays)
+        if not X.flags.writeable:
+            X = X.copy()
         self.neural = torch.from_numpy(X).float().to(self.device)
 
     def _parse_labels(self, labels: Optional[tuple]):
@@ -145,6 +148,9 @@ class SklearnDataset(cebra.data.SingleSessionDataset):
 
             # Define the index as either continuous or discrete indices, depending
             # on the dtype in the index array.
+            # Ensure array is writable (pandas 3.0+ may return read-only arrays)
+            if not y.flags.writeable:
+                y = y.copy()
             if cebra.helper._is_floating(y):
                 y = torch.from_numpy(y).float()
                 if y.dim() == 1:
