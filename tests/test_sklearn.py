@@ -1547,25 +1547,16 @@ def test_last_incomplete_batch_smaller_than_offset():
 
 
 def test_non_writable_array():
-    import numpy as np
-    import pytest
-
-    import cebra
-
-    # Create a numpy array and make it non-writable
     X = np.random.randn(100, 10)
     y = np.random.randn(100, 2)
-
     X.setflags(write=False)
     y.setflags(write=False)
-
     with pytest.raises(ValueError, match="assignment destination is read-only"):
         X[:] = 0
         y[:] = 0
 
     cebra_model = cebra.CEBRA(max_iterations=2, batch_size=32, device="cpu")
 
-    # This should not raise an exception even though arrays are not writable
     cebra_model.fit(X, y)
     embedding = cebra_model.transform(X)
     assert isinstance(embedding, np.ndarray)
