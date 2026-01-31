@@ -21,6 +21,8 @@
 #
 """Datasets to be used as part of the sklearn framework."""
 
+import traceback
+import warnings
 from typing import Iterable, Optional
 
 import numpy as np
@@ -32,6 +34,28 @@ import cebra.helper
 import cebra.integrations.sklearn.utils as cebra_sklearn_utils
 import cebra.models
 import cebra.solver
+
+
+def _ensure_writable(array: npt.NDArray) -> npt.NDArray:
+    if not array.flags.writeable:
+        stack = traceback.extract_stack()[-5:-1]
+        stack_str = ''.join(traceback.format_list(stack[-4:]))
+
+        warnings.warn(
+            ("You passed a non-writable Numpy array to CEBRA. Pytorch does currently "
+             "not support non-writable tensors. As a result, CEBRA needs to copy the "
+             "contents of the array, which might yield unnecessary memory overhead. "
+             "Ideally, adapt the code such that the array you pass to CEBRA is writable "
+             "to make your code memory efficient. "
+             "You can find more context and the rationale for this fix here: "
+             "https://github.com/AdaptiveMotorControlLab/CEBRA/pull/289."
+             "\n\n"
+             "Trace:\n" + stack_str),
+            UserWarning,
+            stacklevel=2,
+        )
+        array = array.copy()
+    return array
 
 
 class SklearnDataset(cebra.data.SingleSessionDataset):
@@ -110,9 +134,7 @@ class SklearnDataset(cebra.data.SingleSessionDataset):
         # one sample is a conservative default here to ensure that sklearn tests
         # passes with the correct error messages.
         X = cebra_sklearn_utils.check_input_array(X, min_samples=2)
-        # Ensure array is writable (pandas 3.0+ may return read-only arrays)
-        if not X.flags.writeable:
-            X = X.copy()
+        X = _ensure_writable(X)
         self.neural = torch.from_numpy(X).float().to(self.device)
 
     def _parse_labels(self, labels: Optional[tuple]):
@@ -146,11 +168,10 @@ class SklearnDataset(cebra.data.SingleSessionDataset):
                     f"or lists that can be converted to arrays, but got {type(y)}"
                 )
 
+            y = _ensure_writable(y)
+
             # Define the index as either continuous or discrete indices, depending
             # on the dtype in the index array.
-            # Ensure array is writable (pandas 3.0+ may return read-only arrays)
-            if not y.flags.writeable:
-                y = y.copy()
             if cebra.helper._is_floating(y):
                 y = torch.from_numpy(y).float()
                 if y.dim() == 1:
