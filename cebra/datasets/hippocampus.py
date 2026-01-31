@@ -51,34 +51,34 @@ rat_dataset_urls = {
     "achilles": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/rat_hippocampus/achilles.jl.gz",
-        "checksum":
-            "c52f9b55cbc23c66d57f3842214058b8",
         "gzipped_checksum":
-            "5d7b243e07b24c387e5412cd5ff46f0b"
+            "5d7b243e07b24c387e5412cd5ff46f0b",
+        "checksum":
+            "c52f9b55cbc23c66d57f3842214058b8"
     },
     "buddy": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/rat_hippocampus/buddy.jl.gz",
-        "checksum":
-            "36341322907708c466871bf04bc133c2",
         "gzipped_checksum":
-            "339290585be2188f48a176f05aaf5df6"
+            "339290585be2188f48a176f05aaf5df6",
+        "checksum":
+            "36341322907708c466871bf04bc133c2"
     },
     "cicero": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/rat_hippocampus/cicero.jl.gz",
-        "checksum":
-            "a83b02dbdc884fdd7e53df362499d42f",
         "gzipped_checksum":
-            "f262a87d2e59f164cb404cd410015f3a"
+            "f262a87d2e59f164cb404cd410015f3a",
+        "checksum":
+            "a83b02dbdc884fdd7e53df362499d42f"
     },
     "gatsby": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/rat_hippocampus/gatsby.jl.gz",
-        "checksum":
-            "2b889da48178b3155011c12555342813",
         "gzipped_checksum":
-            "564e431c19e55db2286a9d64c86a94c4"
+            "564e431c19e55db2286a9d64c86a94c4",
+        "checksum":
+            "2b889da48178b3155011c12555342813"
     }
 }
 

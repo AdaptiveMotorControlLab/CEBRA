@@ -161,98 +161,98 @@ monkey_reaching_urls = {
     "all_all.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/all_all.jl.gz",
-        "checksum":
-            "dea556301fa4fafa86e28cf8621cab5a",
         "gzipped_checksum":
-            "399abc6e9ef0b23a0d6d057c6f508939"
+            "399abc6e9ef0b23a0d6d057c6f508939",
+        "checksum":
+            "dea556301fa4fafa86e28cf8621cab5a"
     },
     "all_train.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/all_train.jl.gz",
-        "checksum":
-            "e280e4cd86969e6fd8bfd3a8f402b2fe",
         "gzipped_checksum":
-            "eb52c8641fe83ae2a278b372ddec5f69"
+            "eb52c8641fe83ae2a278b372ddec5f69",
+        "checksum":
+            "e280e4cd86969e6fd8bfd3a8f402b2fe"
     },
     "all_test.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/all_test.jl.gz",
-        "checksum":
-            "25d3ff2c15014db8b8bf2543482ae881",
         "gzipped_checksum":
-            "7688245cf15e0b92503af943ce9f66aa"
+            "7688245cf15e0b92503af943ce9f66aa",
+        "checksum":
+            "25d3ff2c15014db8b8bf2543482ae881"
     },
     "all_valid.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/all_valid.jl.gz",
-        "checksum":
-            "8cd25169d31f83ae01b03f7b1b939723",
         "gzipped_checksum":
-            "b169fc008b4d092fe2a1b7e006cd17a7"
+            "b169fc008b4d092fe2a1b7e006cd17a7",
+        "checksum":
+            "8cd25169d31f83ae01b03f7b1b939723"
     },
     "active_all.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/active_all.jl.gz",
-        "checksum":
-            "c626acea5062122f5a68ef18d3e45e51",
         "gzipped_checksum":
-            "b7b86e2ae00bb71341de8fc352dae097"
+            "b7b86e2ae00bb71341de8fc352dae097",
+        "checksum":
+            "c626acea5062122f5a68ef18d3e45e51"
     },
     "active_train.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/active_train.jl.gz",
-        "checksum":
-            "72a48056691078eee22c36c1992b1d37",
         "gzipped_checksum":
-            "56687c633efcbff6c56bbcfa35597565"
+            "56687c633efcbff6c56bbcfa35597565",
+        "checksum":
+            "72a48056691078eee22c36c1992b1d37"
     },
     "active_test.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/active_test.jl.gz",
-        "checksum":
-            "35b7e060008a8722c536584c4748f2ea",
         "gzipped_checksum":
-            "2057ef1846908a69486a61895d1198e8"
+            "2057ef1846908a69486a61895d1198e8",
+        "checksum":
+            "35b7e060008a8722c536584c4748f2ea"
     },
     "active_valid.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/active_valid.jl.gz",
-        "checksum":
-            "dd58eb1e589361b4132f34b22af56b79",
         "gzipped_checksum":
-            "60b8e418f234877351fe36f1efc169ad"
+            "60b8e418f234877351fe36f1efc169ad",
+        "checksum":
+            "dd58eb1e589361b4132f34b22af56b79"
     },
     "passive_all.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/passive_all.jl.gz",
-        "checksum":
-            "bbb1bc9d8eec583a46f6673470fc98ad",
         "gzipped_checksum":
-            "afb257efa0cac3ccd69ec80478d63691"
+            "afb257efa0cac3ccd69ec80478d63691",
+        "checksum":
+            "bbb1bc9d8eec583a46f6673470fc98ad"
     },
     "passive_train.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/passive_train.jl.gz",
-        "checksum":
-            "f22e05a69f70e18ba823a0a89162a45c",
         "gzipped_checksum":
-            "24d98d7d41a52591f838c41fe83dc2c6"
+            "24d98d7d41a52591f838c41fe83dc2c6",
+        "checksum":
+            "f22e05a69f70e18ba823a0a89162a45c"
     },
     "passive_test.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/passive_test.jl.gz",
-        "checksum":
-            "42453ae3e4fd27d82d297f78c13cd6b7",
         "gzipped_checksum":
-            "f1ff4e9b7c4a0d7fa9dcd271893f57ab"
+            "f1ff4e9b7c4a0d7fa9dcd271893f57ab",
+        "checksum":
+            "42453ae3e4fd27d82d297f78c13cd6b7"
     },
     "passive_valid.jl": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/monkey_reaching_preload_smth_40/passive_valid.jl.gz",
-        "checksum":
-            "2dcc10c27631b95a075eaa2d2297bb4a",
         "gzipped_checksum":
-            "311fcb6a3e86022f12d78828f7bd29d5"
+            "311fcb6a3e86022f12d78828f7bd29d5",
+        "checksum":
+            "2dcc10c27631b95a075eaa2d2297bb4a"
     }
 }
 

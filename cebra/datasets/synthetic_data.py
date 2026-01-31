@@ -34,66 +34,66 @@ synthetic_data_urls = {
     "continuous_label_refractory_poisson": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_refractory_poisson.jl.gz",
-        "checksum":
-            "fcd92bd283c528d5294093190f55ceba",
         "gzipped_checksum":
-            "3641eed973b9cae972493c70b364e981"
+            "3641eed973b9cae972493c70b364e981",
+        "checksum":
+            "fcd92bd283c528d5294093190f55ceba"
     },
     "continuous_label_t": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_t.jl.gz",
-        "checksum":
-            "a6e76f274da571568fd2a4bf4cf48b66",
         "gzipped_checksum":
-            "1dc8805e8f0836c7c99e864100a65bff"
+            "1dc8805e8f0836c7c99e864100a65bff",
+        "checksum":
+            "a6e76f274da571568fd2a4bf4cf48b66"
     },
     "continuous_label_uniform": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_uniform.jl.gz",
-        "checksum":
-            "e67400e77ac009e8c9bc958aa5151973",
         "gzipped_checksum":
-            "71d33bc56b89bc227da0990bf16e584b"
+            "71d33bc56b89bc227da0990bf16e584b",
+        "checksum":
+            "e67400e77ac009e8c9bc958aa5151973"
     },
     "continuous_label_laplace": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_laplace.jl.gz",
-        "checksum":
-            "41d7ce4ce8901ae7a5136605ac3f5ffb",
         "gzipped_checksum":
-            "1563e4958031392d2b2e30cc4cd79b3f"
+            "1563e4958031392d2b2e30cc4cd79b3f",
+        "checksum":
+            "41d7ce4ce8901ae7a5136605ac3f5ffb"
     },
     "continuous_label_poisson": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_poisson.jl.gz",
-        "checksum":
-            "a789828f9cca5f3faf36d62ebc4cc8a1",
         "gzipped_checksum":
-            "7691304ee061e0bf1e9bb5f2bb6b20e7"
+            "7691304ee061e0bf1e9bb5f2bb6b20e7",
+        "checksum":
+            "a789828f9cca5f3faf36d62ebc4cc8a1"
     },
     "continuous_label_gaussian": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_gaussian.jl.gz",
-        "checksum":
-            "18d66a2020923e2cd67d2264d20890aa",
         "gzipped_checksum":
-            "0cb97a2c1eaa526e57d2248a333ea8e0"
+            "0cb97a2c1eaa526e57d2248a333ea8e0",
+        "checksum":
+            "18d66a2020923e2cd67d2264d20890aa"
     },
     "continuous_poisson_gaussian_noise": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_poisson_gaussian_noise.jl.gz",
-        "checksum":
-            "1a51461820c24a5bcaddaff3991f0ebe",
         "gzipped_checksum":
-            "5aa6b6eadf2b733562864d5b67bc6b8d"
+            "5aa6b6eadf2b733562864d5b67bc6b8d",
+        "checksum":
+            "1a51461820c24a5bcaddaff3991f0ebe"
     },
     "sim_100d_poisson_cont_label": {
         "url":
             "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/sim_100d_poisson_cont_label.npz.gz",
-        "checksum":
-            "306b9c646e7b76a52cfd828612d700cb",
         "gzipped_checksum":
-            "768299435a167dedd57e29b1a6d5af63"
+            "768299435a167dedd57e29b1a6d5af63",
+        "checksum":
+            "306b9c646e7b76a52cfd828612d700cb"
     }
 }
 
