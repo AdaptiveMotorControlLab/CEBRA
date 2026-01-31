@@ -414,12 +414,12 @@ def test_download_and_extract_gzipped_file():
             mock_response.iter_content = lambda chunk_size: [gzipped_content]
 
             # Test successful download and extraction
-            result = cebra_data_assets.download_and_extract_gzipped_file(
+            result = cebra_data_assets.download_file_with_progress_bar(
                 url="http://example.com/test.jl.gz",
                 expected_checksum=unzipped_checksum,
-                gzipped_checksum=gzipped_checksum,
                 location=temp_dir,
-                file_name=test_filename)
+                file_name=test_filename,
+                gzipped_checksum=gzipped_checksum)
 
             # Verify the file was extracted
             assert result is not None
@@ -455,13 +455,13 @@ def test_download_and_extract_gzipped_file_wrong_gzipped_checksum():
 
             with pytest.raises(RuntimeError,
                                match="Exceeded maximum retry count"):
-                cebra_data_assets.download_and_extract_gzipped_file(
+                cebra_data_assets.download_file_with_progress_bar(
                     url="http://example.com/test.jl.gz",
                     expected_checksum=hashlib.md5(test_content).hexdigest(),
-                    gzipped_checksum=wrong_gz_checksum,
                     location=temp_dir,
                     file_name="test.jl",
-                    retry_count=2)
+                    retry_count=2,
+                    gzipped_checksum=wrong_gz_checksum)
 
 
 def test_download_and_extract_gzipped_file_wrong_unzipped_checksum():
@@ -484,13 +484,13 @@ def test_download_and_extract_gzipped_file_wrong_unzipped_checksum():
 
             with pytest.raises(RuntimeError,
                                match="Exceeded maximum retry count"):
-                cebra_data_assets.download_and_extract_gzipped_file(
+                cebra_data_assets.download_file_with_progress_bar(
                     url="http://example.com/test.jl.gz",
                     expected_checksum=wrong_unzipped_checksum,
-                    gzipped_checksum=gzipped_checksum,
                     location=temp_dir,
                     file_name="test.jl",
-                    retry_count=2)
+                    retry_count=2,
+                    gzipped_checksum=gzipped_checksum)
 
 
 @pytest.mark.parametrize("neural, continuous, discrete", [
