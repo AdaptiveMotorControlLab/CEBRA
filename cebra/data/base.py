@@ -55,6 +55,7 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
                  download=False,
                  data_url=None,
                  data_checksum=None,
+                 gzipped_checksum=None,
                  location=None,
                  file_name=None):
 
@@ -64,6 +65,7 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
         self.download = download
         self.data_url = data_url
         self.data_checksum = data_checksum
+        self.gzipped_checksum = gzipped_checksum
         self.location = location
         self.file_name = file_name
 
@@ -78,11 +80,21 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
                     "Missing data checksum. Please provide the checksum to verify the data integrity."
                 )
 
-            cebra_data_assets.download_file_with_progress_bar(
-                url=self.data_url,
-                expected_checksum=self.data_checksum,
-                location=self.location,
-                file_name=self.file_name)
+            # Use gzipped download if gzipped_checksum is provided
+            if self.gzipped_checksum is not None:
+                cebra_data_assets.download_and_extract_gzipped_file(
+                    url=self.data_url,
+                    expected_checksum=self.data_checksum,
+                    gzipped_checksum=self.gzipped_checksum,
+                    location=self.location,
+                    file_name=self.file_name)
+            else:
+                # Fall back to legacy download for backward compatibility
+                cebra_data_assets.download_file_with_progress_bar(
+                    url=self.data_url,
+                    expected_checksum=self.data_checksum,
+                    location=self.location,
+                    file_name=self.file_name)
 
     @property
     @abc.abstractmethod
