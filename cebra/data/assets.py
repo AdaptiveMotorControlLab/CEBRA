@@ -20,6 +20,7 @@
 # limitations under the License.
 #
 
+import gzip
 import hashlib
 import re
 import warnings
@@ -32,22 +33,31 @@ import tqdm
 _MAX_RETRY_COUNT = 2
 
 
-def download_file_with_progress_bar(url: str,
-                                    expected_checksum: str,
-                                    location: str,
-                                    file_name: str,
-                                    retry_count: int = 0) -> Optional[str]:
+def download_file_with_progress_bar(
+        url: str,
+        expected_checksum: str,
+        location: str,
+        file_name: str,
+        retry_count: int = 0,
+        gzipped_checksum: str = None) -> Optional[str]:
     """Download a file from the given URL.
 
     During download, progress is reported using a progress bar. The downloaded
     file's checksum is compared to the provided ``expected_checksum``.
 
+    If ``gzipped_checksum`` is provided, the file is expected to be gzipped.
+    The function will verify the gzipped file's checksum, extract it, and then
+    verify the extracted file's checksum.
+
     Args:
         url: The URL to download the file from.
-        expected_checksum: The expected checksum value of the downloaded file.
+        expected_checksum: The expected checksum value of the downloaded file
+            (or extracted file if gzipped_checksum is provided).
         location: The directory where the file will be saved.
         file_name: The name of the file.
         retry_count: The number of retry attempts (default: 0).
+        gzipped_checksum: Optional MD5 checksum of the gzipped file. If provided,
+            the file will be extracted after download.
 
     Returns:
         The path of the downloaded file if the download is successful, None otherwise.
@@ -78,30 +88,34 @@ def download_file_with_progress_bar(url: str,
             f"Error occurred while downloading the file. Response code: {response.status_code}"
         )
 
-    # Check if the response headers contain the 'Content-Disposition' header
-    if 'Content-Disposition' not in response.headers:
-        raise ValueError(
-            "Unable to determine the filename. 'Content-Disposition' header not found."
-        )
+    # For gzipped files, download to a .gz file first
+    if gzipped_checksum:
+        download_path = location_path / f"{file_name}.gz"
+    else:
+        # Check if the response headers contain the 'Content-Disposition' header
+        if 'Content-Disposition' not in response.headers:
+            raise ValueError(
+                "Unable to determine the filename. 'Content-Disposition' header not found."
+            )
 
-    # Extract the filename from the 'Content-Disposition' header
-    filename_match = re.search(r'filename="(.+)"',
-                               response.headers.get("Content-Disposition"))
-    if not filename_match:
-        raise ValueError(
-            "Unable to determine the filename from the 'Content-Disposition' header."
-        )
+        # Extract the filename from the 'Content-Disposition' header
+        filename_match = re.search(r'filename="(.+)"',
+                                   response.headers.get("Content-Disposition"))
+        if not filename_match:
+            raise ValueError(
+                "Unable to determine the filename from the 'Content-Disposition' header."
+            )
+
+        filename = filename_match.group(1)
+        download_path = location_path / filename
 
     # Create the directory and any necessary parent directories
     location_path.mkdir(parents=True, exist_ok=True)
 
-    filename = filename_match.group(1)
-    file_path = location_path / filename
-
     total_size = int(response.headers.get("Content-Length", 0))
     checksum = hashlib.md5()  # create checksum
 
-    with open(file_path, "wb") as file:
+    with open(download_path, "wb") as file:
         with tqdm.tqdm(total=total_size, unit="B",
                        unit_scale=True) as progress_bar:
             for data in response.iter_content(chunk_size=1024):
@@ -111,18 +125,76 @@ def download_file_with_progress_bar(url: str,
                 progress_bar.update(len(data))
 
     downloaded_checksum = checksum.hexdigest()  # Get the checksum value
+
+    # If gzipped, verify gzipped checksum, extract, and verify extracted checksum
+    if gzipped_checksum:
+        if downloaded_checksum != gzipped_checksum:
+            warnings.warn(
+                f"Gzipped file checksum verification failed. Deleting '{download_path}'."
+            )
+            download_path.unlink()
+            warnings.warn("Gzipped file deleted. Retrying download...")
+            return download_file_with_progress_bar(url, expected_checksum,
+                                                   location, file_name,
+                                                   retry_count + 1,
+                                                   gzipped_checksum)
+
+        print("Gzipped file checksum verified. Extracting...")
+
+        # Extract the gzipped file
+        try:
+            with gzip.open(download_path, 'rb') as f_in:
+                with open(file_path, 'wb') as f_out:
+                    while True:
+                        chunk = f_in.read(8192)
+                        if not chunk:
+                            break
+                        f_out.write(chunk)
+        except Exception as e:
+            warnings.warn(
+                f"Extraction failed: {e}. Deleting files and retrying...")
+            if download_path.exists():
+                download_path.unlink()
+            if file_path.exists():
+                file_path.unlink()
+            return download_file_with_progress_bar(url, expected_checksum,
+                                                   location, file_name,
+                                                   retry_count + 1,
+                                                   gzipped_checksum)
+
+        # Verify extracted file checksum
+        extracted_checksum = calculate_checksum(file_path)
+        if extracted_checksum != expected_checksum:
+            warnings.warn(
+                "Extracted file checksum verification failed. Deleting files.")
+            download_path.unlink()
+            file_path.unlink()
+            warnings.warn("Files deleted. Retrying download...")
+            return download_file_with_progress_bar(url, expected_checksum,
+                                                   location, file_name,
+                                                   retry_count + 1,
+                                                   gzipped_checksum)
+
+        # Clean up the gzipped file after successful extraction
+        download_path.unlink()
+        print(f"Extraction complete. Dataset saved in '{file_path}'")
+        return url
+
+    # For non-gzipped files, verify checksum
     if downloaded_checksum != expected_checksum:
-        warnings.warn(f"Checksum verification failed. Deleting '{file_path}'.")
-        file_path.unlink()
+        warnings.warn(
+            f"Checksum verification failed. Deleting '{download_path}'.")
+        download_path.unlink()
         warnings.warn("File deleted. Retrying download...")
 
         # Retry download using a for loop
         for _ in range(retry_count + 1, _MAX_RETRY_COUNT + 1):
             return download_file_with_progress_bar(url, expected_checksum,
                                                    location, file_name,
-                                                   retry_count + 1)
+                                                   retry_count + 1,
+                                                   gzipped_checksum)
     else:
-        print(f"Download complete. Dataset saved in '{file_path}'")
+        print(f"Download complete. Dataset saved in '{download_path}'")
         return url
 
 
