@@ -1027,7 +1027,7 @@ class ParametrizedModelExample(cebra.models.model._OffsetModel):
 @pytest.mark.parametrize("model_architecture",
                          ["offset1-model", "parametrized-model-5"])
 @pytest.mark.parametrize("device", ["cpu"] +
-                         ["cuda"] if torch.cuda.is_available() else [])
+                         (["cuda"] if torch.cuda.is_available() else []))
 def test_save_and_load(action, backend_save, backend_load, model_architecture,
                        device):
     original_model = cebra_sklearn_cebra.CEBRA(
