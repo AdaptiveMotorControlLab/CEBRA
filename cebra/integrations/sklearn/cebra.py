@@ -52,8 +52,13 @@ import cebra.solver
 # windows (https://github.com/AdaptiveMotorControlLab/CEBRA/pull/281#issuecomment-3764185072)
 # on build (windows-latest, torch 2.6.0, python 3.12, latest sklearn)
 CEBRA_LOAD_SAFE_GLOBALS = [
-    cebra.data.Offset, torch.torch_version.TorchVersion, np.dtype,
-    np.dtypes.Int32DType, np.dtypes.Float64DType, np.dtypes.Int64DType
+    cebra.data.Offset,
+    torch.torch_version.TorchVersion,
+    np.dtype,
+    np.dtypes.Int32DType,
+    np.dtypes.Int64DType,
+    np.dtypes.Float32DType,
+    np.dtypes.Float64DType,
 ]
 
 
@@ -64,20 +69,22 @@ def check_version(estimator):
         sklearn.__version__) < packaging.version.parse("1.6.dev")
 
 
-def _safe_torch_load(filename, weights_only, **kwargs):
-    if weights_only is None:
-        if packaging.version.parse(
-                torch.__version__) >= packaging.version.parse("2.6.0"):
-            weights_only = True
-        else:
-            weights_only = False
+def _safe_torch_load(filename, weights_only=False, **kwargs):
+    checkpoint = None
+    legacy_mode = packaging.version.parse(
+        torch.__version__) < packaging.version.parse("2.6.0")
 
-    if not weights_only:
+    if legacy_mode:
         checkpoint = torch.load(filename, weights_only=False, **kwargs)
     else:
-        # NOTE(stes): This is only supported for torch 2.6+
         with torch.serialization.safe_globals(CEBRA_LOAD_SAFE_GLOBALS):
-            checkpoint = torch.load(filename, weights_only=True, **kwargs)
+            checkpoint = torch.load(filename,
+                                    weights_only=weights_only,
+                                    **kwargs)
+
+    if not isinstance(checkpoint, dict):
+        _check_type_checkpoint(checkpoint)
+        checkpoint = checkpoint._get_state_dict()
 
     return checkpoint
 
@@ -317,8 +324,9 @@ def _init_loader(
 
 def _check_type_checkpoint(checkpoint):
     if not isinstance(checkpoint, cebra.CEBRA):
-        raise RuntimeError("Model loaded from file is not compatible with "
-                           "the current CEBRA version.")
+        raise RuntimeError(
+            "Model loaded from file is not compatible with "
+            f"the current CEBRA version. Got: {type(checkpoint)}")
     if not sklearn_utils.check_fitted(checkpoint):
         raise ValueError(
             "CEBRA model is not fitted. Loading it is not supported.")
@@ -1487,7 +1495,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
         # the user will have to explicitly pass weights_only=False to load these checkpoints, following the changes
         # introduced in torch 2.6.0.
         try:
-            checkpoint = _safe_torch_load(filename, weights_only=True, **kwargs)
+            checkpoint = _safe_torch_load(filename, **kwargs)
         except pickle.UnpicklingError as e:
             if weights_only is not False:
                 if packaging.version.parse(
@@ -1511,20 +1519,14 @@ class CEBRA(TransformerMixin, BaseEstimator):
             checkpoint = _safe_torch_load(filename,
                                           weights_only=False,
                                           **kwargs)
-            checkpoint = _check_type_checkpoint(checkpoint)
-            checkpoint = checkpoint._get_state_dict()
-
-        if isinstance(checkpoint, dict) and backend == "torch":
-            raise RuntimeError(
-                "Cannot use 'torch' backend with a dictionary-based checkpoint. "
-                "Please try a different backend.")
-        if not isinstance(checkpoint, dict) and backend == "sklearn":
-            raise RuntimeError(
-                "Cannot use 'sklearn' backend a non dictionary-based checkpoint. "
-                "Please try a different backend.")
 
         if backend != "sklearn":
             raise ValueError(f"Unsupported backend: {backend}")
+
+        if not isinstance(checkpoint, dict):
+            raise RuntimeError(
+                "Cannot use 'sklearn' backend a non dictionary-based checkpoint. "
+                f"Please try a different backend. Got: {type(checkpoint)}")
 
         cebra_ = _load_cebra_with_sklearn_backend(checkpoint)
 
