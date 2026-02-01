@@ -19,7 +19,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import contextlib
 import itertools
+import os
 import tempfile
 import warnings
 
@@ -45,6 +47,34 @@ if torch.cuda.is_available():
     _DEVICES = "cpu", "cuda"
 else:
     _DEVICES = ("cpu",)
+
+
+@contextlib.contextmanager
+def _windows_compatible_tempfile(mode="w+b", delete=True, **kwargs):
+    """Context manager for creating temporary files compatible with Windows.
+
+    On Windows, files opened with delete=True cannot be accessed by other
+    processes or reopened. This context manager creates a temporary file
+    with delete=False, yields its path, and ensures cleanup in a finally block.
+
+    Args:
+        mode: File mode (default: "w+b")
+        **kwargs: Additional arguments passed to NamedTemporaryFile
+
+    Yields:
+        str: Path to the temporary file
+    """
+    if not delete:
+        raise ValueError("'delete' must be True")
+
+    with tempfile.NamedTemporaryFile(mode=mode, delete=False, **kwargs) as f:
+        tempname = f.name
+
+    try:
+        yield tempname
+    finally:
+        if os.path.exists(tempname):
+            os.remove(tempname)
 
 
 def test_imports():
@@ -1037,24 +1067,23 @@ def test_save_and_load(action, backend_save, backend_load, model_architecture,
         device=device)
 
     original_model = action(original_model)
-    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
+    with _windows_compatible_tempfile(mode="w+b") as tempname:
         if not check_if_fit(original_model):
             with pytest.raises(ValueError):
-                original_model.save(savefile.name, backend=backend_save)
+                original_model.save(tempname, backend=backend_save)
         else:
             if "parametrized" in original_model.model_architecture and backend_save == "torch":
                 with pytest.raises(AttributeError):
-                    original_model.save(savefile.name, backend=backend_save)
+                    original_model.save(tempname, backend=backend_save)
             else:
-                original_model.save(savefile.name, backend=backend_save)
+                original_model.save(tempname, backend=backend_save)
 
                 if (backend_load != "auto") and (backend_save != backend_load):
                     with pytest.raises(RuntimeError):
-                        cebra_sklearn_cebra.CEBRA.load(savefile.name,
-                                                       backend_load)
+                        cebra_sklearn_cebra.CEBRA.load(tempname, backend_load)
                 else:
                     loaded_model = cebra_sklearn_cebra.CEBRA.load(
-                        savefile.name, backend_load)
+                        tempname, backend_load)
                     _assert_equal(original_model, loaded_model)
                     action(loaded_model)
 
@@ -1130,9 +1159,9 @@ def test_move_cpu_to_cuda_device(device):
         device_str = f'cuda:{device_model.index}'
     assert device_str == new_device
 
-    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
-        cebra_model.save(savefile.name)
-        loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
+    with _windows_compatible_tempfile(mode="w+b") as tempname:
+        cebra_model.save(tempname)
+        loaded_model = cebra_sklearn_cebra.CEBRA.load(tempname)
 
     assert cebra_model.device == loaded_model.device
     assert next(cebra_model.solver_.model.parameters()).device == next(
@@ -1159,9 +1188,9 @@ def test_move_cpu_to_mps_device(device):
     device_model = next(cebra_model.solver_.model.parameters()).device
     assert device_model.type == new_device
 
-    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
-        cebra_model.save(savefile.name)
-        loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
+    with _windows_compatible_tempfile(mode="w+b") as tempname:
+        cebra_model.save(tempname)
+        loaded_model = cebra_sklearn_cebra.CEBRA.load(tempname)
 
     assert cebra_model.device == loaded_model.device
     assert next(cebra_model.solver_.model.parameters()).device == next(
@@ -1198,9 +1227,9 @@ def test_move_mps_to_cuda_device(device):
         device_str = f'cuda:{device_model.index}'
     assert device_str == new_device
 
-    with tempfile.NamedTemporaryFile(mode="w+b", delete=True) as savefile:
-        cebra_model.save(savefile.name)
-        loaded_model = cebra_sklearn_cebra.CEBRA.load(savefile.name)
+    with _windows_compatible_tempfile(mode="w+b") as tempname:
+        cebra_model.save(tempname)
+        loaded_model = cebra_sklearn_cebra.CEBRA.load(tempname)
 
     assert cebra_model.device == loaded_model.device
     assert next(cebra_model.solver_.model.parameters()).device == next(
@@ -1561,3 +1590,16 @@ def test_non_writable_array():
     embedding = cebra_model.transform(X)
     assert isinstance(embedding, np.ndarray)
     assert embedding.shape[0] == X.shape[0]
+
+
+def test_read_write():
+    X = np.random.randn(100, 10)
+    y = np.random.randn(100, 2)
+    cebra_model = cebra.CEBRA(max_iterations=2, batch_size=32, device="cpu")
+    cebra_model.fit(X, y)
+    cebra_model.transform(X)
+
+    with _windows_compatible_tempfile(mode="w+b", delete=False) as tempname:
+        cebra_model.save(tempname)
+        loaded_model = cebra.CEBRA.load(tempname)
+        _assert_equal(cebra_model, loaded_model)
