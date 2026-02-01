@@ -1253,6 +1253,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
 
         X = sklearn_utils.check_input_array(X, min_samples=len(self.offset_))
 
+        X = cebra_sklearn_dataset._ensure_writable(X)
+
         if isinstance(X, np.ndarray):
             X = torch.from_numpy(X)
 
