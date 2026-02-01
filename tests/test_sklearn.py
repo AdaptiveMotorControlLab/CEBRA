@@ -1599,7 +1599,7 @@ def test_read_write():
     cebra_model.fit(X, y)
     cebra_model.transform(X)
 
-    with _windows_compatible_tempfile(mode="w+b", delete=False) as tempname:
+    with _windows_compatible_tempfile(mode="w+b", delete=True) as tempname:
         cebra_model.save(tempname)
         loaded_model = cebra.CEBRA.load(tempname)
         _assert_equal(cebra_model, loaded_model)
