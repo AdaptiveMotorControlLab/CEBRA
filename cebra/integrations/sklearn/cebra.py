@@ -52,8 +52,13 @@ import cebra.solver
 # windows (https://github.com/AdaptiveMotorControlLab/CEBRA/pull/281#issuecomment-3764185072)
 # on build (windows-latest, torch 2.6.0, python 3.12, latest sklearn)
 CEBRA_LOAD_SAFE_GLOBALS = [
-    cebra.data.Offset, torch.torch_version.TorchVersion, np.dtype,
-    np.dtypes.Int32DType, np.dtypes.Float64DType, np.dtypes.Int64DType
+    cebra.data.Offset,
+    torch.torch_version.TorchVersion,
+    np.dtype,
+    np.dtypes.Int32DType,
+    np.dtypes.Int64DType,
+    np.dtypes.Float32DType,
+    np.dtypes.Float64DType,
 ]
 
 
