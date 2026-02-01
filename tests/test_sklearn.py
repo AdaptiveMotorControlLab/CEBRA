@@ -1010,7 +1010,11 @@ def _assert_equal(original_model, loaded_model):
     if check_if_fit(loaded_model):
         _assert_same_state_dict(original_model.state_dict_,
                                 loaded_model.state_dict_)
-        X = np.random.normal(0, 1, (100, 1))
+
+        n_features = loaded_model.n_features_
+        if isinstance(n_features, list):
+            n_features = n_features[0]
+        X = np.random.normal(0, 1, (100, n_features))
 
         if loaded_model.num_sessions is not None:
             assert np.allclose(loaded_model.transform(X, session_id=0),
