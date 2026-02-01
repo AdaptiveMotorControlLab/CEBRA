@@ -1053,7 +1053,7 @@ class ParametrizedModelExample(cebra.models.model._OffsetModel):
 
 @pytest.mark.parametrize("action", _iterate_actions())
 @pytest.mark.parametrize("backend_save", ["torch", "sklearn"])
-@pytest.mark.parametrize("backend_load", ["sklearn", "auto", "torch"])
+@pytest.mark.parametrize("backend_load", ["auto", "torch", "sklearn"])
 @pytest.mark.parametrize("model_architecture",
                          ["offset1-model", "parametrized-model-5"])
 @pytest.mark.parametrize("device", ["cpu"] +
