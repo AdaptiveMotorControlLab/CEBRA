@@ -1053,7 +1053,7 @@ class ParametrizedModelExample(cebra.models.model._OffsetModel):
 
 @pytest.mark.parametrize("action", _iterate_actions())
 @pytest.mark.parametrize("backend_save", ["torch", "sklearn"])
-@pytest.mark.parametrize("backend_load", ["auto", "torch", "sklearn"])
+@pytest.mark.parametrize("backend_load", ["sklearn", "auto", "torch"])
 @pytest.mark.parametrize("model_architecture",
                          ["offset1-model", "parametrized-model-5"])
 @pytest.mark.parametrize("device", ["cpu"] +
@@ -1072,20 +1072,14 @@ def test_save_and_load(action, backend_save, backend_load, model_architecture,
             with pytest.raises(ValueError):
                 original_model.save(tempname, backend=backend_save)
         else:
-            if "parametrized" in original_model.model_architecture and backend_save == "torch":
-                with pytest.raises(AttributeError):
-                    original_model.save(tempname, backend=backend_save)
-            else:
-                original_model.save(tempname, backend=backend_save)
+            original_model.save(tempname, backend=backend_save)
 
-                if (backend_load != "auto") and (backend_save != backend_load):
-                    with pytest.raises(RuntimeError):
-                        cebra_sklearn_cebra.CEBRA.load(tempname, backend_load)
-                else:
-                    loaded_model = cebra_sklearn_cebra.CEBRA.load(
-                        tempname, backend_load)
-                    _assert_equal(original_model, loaded_model)
-                    action(loaded_model)
+            weights_only = None
+
+            loaded_model = cebra_sklearn_cebra.CEBRA.load(
+                tempname, backend_load, weights_only=weights_only)
+            _assert_equal(original_model, loaded_model)
+            action(loaded_model)
 
 
 def get_ordered_cuda_devices():
@@ -1489,7 +1483,7 @@ def test_new_transform(model_architecture, device):
                                                               X,
                                                               session_id=0)
     assert np.allclose(embedding1, embedding2, rtol=1e-5,
-                       atol=1e-8), "Arrays are not close enough"
+                       atol=1e-8), " are not close enough"
 
     embedding1 = cebra_model.transform(torch.Tensor(X), session_id=0)
     embedding2 = _utils_deprecated.cebra_transform_deprecated(cebra_model,
@@ -1603,3 +1597,22 @@ def test_read_write():
         cebra_model.save(tempname)
         loaded_model = cebra.CEBRA.load(tempname)
         _assert_equal(cebra_model, loaded_model)
+
+
+def test_repro_pickle_error():
+    """The torch backend for save/loading fails with python 3.14.
+
+    See https://github.com/AdaptiveMotorControlLab/CEBRA/pull/292.
+
+    This test is a minimal repro of the error.
+    """
+
+    model = cebra_sklearn_cebra.CEBRA(model_architecture='parametrized-model-5',
+                                      max_iterations=5,
+                                      batch_size=100,
+                                      device='cpu')
+
+    model.fit(np.random.randn(1000, 10))
+
+    with _windows_compatible_tempfile(mode="w+b", delete=True) as tempname:
+        model.save(tempname, backend="torch")
