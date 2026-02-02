@@ -46,6 +46,7 @@ or ``init``.
 from __future__ import annotations
 
 import fnmatch
+import functools
 import itertools
 import sys
 import textwrap
@@ -214,13 +215,28 @@ def add_helper_functions(module: Union[types.ModuleType, str]):
                 yield dict(zip(keys, combination))
 
         def _create_class(cls, **default_kwargs):
+            class_name = pattern.format(**default_kwargs)
 
-            @register(pattern.format(**default_kwargs), base=pattern)
+            @register(class_name, base=pattern)
             class _ParametrizedClass(cls):
 
                 def __init__(self, *args, **kwargs):
                     default_kwargs.update(kwargs)
                     super().__init__(*args, **default_kwargs)
+
+            # Make the class pickleable by copying metadata from the base class
+            # and registering it in the module namespace
+            functools.update_wrapper(_ParametrizedClass, cls, updated=[])
+
+            # Set a unique qualname so pickle finds this class, not the base class
+            unique_name = f"{cls.__qualname__}_{class_name.replace('-', '_')}"
+            _ParametrizedClass.__qualname__ = unique_name
+            _ParametrizedClass.__name__ = unique_name
+
+            # Register in module namespace so pickle can find it via getattr
+            parent_module = sys.modules.get(cls.__module__)
+            if parent_module is not None:
+                setattr(parent_module, unique_name, _ParametrizedClass)
 
         def _parametrize(cls):
             for _default_kwargs in kwargs:
