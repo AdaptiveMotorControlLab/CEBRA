@@ -29,18 +29,28 @@ jobs:
         # https://pytorch.org/get-started/previous-versions/
         torch-version: ["2.6.0", "2.10.0"]
         sklearn-version: ["latest"]
+        numpy-version: ["latest"]
+
         include:
           # windows test with standard config
           - os: windows-latest
             torch-version: 2.6.0
             python-version: "3.12"
             sklearn-version: "latest"
+            numpy-version: "latest"
 
           # legacy sklearn (several API differences)
           - os: ubuntu-latest
             torch-version: 2.6.0
             python-version: "3.12"
             sklearn-version: "legacy"
+            numpy-version: "latest"
+
+          - os: ubuntu-latest
+            torch-version: 2.6.0
+            python-version: "3.12"
+            sklearn-version: "latest"
+            numpy-version: "legacy"
 
           # TODO(stes): latest torch and python
           # requires a PyTables release compatible with
@@ -55,6 +65,7 @@ jobs:
             torch-version: 2.4.0
             python-version: "3.10"
             sklearn-version: "legacy"
+            numpy-version: "latest"
 
     runs-on: ${{ matrix.os }}
 
@@ -87,6 +98,11 @@ jobs:
         if: matrix.sklearn-version == 'legacy'
         run: |
           pip install scikit-learn==1.4.2 '.[dev,datasets,integrations]'
+
+      - name: Check numpy legacy version
+        if: matrix.numpy-version == 'legacy'
+        run: |
+          pip install "numpy<2" '.[dev,datasets,integrations]'
 
       - name: Run the formatter
         run: |

@@ -23,6 +23,8 @@
 
 import importlib.metadata
 import itertools
+import pickle
+import warnings
 from typing import (Callable, Dict, Iterable, List, Literal, Optional, Tuple,
                     Union)
 
@@ -50,8 +52,13 @@ import cebra.solver
 # windows (https://github.com/AdaptiveMotorControlLab/CEBRA/pull/281#issuecomment-3764185072)
 # on build (windows-latest, torch 2.6.0, python 3.12, latest sklearn)
 CEBRA_LOAD_SAFE_GLOBALS = [
-    cebra.data.Offset, torch.torch_version.TorchVersion, np.dtype,
-    np.dtypes.Int32DType, np.dtypes.Float64DType, np.dtypes.Int64DType
+    cebra.data.Offset,
+    torch.torch_version.TorchVersion,
+    np.dtype,
+    np.dtypes.Int32DType,
+    np.dtypes.Int64DType,
+    np.dtypes.Float32DType,
+    np.dtypes.Float64DType,
 ]
 
 
@@ -62,20 +69,22 @@ def check_version(estimator):
         sklearn.__version__) < packaging.version.parse("1.6.dev")
 
 
-def _safe_torch_load(filename, weights_only, **kwargs):
-    if weights_only is None:
-        if packaging.version.parse(
-                torch.__version__) >= packaging.version.parse("2.6.0"):
-            weights_only = True
-        else:
-            weights_only = False
+def _safe_torch_load(filename, weights_only=False, **kwargs):
+    checkpoint = None
+    legacy_mode = packaging.version.parse(
+        torch.__version__) < packaging.version.parse("2.6.0")
 
-    if not weights_only:
+    if legacy_mode:
         checkpoint = torch.load(filename, weights_only=False, **kwargs)
     else:
-        # NOTE(stes): This is only supported for torch 2.6+
         with torch.serialization.safe_globals(CEBRA_LOAD_SAFE_GLOBALS):
-            checkpoint = torch.load(filename, weights_only=True, **kwargs)
+            checkpoint = torch.load(filename,
+                                    weights_only=weights_only,
+                                    **kwargs)
+
+    if not isinstance(checkpoint, dict):
+        _check_type_checkpoint(checkpoint)
+        checkpoint = checkpoint._get_state_dict()
 
     return checkpoint
 
@@ -315,8 +324,9 @@ def _init_loader(
 
 def _check_type_checkpoint(checkpoint):
     if not isinstance(checkpoint, cebra.CEBRA):
-        raise RuntimeError("Model loaded from file is not compatible with "
-                           "the current CEBRA version.")
+        raise RuntimeError(
+            "Model loaded from file is not compatible with "
+            f"the current CEBRA version. Got: {type(checkpoint)}")
     if not sklearn_utils.check_fitted(checkpoint):
         raise ValueError(
             "CEBRA model is not fitted. Loading it is not supported.")
@@ -1336,6 +1346,26 @@ class CEBRA(TransformerMixin, BaseEstimator):
         }
         return state
 
+    def _get_state_dict(self):
+        backend = "sklearn"
+        return {
+            'args': self.get_params(),
+            'state': self._get_state(),
+            'state_dict': self.solver_.state_dict(),
+            'metadata': {
+                'backend':
+                    backend,
+                'cebra_version':
+                    cebra.__version__,
+                'torch_version':
+                    torch.__version__,
+                'numpy_version':
+                    np.__version__,
+                'sklearn_version':
+                    importlib.metadata.distribution("scikit-learn").version
+            }
+        }
+
     def save(self,
              filename: str,
              backend: Literal["torch", "sklearn"] = "sklearn"):
@@ -1384,28 +1414,16 @@ class CEBRA(TransformerMixin, BaseEstimator):
         """
         if sklearn_utils.check_fitted(self):
             if backend == "torch":
+                warnings.warn(
+                    "Saving with backend='torch' is deprecated and will be removed in a future version. "
+                    "Please use backend='sklearn' instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
                 checkpoint = torch.save(self, filename)
 
             elif backend == "sklearn":
-                checkpoint = torch.save(
-                    {
-                        'args': self.get_params(),
-                        'state': self._get_state(),
-                        'state_dict': self.solver_.state_dict(),
-                        'metadata': {
-                            'backend':
-                                backend,
-                            'cebra_version':
-                                cebra.__version__,
-                            'torch_version':
-                                torch.__version__,
-                            'numpy_version':
-                                np.__version__,
-                            'sklearn_version':
-                                importlib.metadata.distribution("scikit-learn"
-                                                               ).version
-                        }
-                    }, filename)
+                checkpoint = torch.save(self._get_state_dict(), filename)
             else:
                 raise NotImplementedError(f"Unsupported backend: {backend}")
         else:
@@ -1457,29 +1475,60 @@ class CEBRA(TransformerMixin, BaseEstimator):
             >>> tmp_file.unlink()
         """
         supported_backends = ["auto", "sklearn", "torch"]
+
         if backend not in supported_backends:
             raise NotImplementedError(
                 f"Unsupported backend: '{backend}'. Supported backends are: {', '.join(supported_backends)}"
             )
 
-        checkpoint = _safe_torch_load(filename, weights_only, **kwargs)
+        if backend not in ["auto", "sklearn"]:
+            warnings.warn(
+                "From CEBRA version 0.6.1 onwards, the 'backend' parameter in cebra.CEBRA.load is deprecated and will be ignored; "
+                "the sklearn backend is now always used. Models saved with the torch backend can still be loaded.",
+                category=DeprecationWarning,
+                stacklevel=2,
+            )
 
-        if backend == "auto":
-            backend = "sklearn" if isinstance(checkpoint, dict) else "torch"
+        backend = "sklearn"
 
-        if isinstance(checkpoint, dict) and backend == "torch":
-            raise RuntimeError(
-                "Cannot use 'torch' backend with a dictionary-based checkpoint. "
-                "Please try a different backend.")
-        if not isinstance(checkpoint, dict) and backend == "sklearn":
+        # NOTE(stes): For maximum backwards compatibility, we allow to load legacy checkpoints. From 0.7.0 onwards,
+        # the user will have to explicitly pass weights_only=False to load these checkpoints, following the changes
+        # introduced in torch 2.6.0.
+        try:
+            checkpoint = _safe_torch_load(filename, **kwargs)
+        except pickle.UnpicklingError as e:
+            if weights_only is not False:
+                if packaging.version.parse(
+                        cebra.__version__) < packaging.version.parse("0.7"):
+                    warnings.warn(
+                        "Failed to unpickle checkpoint with weights_only=True. "
+                        "Falling back to loading with weights_only=False. "
+                        "This is unsafe and should only be done if you trust the source of the model file. "
+                        "In the future, loading these checkpoints will only work if weights_only=False is explicitly passed.",
+                        category=UserWarning,
+                        stacklevel=2,
+                    )
+                else:
+                    raise ValueError(
+                        "Failed to unpickle checkpoint with weights_only=True. "
+                        "This may be due to an incompatible model file format. "
+                        "To attempt loading this checkpoint, please pass weights_only=False to CEBRA.load. "
+                        "Example: CEBRA.load(filename, weights_only=False)."
+                    ) from e
+
+            checkpoint = _safe_torch_load(filename,
+                                          weights_only=False,
+                                          **kwargs)
+
+        if backend != "sklearn":
+            raise ValueError(f"Unsupported backend: {backend}")
+
+        if not isinstance(checkpoint, dict):
             raise RuntimeError(
                 "Cannot use 'sklearn' backend a non dictionary-based checkpoint. "
-                "Please try a different backend.")
+                f"Please try a different backend. Got: {type(checkpoint)}")
 
-        if backend == "sklearn":
-            cebra_ = _load_cebra_with_sklearn_backend(checkpoint)
-        else:
-            cebra_ = _check_type_checkpoint(checkpoint)
+        cebra_ = _load_cebra_with_sklearn_backend(checkpoint)
 
         n_features = cebra_.n_features_
         cebra_.solver_.n_features = ([
