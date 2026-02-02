@@ -19,6 +19,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import hashlib
 import os
 import pathlib
 import tempfile
@@ -382,6 +383,114 @@ def test_download_file_wrong_content_disposition(filename, url,
                     expected_checksum=expected_checksum,
                     location=temp_dir,
                     file_name=filename)
+
+
+def test_download_and_extract_gzipped_file():
+    """Test downloading and extracting gzipped files with dual checksum verification."""
+    import gzip
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Create a test file
+        test_content = b"Test dataset content for gzipped download"
+        test_filename = "test_dataset.jl"
+        test_gz_filename = f"{test_filename}.gz"
+
+        # Calculate checksums
+        unzipped_checksum = cebra_data_assets.calculate_checksum.__wrapped__(test_content) \
+            if hasattr(cebra_data_assets.calculate_checksum, '__wrapped__') \
+            else hashlib.md5(test_content).hexdigest()
+
+        # Create gzipped content
+        gzipped_content = gzip.compress(test_content)
+        gzipped_checksum = hashlib.md5(gzipped_content).hexdigest()
+
+        # Mock the HTTP response
+        with patch("requests.get") as mock_get:
+            mock_response = mock_get.return_value
+            mock_response.status_code = 200
+            mock_response.headers = {
+                "Content-Length": str(len(gzipped_content))
+            }
+            mock_response.iter_content = lambda chunk_size: [gzipped_content]
+
+            # Test successful download and extraction
+            result = cebra_data_assets.download_file_with_progress_bar(
+                url="http://example.com/test.jl.gz",
+                expected_checksum=unzipped_checksum,
+                location=temp_dir,
+                file_name=test_filename,
+                gzipped_checksum=gzipped_checksum)
+
+            # Verify the file was extracted
+            assert result is not None
+            final_path = os.path.join(temp_dir, test_filename)
+            assert os.path.exists(final_path)
+
+            # Verify the content is correct
+            with open(final_path, 'rb') as f:
+                extracted_content = f.read()
+            assert extracted_content == test_content
+
+            # Verify the .gz file was cleaned up
+            gz_path = os.path.join(temp_dir, test_gz_filename)
+            assert not os.path.exists(gz_path)
+
+
+def test_download_and_extract_gzipped_file_wrong_gzipped_checksum():
+    """Test that wrong gzipped checksum raises error after retries."""
+    import gzip
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_content = b"Test content"
+        gzipped_content = gzip.compress(test_content)
+        wrong_gz_checksum = "0" * 32  # Wrong checksum
+
+        with patch("requests.get") as mock_get:
+            mock_response = mock_get.return_value
+            mock_response.status_code = 200
+            mock_response.headers = {
+                "Content-Length": str(len(gzipped_content))
+            }
+            mock_response.iter_content = lambda chunk_size: [gzipped_content]
+
+            with pytest.raises(RuntimeError,
+                               match="Exceeded maximum retry count"):
+                cebra_data_assets.download_file_with_progress_bar(
+                    url="http://example.com/test.jl.gz",
+                    expected_checksum=hashlib.md5(test_content).hexdigest(),
+                    location=temp_dir,
+                    file_name="test.jl",
+                    retry_count=2,
+                    gzipped_checksum=wrong_gz_checksum)
+
+
+def test_download_and_extract_gzipped_file_wrong_unzipped_checksum():
+    """Test that wrong unzipped checksum raises error after retries."""
+    import gzip
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        test_content = b"Test content"
+        gzipped_content = gzip.compress(test_content)
+        gzipped_checksum = hashlib.md5(gzipped_content).hexdigest()
+        wrong_unzipped_checksum = "0" * 32  # Wrong checksum
+
+        with patch("requests.get") as mock_get:
+            mock_response = mock_get.return_value
+            mock_response.status_code = 200
+            mock_response.headers = {
+                "Content-Length": str(len(gzipped_content))
+            }
+            mock_response.iter_content = lambda chunk_size: [gzipped_content]
+
+            with pytest.raises(RuntimeError,
+                               match="Exceeded maximum retry count"):
+                cebra_data_assets.download_file_with_progress_bar(
+                    url="http://example.com/test.jl.gz",
+                    expected_checksum=wrong_unzipped_checksum,
+                    location=temp_dir,
+                    file_name="test.jl",
+                    retry_count=2,
+                    gzipped_checksum=gzipped_checksum)
 
 
 @pytest.mark.parametrize("neural, continuous, discrete", [
