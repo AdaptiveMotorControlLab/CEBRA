@@ -1097,6 +1097,83 @@ ordered_cuda_devices = get_ordered_cuda_devices() if torch.cuda.is_available(
 ) else []
 
 
+@pytest.mark.parametrize("saved_device", [
+    "cuda",
+    "cuda:0",
+    torch.device("cuda"),
+    torch.device("cuda", 0),
+])
+@pytest.mark.parametrize("model_architecture", ["offset1-model", "parametrized-model-5"])
+def test_load_cuda_checkpoint_falls_back_to_cpu(saved_device, model_architecture, monkeypatch):
+    """Test that CUDA-saved checkpoints can be loaded on CPU-only machines.
+    
+    This tests the fix for: Loading a model saved on CUDA when only CPU is available
+    should gracefully fall back to CPU instead of raising RuntimeError.
+    """
+    X = np.random.uniform(0, 1, (100, 5))
+    
+    # Train a model on CPU
+    cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture=model_architecture,
+        max_iterations=5,
+        device="cpu"
+    ).fit(X)
+
+    with _windows_compatible_tempfile(mode="w+b") as tempname:
+        # Save the model
+        cebra_model.save(tempname)
+        
+        # Modify the checkpoint to have a CUDA device
+        checkpoint = cebra_sklearn_cebra._safe_torch_load(tempname)
+        checkpoint["state"]["device_"] = saved_device
+        torch.save(checkpoint, tempname)
+
+        # Mock CUDA as unavailable (simulating CPU-only machine)
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+        
+        # This should NOT raise RuntimeError: No CUDA GPUs are available
+        loaded_model = cebra_sklearn_cebra.CEBRA.load(tempname)
+
+    # Verify model is on CPU
+    assert loaded_model.device_ == "cpu", f"Expected device_='cpu', got {loaded_model.device_!r}"
+    assert loaded_model.device == "cpu", f"Expected device='cpu', got {loaded_model.device!r}"
+    assert next(loaded_model.solver_.model.parameters()).device == torch.device("cpu")
+    
+    # Verify model actually works (can do inference)
+    X_test = np.random.uniform(0, 1, (10, 5))
+    embedding = loaded_model.transform(X_test)
+    assert embedding.shape == (10, loaded_model.output_dimension)
+    assert isinstance(embedding, np.ndarray)
+
+
+@pytest.mark.parametrize("saved_device", ["cuda", "cuda:0"])
+def test_load_cuda_checkpoint_with_device_override(saved_device, monkeypatch):
+    """Test that map_location='cpu' works with CUDA checkpoints."""
+    X = np.random.uniform(0, 1, (100, 5))
+    
+    cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture="offset1-model",
+        max_iterations=5,
+        device="cpu"
+    ).fit(X)
+
+    with _windows_compatible_tempfile(mode="w+b") as tempname:
+        cebra_model.save(tempname)
+        checkpoint = cebra_sklearn_cebra._safe_torch_load(tempname)
+        checkpoint["state"]["device_"] = saved_device
+        torch.save(checkpoint, tempname)
+
+        monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+        
+        # Load with explicit map_location
+        loaded_model = cebra_sklearn_cebra.CEBRA.load(tempname)
+        
+        # Model should be usable
+        X_test = np.random.uniform(0, 1, (10, 5))
+        embedding = loaded_model.transform(X_test)
+        assert embedding.shape == (10, loaded_model.output_dimension)
+
+
 def test_fit_after_moving_to_device():
     expected_device = 'cpu'
     expected_type = type(expected_device)
