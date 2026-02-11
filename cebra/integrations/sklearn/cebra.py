@@ -69,8 +69,27 @@ def check_version(estimator):
         sklearn.__version__) < packaging.version.parse("1.6.dev")
 
 
-def _safe_torch_load(filename, weights_only=False, **kwargs):
-    checkpoint = None
+def _safe_torch_load(filename, weights_only=False, _is_retry=False, **kwargs):
+    """Load a checkpoint with automatic CUDA/MPS to CPU fallback.
+
+    If loading fails due to a CUDA or MPS device error (e.g. checkpoint was
+    saved on a GPU but no GPU is available), this function automatically retries
+    with ``map_location="cpu"`` and issues a warning.
+
+    Args:
+        filename: Path to the checkpoint file.
+        weights_only: Passed through to :func:`torch.load`.
+        _is_retry: Internal flag to prevent infinite recursion.  Do not set
+            this manually.
+        **kwargs: Additional keyword arguments forwarded to :func:`torch.load`.
+
+    Returns:
+        The loaded checkpoint dictionary.
+
+    Raises:
+        RuntimeError: If loading fails on the retry attempt or for non-device
+            related reasons.
+    """
     legacy_mode = packaging.version.parse(
         torch.__version__) < packaging.version.parse("2.6.0")
 
@@ -83,23 +102,46 @@ def _safe_torch_load(filename, weights_only=False, **kwargs):
                                         weights_only=weights_only,
                                         **kwargs)
     except RuntimeError as e:
-        # Handle CUDA deserialization errors by retrying with map_location='cpu'
-        if "CUDA" in str(e) or "cuda" in str(e).lower():
-            if "map_location" not in kwargs:
-                kwargs["map_location"] = torch.device("cpu")
-                if legacy_mode:
-                    checkpoint = torch.load(filename, weights_only=False,
-                                            **kwargs)
-                else:
-                    with torch.serialization.safe_globals(
-                            CEBRA_LOAD_SAFE_GLOBALS):
-                        checkpoint = torch.load(filename,
-                                                weights_only=weights_only,
-                                                **kwargs)
-            else:
-                raise
-        else:
-            raise
+        error_msg = str(e)
+        is_device_error = ("CUDA" in error_msg
+                           or "cuda" in error_msg.lower()
+                           or "MPS" in error_msg
+                           or "mps" in error_msg.lower())
+        if is_device_error:
+            if _is_retry:
+                raise RuntimeError(
+                    f"Failed to load checkpoint even with map_location='cpu'. "
+                    f"The checkpoint appears to require a device (CUDA/MPS) "
+                    f"that is not available in the current environment. "
+                    f"Please verify your PyTorch installation or load on a "
+                    f"machine with the required hardware. "
+                    f"Original error: {e}"
+                ) from e
+            if "map_location" in kwargs:
+                raise RuntimeError(
+                    f"Loading the checkpoint failed with a device error even "
+                    f"though map_location={kwargs['map_location']!r} was "
+                    f"explicitly specified. The checkpoint was likely saved on "
+                    f"a CUDA/MPS device that is not available. Please check "
+                    f"your PyTorch installation or use a machine with the "
+                    f"required hardware. Original error: {e}"
+                ) from e
+            warnings.warn(
+                f"Checkpoint was saved on a device that is not available "
+                f"(error: {error_msg}). Automatically falling back to CPU. "
+                f"To suppress this warning, pass map_location='cpu' "
+                f"explicitly.",
+                UserWarning,
+                stacklevel=2,
+            )
+            kwargs["map_location"] = torch.device("cpu")
+            return _safe_torch_load(
+                filename,
+                weights_only=weights_only,
+                _is_retry=True,
+                **kwargs,
+            )
+        raise
 
     if not isinstance(checkpoint, dict):
         _check_type_checkpoint(checkpoint)
@@ -356,8 +398,8 @@ def _check_type_checkpoint(checkpoint):
 def _resolve_checkpoint_device(device):
     """Resolve the device stored in a checkpoint for the current runtime.
 
-    If a checkpoint was saved on CUDA and CUDA is unavailable at load time, this
-    falls back to CPU.
+    If a checkpoint was saved on a device (CUDA, MPS, ...) that is unavailable
+    at load time, this falls back to CPU and issues a warning.
 
     Args:
         device: The device from the checkpoint (str or torch.device).
@@ -373,7 +415,22 @@ def _resolve_checkpoint_device(device):
             "Expected checkpoint device to be a string or torch.device, "
             f"got {type(device)}.")
 
+    fallback_to_cpu = False
+
     if device.startswith("cuda") and not torch.cuda.is_available():
+        fallback_to_cpu = True
+    elif device.startswith("mps") and (
+            not hasattr(torch.backends, "mps")
+            or not torch.backends.mps.is_available()):
+        fallback_to_cpu = True
+
+    if fallback_to_cpu:
+        warnings.warn(
+            f"Checkpoint was saved on '{device}' which is not available in "
+            f"the current environment. Automatically falling back to CPU.",
+            UserWarning,
+            stacklevel=2,
+        )
         return "cpu"
 
     return sklearn_utils.check_device(device)

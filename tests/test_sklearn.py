@@ -1132,7 +1132,17 @@ def test_load_cuda_checkpoint_falls_back_to_cpu(saved_device, model_architecture
         monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
 
         # This should NOT raise RuntimeError: No CUDA GPUs are available
-        loaded_model = cebra_sklearn_cebra.CEBRA.load(tempname)
+        # A warning should be emitted about the automatic device fallback
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            loaded_model = cebra_sklearn_cebra.CEBRA.load(tempname)
+
+        # At least one warning about the device fallback should have been raised
+        device_warnings = [x for x in w if "falling back to CPU" in str(x.message)]
+        assert len(device_warnings) > 0, (
+            f"Expected a warning about falling back to CPU, got: "
+            f"{[str(x.message) for x in w]}"
+        )
 
     # Verify model is on CPU
     assert loaded_model.device_ == "cpu", f"Expected device_='cpu', got {loaded_model.device_!r}"
@@ -1164,24 +1174,94 @@ def test_safe_torch_load_cuda_fallback(monkeypatch):
         torch.save(checkpoint, tempname)
 
     try:
-        # Mock torch.load to fail on first call (simulating CUDA tensor load error)
+        # Mock torch.load to fail when map_location is not set
+        # (simulating CUDA tensor load error)
         original_torch_load = torch.load
         call_count = [0]
 
         def mock_torch_load(*args, **kwargs):
             call_count[0] += 1
-            if call_count[0] == 1 and "map_location" not in kwargs:
-                raise RuntimeError("Attempting to deserialize object on a CUDA device but torch.cuda.is_available() is False")
+            if "map_location" not in kwargs:
+                raise RuntimeError(
+                    "Attempting to deserialize object on a CUDA device "
+                    "but torch.cuda.is_available() is False"
+                )
             return original_torch_load(*args, **kwargs)
 
         monkeypatch.setattr(torch, "load", mock_torch_load)
 
-        # Should retry with map_location='cpu' and succeed
-        result = cebra_sklearn_cebra._safe_torch_load(tempname)
+        # Should retry with map_location='cpu' and succeed, emitting a warning
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = cebra_sklearn_cebra._safe_torch_load(tempname)
+
         assert "test" in result
         assert torch.allclose(result["test"], checkpoint["test"])
-        assert call_count[0] == 2  # First call failed, second retry succeeded
+        # Two calls: first fails (no map_location), second succeeds (with map_location)
+        assert call_count[0] == 2
 
+        # Should have warned about the fallback
+        fallback_warnings = [
+            x for x in w if "falling back to CPU" in str(x.message)
+        ]
+        assert len(fallback_warnings) == 1
+
+    finally:
+        os.unlink(tempname)
+
+
+def test_safe_torch_load_meaningful_error_on_retry_failure(monkeypatch):
+    """Test that a meaningful error is raised when CPU fallback also fails."""
+    import tempfile
+    import os
+
+    checkpoint = {"test": torch.tensor([1.0, 2.0, 3.0])}
+
+    with tempfile.NamedTemporaryFile(suffix=".pt", delete=False) as f:
+        tempname = f.name
+        torch.save(checkpoint, tempname)
+
+    try:
+        # Mock torch.load to always fail with a CUDA error
+        def mock_torch_load(*args, **kwargs):
+            raise RuntimeError(
+                "CUDA error: device-side assert triggered"
+            )
+
+        monkeypatch.setattr(torch, "load", mock_torch_load)
+
+        with pytest.raises(RuntimeError, match="Failed to load checkpoint even with"):
+            with warnings.catch_warnings(record=True):
+                warnings.simplefilter("always")
+                cebra_sklearn_cebra._safe_torch_load(tempname)
+    finally:
+        os.unlink(tempname)
+
+
+def test_safe_torch_load_error_with_explicit_map_location(monkeypatch):
+    """Test meaningful error when map_location is already set but CUDA error occurs."""
+    import tempfile
+    import os
+
+    checkpoint = {"test": torch.tensor([1.0, 2.0, 3.0])}
+
+    with tempfile.NamedTemporaryFile(suffix=".pt", delete=False) as f:
+        tempname = f.name
+        torch.save(checkpoint, tempname)
+
+    try:
+        def mock_torch_load(*args, **kwargs):
+            raise RuntimeError(
+                "Attempting to deserialize object on a CUDA device "
+                "but torch.cuda.is_available() is False"
+            )
+
+        monkeypatch.setattr(torch, "load", mock_torch_load)
+
+        with pytest.raises(RuntimeError, match="explicitly specified"):
+            cebra_sklearn_cebra._safe_torch_load(
+                tempname, map_location=torch.device("cpu")
+            )
     finally:
         os.unlink(tempname)
 
@@ -1190,7 +1270,7 @@ def test_safe_torch_load_cuda_fallback(monkeypatch):
 def test_load_cuda_checkpoint_with_device_override(saved_device, monkeypatch):
     """Test that automatic CPU fallback works with CUDA checkpoints."""
     X = np.random.uniform(0, 1, (100, 5))
-    
+
     cebra_model = cebra_sklearn_cebra.CEBRA(
         model_architecture="offset1-model",
         max_iterations=5,
@@ -1204,10 +1284,15 @@ def test_load_cuda_checkpoint_with_device_override(saved_device, monkeypatch):
         torch.save(checkpoint, tempname)
 
         monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
-        
-        # Load should automatically fall back to CPU
-        loaded_model = cebra_sklearn_cebra.CEBRA.load(tempname)
-        
+
+        # Load should automatically fall back to CPU with a warning
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            loaded_model = cebra_sklearn_cebra.CEBRA.load(tempname)
+
+        device_warnings = [x for x in w if "falling back to CPU" in str(x.message)]
+        assert len(device_warnings) > 0
+
         # Model should be usable
         X_test = np.random.uniform(0, 1, (10, 5))
         embedding = loaded_model.transform(X_test)
@@ -1215,49 +1300,48 @@ def test_load_cuda_checkpoint_with_device_override(saved_device, monkeypatch):
         assert embedding.shape[1] > 0
 
 
-def test_load_real_cuda_checkpoint_on_cpu(monkeypatch):
-    """Verify real CUDA checkpoint exists and document the test asset.
+@pytest.mark.parametrize("saved_device", ["mps"])
+def test_load_mps_checkpoint_falls_back_to_cpu(saved_device, monkeypatch):
+    """Test that MPS-saved checkpoints can be loaded when MPS is unavailable.
 
-    This checkpoint was saved with CUDA tensors and is used to demonstrate
-    the real-world scenario that this fix addresses. The checkpoint file
-    is kept as a test fixture for future integration testing.
-
-    NOTE: Loading this checkpoint requires PyTorch 2.6+ with directory
-    format support, which is not available in the current test environment.
-    The fix is verified through the mock-based tests above.
+    Mirrors the CUDA fallback test but for Apple Silicon MPS devices.
     """
-    import os
+    X = np.random.uniform(0, 1, (100, 5))
 
-    # Path to the real CUDA-saved checkpoint (PyTorch directory format)
-    checkpoint_path = os.path.join(
-        os.path.dirname(__file__), "test_data", "cuda_saved_checkpoint"
-    )
+    cebra_model = cebra_sklearn_cebra.CEBRA(
+        model_architecture="offset1-model",
+        max_iterations=5,
+        device="cpu"
+    ).fit(X)
 
-    if not os.path.exists(checkpoint_path):
-        pytest.skip("Real CUDA checkpoint not available")
+    with _windows_compatible_tempfile(mode="w+b") as tempname:
+        cebra_model.save(tempname)
 
-    # Verify the checkpoint has the expected structure
-    pkl_file = os.path.join(checkpoint_path, "data.pkl")
-    version_file = os.path.join(checkpoint_path, "version")
+        # Patch the checkpoint to claim it was saved on MPS
+        checkpoint = cebra_sklearn_cebra._safe_torch_load(tempname)
+        checkpoint["state"]["device_"] = saved_device
+        torch.save(checkpoint, tempname)
 
-    assert os.path.exists(pkl_file), "Checkpoint should have data.pkl"
-    assert os.path.exists(version_file), "Checkpoint should have version file"
+        # Mock MPS as unavailable
+        monkeypatch.setattr(torch.backends.mps, "is_available", lambda: False)
 
-    # Read version to confirm it's a valid checkpoint
-    with open(version_file) as f:
-        version = f.read().strip()
-    assert version == "3", f"Expected version 3, got {version}"
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            loaded_model = cebra_sklearn_cebra.CEBRA.load(tempname)
 
-    # Verify data directory exists with tensor files
-    data_dir = os.path.join(checkpoint_path, "data")
-    assert os.path.isdir(data_dir), "Checkpoint should have data directory"
+        device_warnings = [x for x in w if "falling back to CPU" in str(x.message)]
+        assert len(device_warnings) > 0, (
+            f"Expected a warning about falling back to CPU, got: "
+            f"{[str(x.message) for x in w]}"
+        )
 
-    # List some tensor files to confirm structure
-    tensor_files = os.listdir(data_dir)
-    assert len(tensor_files) > 0, "Checkpoint should contain tensor files"
+    assert loaded_model.device_ == "cpu"
+    assert loaded_model.device == "cpu"
 
-    # This documents the checkpoint exists and is valid
-    # Full loading test requires PyTorch 2.6+ directory format support
+    X_test = np.random.uniform(0, 1, (10, 5))
+    embedding = loaded_model.transform(X_test)
+    assert embedding.shape[0] == 10
+    assert isinstance(embedding, np.ndarray)
 
 
 def test_fit_after_moving_to_device():
