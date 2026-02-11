@@ -74,13 +74,32 @@ def _safe_torch_load(filename, weights_only=False, **kwargs):
     legacy_mode = packaging.version.parse(
         torch.__version__) < packaging.version.parse("2.6.0")
 
-    if legacy_mode:
-        checkpoint = torch.load(filename, weights_only=False, **kwargs)
-    else:
-        with torch.serialization.safe_globals(CEBRA_LOAD_SAFE_GLOBALS):
-            checkpoint = torch.load(filename,
-                                    weights_only=weights_only,
-                                    **kwargs)
+    try:
+        if legacy_mode:
+            checkpoint = torch.load(filename, weights_only=False, **kwargs)
+        else:
+            with torch.serialization.safe_globals(CEBRA_LOAD_SAFE_GLOBALS):
+                checkpoint = torch.load(filename,
+                                        weights_only=weights_only,
+                                        **kwargs)
+    except RuntimeError as e:
+        # Handle CUDA deserialization errors by retrying with map_location='cpu'
+        if "CUDA" in str(e) or "cuda" in str(e).lower():
+            if "map_location" not in kwargs:
+                kwargs["map_location"] = torch.device("cpu")
+                if legacy_mode:
+                    checkpoint = torch.load(filename, weights_only=False,
+                                            **kwargs)
+                else:
+                    with torch.serialization.safe_globals(
+                            CEBRA_LOAD_SAFE_GLOBALS):
+                        checkpoint = torch.load(filename,
+                                                weights_only=weights_only,
+                                                **kwargs)
+            else:
+                raise
+        else:
+            raise
 
     if not isinstance(checkpoint, dict):
         _check_type_checkpoint(checkpoint)
@@ -334,6 +353,32 @@ def _check_type_checkpoint(checkpoint):
     return checkpoint
 
 
+def _resolve_checkpoint_device(device):
+    """Resolve the device stored in a checkpoint for the current runtime.
+
+    If a checkpoint was saved on CUDA and CUDA is unavailable at load time, this
+    falls back to CPU.
+
+    Args:
+        device: The device from the checkpoint (str or torch.device).
+
+    Returns:
+        str: The resolved device string ('cpu' or validated device).
+    """
+    if isinstance(device, torch.device):
+        device = str(device)
+
+    if not isinstance(device, str):
+        raise TypeError(
+            "Expected checkpoint device to be a string or torch.device, "
+            f"got {type(device)}.")
+
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        return "cpu"
+
+    return sklearn_utils.check_device(device)
+
+
 def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
     """Loads a CEBRA model with a Sklearn backend.
 
@@ -357,10 +402,23 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
 
     args, state, state_dict = cebra_info['args'], cebra_info[
         'state'], cebra_info['state_dict']
+
+    # Resolve device: use CPU when checkpoint was saved on CUDA but CUDA is not available
+    saved_device = state["device_"]
+    load_device = _resolve_checkpoint_device(saved_device)
+
     cebra_ = cebra.CEBRA(**args)
 
     for key, value in state.items():
         setattr(cebra_, key, value)
+
+    # Update device attributes to the resolved device for the current runtime
+    cebra_.device_ = load_device
+    saved_device_str = str(saved_device) if isinstance(saved_device,
+                                                       torch.device) else saved_device
+    if isinstance(saved_device_str,
+                  str) and saved_device_str.startswith("cuda") and load_device == "cpu":
+        cebra_.device = "cpu"
 
     #TODO(stes): unused right now
     #state_and_args = {**args, **state}
@@ -375,7 +433,7 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
             num_neurons=state["n_features_in_"],
             num_units=args["num_hidden_units"],
             num_output=args["output_dimension"],
-        ).to(state['device_'])
+        ).to(load_device)
 
     elif isinstance(cebra_.num_sessions_, int):
         model = nn.ModuleList([
@@ -385,10 +443,10 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
                 num_units=args["num_hidden_units"],
                 num_output=args["output_dimension"],
             ) for n_features in state["n_features_in_"]
-        ]).to(state['device_'])
+        ]).to(load_device)
 
     criterion = cebra_._prepare_criterion()
-    criterion.to(state['device_'])
+    criterion.to(load_device)
 
     optimizer = torch.optim.Adam(
         itertools.chain(model.parameters(), criterion.parameters()),
@@ -404,7 +462,7 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
         tqdm_on=args['verbose'],
     )
     solver.load_state_dict(state_dict)
-    solver.to(state['device_'])
+    solver.to(load_device)
 
     cebra_.model_ = model
     cebra_.solver_ = solver
