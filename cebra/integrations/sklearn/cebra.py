@@ -395,31 +395,31 @@ def _check_type_checkpoint(checkpoint):
     return checkpoint
 
 
-def _resolve_checkpoint_device(device):
+def _resolve_checkpoint_device(device: Union[str, torch.device]) -> str:
     """Resolve the device stored in a checkpoint for the current runtime.
 
     If a checkpoint was saved on a device (CUDA, MPS, ...) that is unavailable
     at load time, this falls back to CPU and issues a warning.
 
     Args:
-        device: The device from the checkpoint (str or torch.device).
+        device: The device from the checkpoint.
 
     Returns:
-        str: The resolved device string ('cpu' or validated device).
+        The resolved device string.
     """
-    if isinstance(device, torch.device):
-        device = str(device)
+    if isinstance(device, str):
+        device = torch.device(device)
 
-    if not isinstance(device, str):
+    if not isinstance(device, torch.device):
         raise TypeError(
-            "Expected checkpoint device to be a string or torch.device, "
+            f"Expected checkpoint device to be a string or torch.device, "
             f"got {type(device)}.")
 
     fallback_to_cpu = False
 
-    if device.startswith("cuda") and not torch.cuda.is_available():
+    if device.type == "cuda" and not torch.cuda.is_available():
         fallback_to_cpu = True
-    elif device.startswith("mps") and (
+    elif device.type == "mps" and (
             not hasattr(torch.backends, "mps")
             or not torch.backends.mps.is_available()):
         fallback_to_cpu = True
@@ -433,7 +433,7 @@ def _resolve_checkpoint_device(device):
         )
         return "cpu"
 
-    return sklearn_utils.check_device(device)
+    return sklearn_utils.check_device(str(device))
 
 
 def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
@@ -460,7 +460,6 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
     args, state, state_dict = cebra_info['args'], cebra_info[
         'state'], cebra_info['state_dict']
 
-    # Resolve device: use CPU when checkpoint was saved on CUDA but CUDA is not available
     saved_device = state["device_"]
     load_device = _resolve_checkpoint_device(saved_device)
 
@@ -469,12 +468,9 @@ def _load_cebra_with_sklearn_backend(cebra_info: Dict) -> "CEBRA":
     for key, value in state.items():
         setattr(cebra_, key, value)
 
-    # Update device attributes to the resolved device for the current runtime
     cebra_.device_ = load_device
-    saved_device_str = str(saved_device) if isinstance(saved_device,
-                                                       torch.device) else saved_device
-    if isinstance(saved_device_str,
-                  str) and saved_device_str.startswith("cuda") and load_device == "cpu":
+    saved_device = torch.device(saved_device) if isinstance(saved_device, str) else saved_device
+    if saved_device.type == "cuda" and load_device == "cpu":
         cebra_.device = "cpu"
 
     #TODO(stes): unused right now
