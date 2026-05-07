@@ -55,6 +55,7 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
                  download=False,
                  data_url=None,
                  data_checksum=None,
+                 gzipped_checksum=None,
                  location=None,
                  file_name=None):
 
@@ -64,6 +65,7 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
         self.download = download
         self.data_url = data_url
         self.data_checksum = data_checksum
+        self.gzipped_checksum = gzipped_checksum
         self.location = location
         self.file_name = file_name
 
@@ -82,7 +84,8 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
                 url=self.data_url,
                 expected_checksum=self.data_checksum,
                 location=self.location,
-                file_name=self.file_name)
+                file_name=self.file_name,
+                gzipped_checksum=self.gzipped_checksum)
 
     @property
     @abc.abstractmethod

@@ -27,20 +27,30 @@ jobs:
         # We aim to support the versions on pytorch.org
         # as well as selected previous versions on
         # https://pytorch.org/get-started/previous-versions/
-        torch-version: ["2.6.0", "2.9.1"]
+        torch-version: ["2.6.0", "2.10.0"]
         sklearn-version: ["latest"]
+        numpy-version: ["latest"]
+
         include:
           # windows test with standard config
           - os: windows-latest
             torch-version: 2.6.0
             python-version: "3.12"
             sklearn-version: "latest"
+            numpy-version: "latest"
 
           # legacy sklearn (several API differences)
           - os: ubuntu-latest
             torch-version: 2.6.0
             python-version: "3.12"
             sklearn-version: "legacy"
+            numpy-version: "latest"
+
+          - os: ubuntu-latest
+            torch-version: 2.6.0
+            python-version: "3.12"
+            sklearn-version: "latest"
+            numpy-version: "legacy"
 
           # TODO(stes): latest torch and python
           # requires a PyTables release compatible with
@@ -55,6 +65,7 @@ jobs:
             torch-version: 2.4.0
             python-version: "3.10"
             sklearn-version: "legacy"
+            numpy-version: "latest"
 
     runs-on: ${{ matrix.os }}
 
@@ -78,21 +89,20 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install package
-        # NOTE(stes): https://github.com/twmr/pytest-sphinx/issues/69
-        # To run all tests, currently a manual install from github is required:
-        # https://github.com/twmr/pytest-sphinx/archive/refs/tags/v0.7.0.tar.gz
-        # Remove the respective line and the comment in setup.cfg once 0.7.0 is
-        # available on PyPI.
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install torch==${{ matrix.torch-version }} --extra-index-url https://download.pytorch.org/whl/cpu
           pip install '.[dev,datasets,integrations]'
-          pip install https://github.com/twmr/pytest-sphinx/archive/refs/tags/v0.7.0.tar.gz
 
       - name: Check sklearn legacy version
         if: matrix.sklearn-version == 'legacy'
         run: |
           pip install scikit-learn==1.4.2 '.[dev,datasets,integrations]'
+
+      - name: Check numpy legacy version
+        if: matrix.numpy-version == 'legacy'
+        run: |
+          pip install "numpy<2" '.[dev,datasets,integrations]'
 
       - name: Run the formatter
         run: |

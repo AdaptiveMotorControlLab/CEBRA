@@ -39,6 +39,10 @@ markers = [
     "cuda",
 ]
 addopts = "--ignore=cebra/integrations/threejs --ignore=cebra/integrations/streamlit.py --ignore=cebra/datasets"
+# NOTE(stes): See https://github.com/AdaptiveMotorControlLab/CEBRA/pull/289.
+filterwarnings = [
+    "error:The given NumPy array is not writable.*PyTorch does not support non-writable tensors:UserWarning",
+]
 
 
 
