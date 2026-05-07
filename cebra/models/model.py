@@ -281,16 +281,15 @@ class OffsetNModel(_OffsetModel, ConvolutionalModelMixin):
 
         self.n_offset = n_offset
 
-        def _compute_num_layers(n_offset):
+        def _compute_num_layers():
             """Compute the number of layers to add on top of the first and last conv layers."""
-            return (n_offset - 4) // 2 + self.n_offset % 2
+            return (self.n_offset - 4) // 2 + self.n_offset % 2
 
         last_layer_kernel = 3 if (self.n_offset % 2) == 0 else 2
         super().__init__(
             nn.Conv1d(num_neurons, num_units, 2),
             nn.GELU(),
-            *self._make_layers(num_units,
-                               num_layers=_compute_num_layers(self.n_offset)),
+            *self._make_layers(num_units, num_layers=_compute_num_layers()),
             nn.Conv1d(num_units, num_output, last_layer_kernel),
             num_input=num_neurons,
             num_output=num_output,
@@ -298,7 +297,7 @@ class OffsetNModel(_OffsetModel, ConvolutionalModelMixin):
         )
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
-        """See `:py:meth:Model.get_offset`"""
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(self.n_offset // 2,
                                  self.n_offset // 2 + self.n_offset % 2)
 
@@ -700,7 +699,7 @@ class Offset36Dropout(_OffsetModel, ConvolutionalModelMixin):
         )
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
-        """See `:py:meth:Model.get_offset`"""
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(18, 18)
 
 
@@ -742,12 +741,12 @@ class Offset36Dropoutv2(_OffsetModel, ConvolutionalModelMixin):
         )
 
     def get_offset(self) -> cebra.data.datatypes.Offset:
-        """See `:py:meth:Model.get_offset`"""
+        """See :py:meth:`~.Model.get_offset`"""
         return cebra.data.Offset(18, 18)
 
 
 @register("offset10-model-mse-tanh")
-class Offset10Model(_OffsetModel, ConvolutionalModelMixin):
+class Offset10ModelMSETanh(_OffsetModel, ConvolutionalModelMixin):
     """CEBRA model with a 10 sample receptive field."""
 
     def __init__(self, num_neurons, num_units, num_output, normalize=False):
