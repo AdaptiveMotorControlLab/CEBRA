@@ -1,6 +1,6 @@
 import pickle
 
-import _utils_deprecated
+import _reference_implementations
 import numpy as np
 import pytest
 import torch
@@ -174,7 +174,7 @@ def test_synthetic_data_training(synthetic_data, device):
                        atol=1e-4)
 
     # Test and compare the previous transform (transform_deprecated)
-    deprecated_transform_embedding = _utils_deprecated.multiobjective_transform_deprecated(
+    deprecated_transform_embedding = _reference_implementations.multiobjective_transform_deprecated(
         solver, data.neural.to(device))
     assert np.allclose(embedding,
                        deprecated_transform_embedding,
