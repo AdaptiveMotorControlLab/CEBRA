@@ -215,7 +215,7 @@ class ConditionalIndex(cebra_distributions.Index):
                 Samples from the continuous index
             discrete:
                 Optionally matching samples from the discrete index,
-                used to pre-select matching indices.
+                used to preselect matching indices.
         """
         if continuous.shape[1] != self.continuous.shape[1]:
             raise ValueError(f"Shape of continuous index does not match along "
