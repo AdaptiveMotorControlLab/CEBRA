@@ -35,6 +35,10 @@ saved_models/
 *.svg
 *.mp4
 
+# Test checkpoint binaries (generate with tests/generate_cuda_checkpoint.py)
+tests/test_data/cuda_saved_checkpoint/
+tests/test_data/*.pt
+
 ## gitignore for Python
 ## Source: https://raw.githubusercontent.com/github/gitignore/master/Python.gitignore
 # Byte-compiled / optimized / DLL files
