@@ -23,11 +23,11 @@ jobs:
         #   https://devguide.python.org/versions/
         # Python Ubuntu LTS:
         #   https://documentation.ubuntu.com/ubuntu-for-developers/reference/availability/python/
-        python-version: ["3.10", "3.12", "3.13"]
+        python-version: ["3.10", "3.12", "3.13", "3.14"]
         # We aim to support the versions on pytorch.org
         # as well as selected previous versions on
         # https://pytorch.org/get-started/previous-versions/
-        torch-version: ["2.6.0", "2.10.0"]
+        torch-version: ["2.6.0", "2.12.0"]
         sklearn-version: ["latest"]
         numpy-version: ["latest"]
 
