@@ -175,7 +175,7 @@ We provide a set of pre-defined models. You can access (and search) a list of av
 
 .. testoutput::
 
-    ['offset10-model', 'offset10-model-mse', 'offset5-model', 'offset1-model-mse']
+    ['offset5-model', 'offset10-model', 'offset15-model', 'offset18-model']
 
 Then, you can choose the one that fits best with your needs and provide it to the CEBRA model as the :py:attr:`~.CEBRA.model_architecture` parameter.
 
