@@ -154,8 +154,6 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
         trial_ids is in size of a length of self.index and indicate the trial id of the index belong to.
         trial_borders is in size of a length of self.idnex and indicate the border of each trial.
 
-        Todo:
-            - rewrite
         """
 
         # TODO(stes) potential room for speed improvements by pre-allocating these tensors/
@@ -163,16 +161,15 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
         offset = torch.arange(-self.offset.left,
                               self.offset.right,
                               device=index.device)
-        index = torch.tensor(
-            [
-                torch.clamp(
-                    i,
-                    trial_borders[trial_ids[i]] + self.offset.left,
-                    trial_borders[trial_ids[i] + 1] - self.offset.right,
-                ) for i in index
-            ],
-            device=self.device,
-        )
+        
+        # Vectorized lookup and boundary calculation
+        batch_trial_ids = trial_ids[index]
+        min_borders = trial_borders[batch_trial_ids] + self.offset.left
+        max_borders = trial_borders[batch_trial_ids + 1] - self.offset.right
+        
+        # Fast C-level clamp
+        index = torch.clamp(index, min=min_borders, max=max_borders)
+        
         return index[:, None] + offset[None, :]
 
     @abc.abstractmethod
