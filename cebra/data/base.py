@@ -162,12 +162,10 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
                               self.offset.right,
                               device=index.device)
         
-        # Vectorized lookup and boundary calculation
         batch_trial_ids = trial_ids[index]
         min_borders = trial_borders[batch_trial_ids] + self.offset.left
         max_borders = trial_borders[batch_trial_ids + 1] - self.offset.right
         
-        # Fast C-level clamp
         index = torch.clamp(index, min=min_borders, max=max_borders)
         
         return index[:, None] + offset[None, :]
