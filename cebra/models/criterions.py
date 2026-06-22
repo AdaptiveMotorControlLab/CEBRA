@@ -113,6 +113,32 @@ def infonce(
     return align + uniform, align_corrected, uniform_corrected
 
 
+@torch.jit.script
+def infonce_full_denominator(pos_dist, neg_dist):
+
+    with torch.no_grad():
+        c, _ = neg_dist.max(dim=1, keepdim=True)
+    c = c.detach()
+
+    pos_dist = pos_dist - c.squeeze(1)
+    neg_dist = neg_dist - c
+
+    numerator = (-pos_dist).mean()
+    denominator = torch.logsumexp(
+        torch.concatenate([
+            pos_dist.unsqueeze(1),
+            neg_dist,
+        ], dim=1),
+        dim=1,
+    ).mean()
+
+    c_mean = c.mean()
+    numerator = numerator - c_mean
+    denominator = denominator + c_mean
+
+    return numerator + denominator, numerator, denominator
+
+
 class ContrastiveLoss(nn.Module):
     """Base class for contrastive losses.
 
@@ -149,6 +175,13 @@ class BaseInfoNCE(ContrastiveLoss):
 
     """
 
+    def __init__(self, full_denominator: bool = False):
+        super().__init__()
+        if full_denominator:
+            self.infonce = infonce_full_denominator
+        else:
+            self.infonce = infonce
+
     def _distance(self, ref: torch.Tensor, pos: torch.Tensor,
                   neg: torch.Tensor) -> Tuple[torch.Tensor]:
         """The similarity measure.
@@ -178,7 +211,7 @@ class BaseInfoNCE(ContrastiveLoss):
             :py:class:`BaseInfoNCE`.
         """
         pos_dist, neg_dist = self._distance(ref, pos, neg)
-        return infonce(pos_dist, neg_dist)
+        return self.infonce(pos_dist, neg_dist)
 
 
 class FixedInfoNCE(BaseInfoNCE):
@@ -189,8 +222,10 @@ class FixedInfoNCE(BaseInfoNCE):
             The softmax temperature
     """
 
-    def __init__(self, temperature: float = 1.0):
-        super().__init__()
+    def __init__(self,
+                 temperature: float = 1.0,
+                 full_denominator: bool = False):
+        super().__init__(full_denominator)
         self.temperature = temperature
 
 
@@ -207,8 +242,9 @@ class LearnableInfoNCE(BaseInfoNCE):
 
     def __init__(self,
                  temperature: float = 1.0,
-                 min_temperature: Optional[float] = None):
-        super().__init__()
+                 min_temperature: Optional[float] = None,
+                 full_denominator: bool = False):
+        super().__init__(full_denominator)
         if min_temperature is None:
             self.max_inverse_temperature = math.inf
         else:

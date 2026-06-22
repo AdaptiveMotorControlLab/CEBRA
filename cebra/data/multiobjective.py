@@ -71,7 +71,7 @@ class SupervisedMultiObjectiveLoader(MultiObjectiveLoader):
     def add_config(self, config):
         self.labels.append(config['label'])
 
-    def get_indices(self, num_samples: int):
+    def get_indices(self, num_samples: int, num_negatives: int = None):
         if self.sampling_mode_supervised == "ref_shared":
             reference_idx = self.prior.sample_prior(num_samples)
         else:
@@ -142,7 +142,7 @@ class ContrastiveMultiObjectiveLoader(MultiObjectiveLoader):
 
         self.distributions.append(distribution)
 
-    def get_indices(self, num_samples: int):
+    def get_indices(self, num_samples: int, num_negatives: int = None):
         """Sample and return the specified number of indices."""
 
         if self.sampling_mode_contrastive == "refneg_shared":

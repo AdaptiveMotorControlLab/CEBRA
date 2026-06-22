@@ -196,9 +196,9 @@ class SingleSessionAuxVariableSolver(SingleSessionSolver,
         self._check_is_session_id_valid(session_id=session_id)
         self._check_is_fitted()
         if use_reference_model:
-            model = self.reference_model[session_id]
+            model = self.reference_model
         else:
-            model = self.model[session_id]
+            model = self.model
         return model
 
     def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
@@ -222,6 +222,21 @@ class SingleSessionAuxVariableSolver(SingleSessionSolver,
         pos = self.model(batch.positive)
         neg = self.model(batch.negative)
         return cebra.data.Batch(ref, pos, neg)
+
+
+@register("single-session-dcl")
+@dataclasses.dataclass
+class SingleSessionDCLSolver(SingleSessionAuxVariableSolver):
+    dynamics_model: torch.nn.Module = None
+
+    def __post_init__(self):
+        if self.reference_model is not None:
+            raise ValueError("Reference model must be None for DCL solver")
+        self.reference_model = torch.nn.Sequential(
+            self.model,
+            self.dynamics_model,
+        )
+        super().__post_init__()
 
 
 @register("single-session-hybrid")
@@ -349,3 +364,66 @@ class BatchSingleSessionSolver(SingleSessionSolver):
             outputs[batch.positive - self.offset.left],
             outputs[batch.negative - self.offset.left],
         )
+
+
+@register("single-session-full-dcl")
+@dataclasses.dataclass
+class BatchSingleSessionDCLSolver(BatchSingleSessionSolver,
+                                  SingleSessionAuxVariableSolver):
+    """Optimize a DCL model with batch gradient descent.
+
+    This solver combines the batch gradient descent approach of
+    :py:class:`BatchSingleSessionSolver` with the dynamics model functionality
+    of :py:class:`SingleSessionDCLSolver`. It uses the full dataset for training
+    and applies the dynamics model to reference samples.
+
+    Usage of this solver requires a sufficient amount of GPU memory. Using this solver
+    is equivalent to using a single session DCL solver with batch size set to dataset size,
+    but requires less computation.
+    """
+
+    dynamics_model: torch.nn.Module = None
+
+    def __post_init__(self):
+        # Set up the reference model as Sequential(model, dynamics_model) for DCL
+        if self.reference_model is not None:
+            raise ValueError("Reference model must be None for DCL solver")
+        if self.dynamics_model is None:
+            raise ValueError("Dynamics model must be provided for DCL solver")
+        self.reference_model = torch.nn.Sequential(
+            self.model,
+            self.dynamics_model,
+        )
+        # Call parent __post_init__ methods
+        super().__post_init__()
+
+    def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
+        """Given a batch of input examples, computes the feature representation/embedding.
+
+        For DCL, reference samples are processed through model + dynamics_model,
+        while positive and negative samples are processed through model only.
+
+        Args:
+            batch: The input data, not necessarily aligned across the batch
+                dimension. This means that ``batch.index`` specifies the map
+                between reference/positive samples, if not equal ``None``.
+
+        Returns:
+            Processed batch of data. While the input data might not be aligned
+            across the sample dimensions, the output data should be aligned and
+            ``batch.index`` should be set to ``None``.
+        """
+        # Get embeddings for all samples using the regular model
+        outputs = self.get_embedding(self.neural)
+        idc = batch.positive - self.offset.left >= len(outputs)
+        batch.positive[idc] = batch.reference[idc]
+
+        # For reference samples, apply dynamics model
+        ref_embeddings = outputs[batch.reference - self.offset.left]
+        ref_embeddings = self.dynamics_model(ref_embeddings)
+
+        # For positive and negative samples, use regular embeddings
+        pos_embeddings = outputs[batch.positive - self.offset.left]
+        neg_embeddings = outputs[batch.negative - self.offset.left]
+
+        return cebra.data.Batch(ref_embeddings, pos_embeddings, neg_embeddings)
