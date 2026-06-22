@@ -33,49 +33,65 @@ _DEFAULT_DATADIR = get_datapath()
 synthetic_data_urls = {
     "continuous_label_refractory_poisson": {
         "url":
-            "https://figshare.com/ndownloader/files/41668815?private_link=7439c5302e99db36eebb",
+            "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_refractory_poisson.jl.gz",
+        "gzipped_checksum":
+            "3641eed973b9cae972493c70b364e981",
         "checksum":
             "fcd92bd283c528d5294093190f55ceba"
     },
     "continuous_label_t": {
         "url":
-            "https://figshare.com/ndownloader/files/41668818?private_link=7439c5302e99db36eebb",
+            "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_t.jl.gz",
+        "gzipped_checksum":
+            "1dc8805e8f0836c7c99e864100a65bff",
         "checksum":
             "a6e76f274da571568fd2a4bf4cf48b66"
     },
     "continuous_label_uniform": {
         "url":
-            "https://figshare.com/ndownloader/files/41668821?private_link=7439c5302e99db36eebb",
+            "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_uniform.jl.gz",
+        "gzipped_checksum":
+            "71d33bc56b89bc227da0990bf16e584b",
         "checksum":
             "e67400e77ac009e8c9bc958aa5151973"
     },
     "continuous_label_laplace": {
         "url":
-            "https://figshare.com/ndownloader/files/41668824?private_link=7439c5302e99db36eebb",
+            "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_laplace.jl.gz",
+        "gzipped_checksum":
+            "1563e4958031392d2b2e30cc4cd79b3f",
         "checksum":
             "41d7ce4ce8901ae7a5136605ac3f5ffb"
     },
     "continuous_label_poisson": {
         "url":
-            "https://figshare.com/ndownloader/files/41668827?private_link=7439c5302e99db36eebb",
+            "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_poisson.jl.gz",
+        "gzipped_checksum":
+            "7691304ee061e0bf1e9bb5f2bb6b20e7",
         "checksum":
             "a789828f9cca5f3faf36d62ebc4cc8a1"
     },
     "continuous_label_gaussian": {
         "url":
-            "https://figshare.com/ndownloader/files/41668830?private_link=7439c5302e99db36eebb",
+            "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_label_gaussian.jl.gz",
+        "gzipped_checksum":
+            "0cb97a2c1eaa526e57d2248a333ea8e0",
         "checksum":
             "18d66a2020923e2cd67d2264d20890aa"
     },
     "continuous_poisson_gaussian_noise": {
         "url":
-            "https://figshare.com/ndownloader/files/41668833?private_link=7439c5302e99db36eebb",
+            "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/continuous_poisson_gaussian_noise.jl.gz",
+        "gzipped_checksum":
+            "5aa6b6eadf2b733562864d5b67bc6b8d",
         "checksum":
             "1a51461820c24a5bcaddaff3991f0ebe"
     },
     "sim_100d_poisson_cont_label": {
         "url":
-            "https://figshare.com/ndownloader/files/41668836?private_link=7439c5302e99db36eebb",
+            "https://cebra.fra1.digitaloceanspaces.com/data/synthetic/sim_100d_poisson_cont_label.npz.gz",
+        "gzipped_checksum":
+            "768299435a167dedd57e29b1a6d5af63",
         "checksum":
             "306b9c646e7b76a52cfd828612d700cb"
     }
@@ -98,11 +114,13 @@ class SyntheticData(cebra.data.SingleSessionDataset):
         location = os.path.join(root, "synthetic")
         file_path = os.path.join(location, f"{name}.jl")
 
-        super().__init__(download=download,
-                         data_url=synthetic_data_urls[name]["url"],
-                         data_checksum=synthetic_data_urls[name]["checksum"],
-                         location=location,
-                         file_name=f"{name}.jl")
+        super().__init__(
+            download=download,
+            data_url=synthetic_data_urls[name]["url"],
+            data_checksum=synthetic_data_urls[name]["checksum"],
+            gzipped_checksum=synthetic_data_urls[name].get("gzipped_checksum"),
+            location=location,
+            file_name=f"{name}.jl")
 
         data = joblib.load(file_path)
         self.data = data  #NOTE: making it backwards compatible with synth notebook.
