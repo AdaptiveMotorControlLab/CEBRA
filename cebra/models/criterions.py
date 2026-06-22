@@ -177,10 +177,12 @@ class BaseInfoNCE(ContrastiveLoss):
 
     def __init__(self, full_denominator: bool = False):
         super().__init__()
-        if full_denominator:
-            self.infonce = infonce_full_denominator
-        else:
-            self.infonce = infonce
+        # NOTE(stes): Store a boolean flag rather than a reference to the
+        # ``torch.jit.script`` function. Assigning the ScriptFunction as an
+        # instance attribute places it in the module ``__dict__``, which then
+        # cannot be pickled by ``torch.save`` ("ScriptFunction cannot be
+        # pickled"). See https://github.com/AdaptiveMotorControlLab/CEBRA/pull/301
+        self.full_denominator = full_denominator
 
     def _distance(self, ref: torch.Tensor, pos: torch.Tensor,
                   neg: torch.Tensor) -> Tuple[torch.Tensor]:
@@ -211,7 +213,9 @@ class BaseInfoNCE(ContrastiveLoss):
             :py:class:`BaseInfoNCE`.
         """
         pos_dist, neg_dist = self._distance(ref, pos, neg)
-        return self.infonce(pos_dist, neg_dist)
+        if self.full_denominator:
+            return infonce_full_denominator(pos_dist, neg_dist)
+        return infonce(pos_dist, neg_dist)
 
 
 class FixedInfoNCE(BaseInfoNCE):
