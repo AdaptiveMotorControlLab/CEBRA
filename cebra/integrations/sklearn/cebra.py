@@ -888,6 +888,7 @@ class CEBRA(TransformerMixin, BaseEstimator):
     def _select_model(self, X: Union[npt.NDArray, torch.Tensor],
                       session_id: int):
         if isinstance(X, np.ndarray):
+            X = cebra_sklearn_dataset._ensure_writable(X)
             X = torch.from_numpy(X)
         return self.solver_._select_model(X, session_id=session_id)
 
