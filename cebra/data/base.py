@@ -239,8 +239,17 @@ class Loader(abc.ABC, cebra.io.HasDevice):
         """The total number of batches when iterating over the dataloader.""",
     )
 
-    batch_size: int = dataclasses.field(default=None,
-                                        doc="""The total batch size.""")
+    batch_size: int = dataclasses.field(
+        default=None,
+        doc=
+        """The total batch size. Number of reference and number of positive samples"""
+    )
+
+    batch_size_negatives: int = dataclasses.field(
+        default=None,
+        doc=
+        """Number of negative samples for a given batch. If None defaults to batch size"""
+    )
 
     def __post_init__(self):
         if self.num_steps is None or self.num_steps <= 0:
@@ -258,11 +267,12 @@ class Loader(abc.ABC, cebra.io.HasDevice):
 
     def __iter__(self) -> Batch:
         for _ in range(len(self)):
-            index = self.get_indices(num_samples=self.batch_size)
+            index = self.get_indices(num_samples=self.batch_size,
+                                     num_negatives=self.batch_size_negatives)
             yield self.dataset.load_batch(index)
 
     @abc.abstractmethod
-    def get_indices(self, num_samples: int):
+    def get_indices(self, num_samples: int, num_negatives: int = None):
         """Sample and return the specified number of indices.
 
         The elements of the returned `BatchIndex` will be used to index the

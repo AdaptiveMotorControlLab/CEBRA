@@ -350,3 +350,70 @@ def test_infonce_gradients(seed, case):
             assert torch.allclose(grad[0], torch.zeros_like(grad[0]))
         assert grad[1] is not None
         assert torch.allclose(grad_ref[1], grad[1])
+
+
+def test_infonce_full_denominator():
+    rng = torch.Generator().manual_seed(42)
+
+    pos_dist = torch.randn(100, generator=rng)
+    neg_dist = torch.randn(100, 100, generator=rng)
+
+    loss, align, uniform = cebra_criterions.infonce_full_denominator(
+        pos_dist, neg_dist)
+
+    assert loss.dim() == 0
+    assert align.dim() == 0
+    assert uniform.dim() == 0
+
+    assert torch.allclose(loss, align + uniform)
+
+    assert not torch.isnan(loss)
+    assert not torch.isinf(loss)
+    assert not torch.isnan(align)
+    assert not torch.isnan(uniform)
+
+    def simple_infonce_full_denominator(pos_dist, neg_dist):
+        numerator = (-pos_dist).mean()
+
+        all_distances = torch.concatenate([
+            pos_dist.unsqueeze(1),
+            neg_dist,
+        ],
+                                          dim=1)
+        denominator = torch.logsumexp(all_distances, dim=1).mean()
+
+        return numerator + denominator, numerator, denominator
+
+    simple_loss, simple_align, simple_uniform = simple_infonce_full_denominator(
+        pos_dist, neg_dist)
+
+    assert torch.allclose(loss, simple_loss, rtol=1e-3, atol=1e-3)
+    assert torch.allclose(align, simple_align, rtol=1e-3, atol=1e-3)
+    assert torch.allclose(uniform, simple_uniform, rtol=1e-3, atol=1e-3)
+
+
+@pytest.mark.parametrize("full_denominator", [True, False])
+@pytest.mark.parametrize("criterion", [
+    cebra_criterions.FixedCosineInfoNCE,
+    cebra_criterions.FixedEuclideanInfoNCE,
+    cebra_criterions.LearnableCosineInfoNCE,
+    cebra_criterions.LearnableEuclideanInfoNCE,
+])
+def test_infonce_full_denominator_api(criterion, full_denominator):
+
+    ref = torch.randn(10, 5)
+    pos = torch.randn(10, 5)
+    neg = torch.randn(10, 5)
+
+    crit = criterion(temperature=1.0, full_denominator=full_denominator)
+    pos_dist, neg_dist = crit._distance(ref, pos, neg)
+
+    if full_denominator:
+        expected_loss = cebra_criterions.infonce_full_denominator(
+            pos_dist, neg_dist)[0]
+    else:
+        expected_loss = cebra_criterions.infonce(pos_dist, neg_dist)[0]
+
+    actual_loss = crit(ref, pos, neg)[0]
+
+    assert torch.allclose(expected_loss, actual_loss, rtol=1e-5)
