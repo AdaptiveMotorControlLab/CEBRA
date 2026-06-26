@@ -20,10 +20,13 @@
 # limitations under the License.
 #
 
+from typing import Iterator
+
 import literate_dataclasses as dataclasses
 
 import cebra.data as cebra_data
 import cebra.distributions
+from cebra.data.datatypes import Batch
 from cebra.data.datatypes import BatchIndex
 from cebra.distributions.continuous import Prior
 
@@ -71,9 +74,9 @@ class SupervisedMultiObjectiveLoader(MultiObjectiveLoader):
     def add_config(self, config):
         self.labels.append(config['label'])
 
-    def get_indices(self, num_samples: int):
+    def get_indices(self) -> BatchIndex:
         if self.sampling_mode_supervised == "ref_shared":
-            reference_idx = self.prior.sample_prior(num_samples)
+            reference_idx = self.prior.sample_prior(self.batch_size)
         else:
             raise ValueError(
                 f"Sampling mode {self.sampling_mode_supervised} is not implemented."
@@ -87,9 +90,9 @@ class SupervisedMultiObjectiveLoader(MultiObjectiveLoader):
 
         return batch_index
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Batch]:
         for _ in range(len(self)):
-            index = self.get_indices(num_samples=self.batch_size)
+            index = self.get_indices()
             yield self.dataset.load_batch_supervised(index, self.labels)
 
 
@@ -142,13 +145,14 @@ class ContrastiveMultiObjectiveLoader(MultiObjectiveLoader):
 
         self.distributions.append(distribution)
 
-    def get_indices(self, num_samples: int):
+    def get_indices(self) -> BatchIndex:
         """Sample and return the specified number of indices."""
 
         if self.sampling_mode_contrastive == "refneg_shared":
-            ref_and_neg = self.prior.sample_prior(num_samples * 2)
-            reference_idx = ref_and_neg[:num_samples]
-            negative_idx = ref_and_neg[num_samples:]
+            ref_and_neg = self.prior.sample_prior(self.batch_size +
+                                                  self.num_negatives)
+            reference_idx = ref_and_neg[:self.batch_size]
+            negative_idx = ref_and_neg[self.batch_size:]
 
             positives_idx = []
             for distribution in self.distributions:
@@ -169,5 +173,5 @@ class ContrastiveMultiObjectiveLoader(MultiObjectiveLoader):
 
     def __iter__(self):
         for _ in range(len(self)):
-            index = self.get_indices(num_samples=self.batch_size)
+            index = self.get_indices()
             yield self.dataset.load_batch_contrastive(index)
