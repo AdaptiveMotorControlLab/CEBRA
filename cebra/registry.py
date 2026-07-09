@@ -192,7 +192,7 @@ def add_helper_functions(module: Union[types.ModuleType, str]):
 
     def parametrize(pattern: str,
                     *,
-                    kwargs: List[Dict[str, Any]] = [],
+                    kwargs: List[Dict[str, Any]] = None,
                     **all_kwargs):
         """Decorator to add parametrizations of a new class to the registry.
 
@@ -221,8 +221,8 @@ def add_helper_functions(module: Union[types.ModuleType, str]):
             class _ParametrizedClass(cls):
 
                 def __init__(self, *args, **kwargs):
-                    default_kwargs.update(kwargs)
-                    super().__init__(*args, **default_kwargs)
+                    merged_kwargs = {**default_kwargs, **kwargs}
+                    super().__init__(*args, **merged_kwargs)
 
             # Make the class pickleable by copying metadata from the base class
             # and registering it in the module namespace
@@ -239,7 +239,7 @@ def add_helper_functions(module: Union[types.ModuleType, str]):
                 setattr(parent_module, unique_name, _ParametrizedClass)
 
         def _parametrize(cls):
-            for _default_kwargs in kwargs:
+            for _default_kwargs in (kwargs or []):
                 _create_class(cls, **_default_kwargs)
             if len(all_kwargs) > 0:
                 for _default_kwargs in _product_dict(all_kwargs):
