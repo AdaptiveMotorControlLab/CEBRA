@@ -33,6 +33,7 @@ by the training loops implemented in :py:class:`cebra.solver.base.Solver` classe
 """
 
 import math
+import warnings
 from typing import Optional, Tuple
 
 import torch
@@ -40,7 +41,28 @@ import torch.nn.functional as F
 from torch import nn
 
 
-@torch.jit.script
+def _compile(fn):
+    """Apply ``torch.compile`` when available, falling back to uncompiled.
+
+    ``torch.compile`` is the recommended replacement for ``torch.jit.script``
+    starting from PyTorch 2.0.  In environments where the compiler backend is
+    not available (e.g. certain CI configurations or incomplete installations),
+    the function is returned unchanged so that correctness is preserved.
+    A :class:`UserWarning` is emitted when the fallback path is taken.
+    """
+    try:
+        return torch.compile(fn)
+    except (ImportError, RuntimeError, TypeError) as exc:
+        warnings.warn(
+            f"torch.compile is unavailable; falling back to uncompiled "
+            f"{fn.__name__!r}.  Reason: {exc}",
+            UserWarning,
+            stacklevel=2,
+        )
+        return fn
+
+
+@_compile
 def dot_similarity(ref: torch.Tensor, pos: torch.Tensor,
                    neg: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
     """Cosine similarity the ref, pos and negative pairs
@@ -59,7 +81,7 @@ def dot_similarity(ref: torch.Tensor, pos: torch.Tensor,
     return pos_dist, neg_dist
 
 
-@torch.jit.script
+@_compile
 def euclidean_similarity(
         ref: torch.Tensor, pos: torch.Tensor,
         neg: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -85,7 +107,7 @@ def euclidean_similarity(
     return pos_dist, neg_dist
 
 
-@torch.jit.script
+@_compile
 def infonce(
         pos_dist: torch.Tensor, neg_dist: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:

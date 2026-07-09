@@ -25,8 +25,11 @@ from torch import nn
 
 import cebra.models.criterions as cebra_criterions
 
+# Use the same _compile helper from criterions for consistency
+_compile = cebra_criterions._compile
 
-@torch.jit.script
+
+@_compile
 def ref_dot_similarity(ref: torch.Tensor, pos: torch.Tensor, neg: torch.Tensor,
                        temperature: float):
     pos_dist = torch.einsum("ni,ni->n", ref, pos) / temperature
@@ -34,7 +37,7 @@ def ref_dot_similarity(ref: torch.Tensor, pos: torch.Tensor, neg: torch.Tensor,
     return pos_dist, neg_dist
 
 
-@torch.jit.script
+@_compile
 def ref_euclidean_similarity(ref: torch.Tensor, pos: torch.Tensor,
                              neg: torch.Tensor, temperature: float):
     ref_sq = torch.einsum("ni->n", ref**2) / temperature
@@ -48,7 +51,7 @@ def ref_euclidean_similarity(ref: torch.Tensor, pos: torch.Tensor,
     return pos_dist, neg_dist
 
 
-@torch.jit.script
+@_compile
 def ref_infonce(pos_dist: torch.Tensor, neg_dist: torch.Tensor):
     with torch.no_grad():
         c, _ = neg_dist.max(dim=1, keepdim=True)
@@ -61,7 +64,7 @@ def ref_infonce(pos_dist: torch.Tensor, neg_dist: torch.Tensor):
     return align + uniform, align, uniform
 
 
-@torch.jit.script
+@_compile
 def ref_infonce_not_stable(pos_dist: torch.Tensor, neg_dist: torch.Tensor):
     pos_dist = pos_dist
     neg_dist = neg_dist
