@@ -82,6 +82,15 @@ def _require_numpy_array(array: Union[npt.NDArray, torch.Tensor]):
     return array
 
 
+# Target block size for the ``top_k`` search: the rows of ``label`` are
+# processed in blocks, so only a ``(chunk_size, n_ref)`` distance matrix and
+# its argsort indices are held at once. 10 million elements is roughly 80 MB
+# per array in float64/intp. This is a target rather than a hard cap: a block
+# is always at least one row, so the working set never goes below
+# ``(1, n_ref)``.
+_PROCRUSTES_MAX_DISTANCE_ELEMENTS = 10_000_000
+
+
 class OrthogonalProcrustesAlignment:
     """Aligns two dataset by solving the orthogonal Procrustes problem.
 
@@ -219,10 +228,18 @@ class OrthogonalProcrustesAlignment:
                 f"got ref_data:{data.shape[0]} samples and ref_labels:{label.shape[0]} samples."
             )
 
-        distance = self._distance(label, ref_label)
-
-        # keep indexes of the {self.top_k} labels the closest to the reference labels
-        target_idx = np.argsort(distance, axis=1)[:, :self.top_k]
+        # Search the top_k closest reference labels for each label, chunking
+        # over the rows of `label` so the full (n_label, n_ref) distance matrix
+        # is never materialized. Each row is scored against all references, so
+        # the per-row selection is identical to the unchunked computation.
+        n_label, n_ref = label.shape[0], ref_label.shape[0]
+        chunk_size = max(1, _PROCRUSTES_MAX_DISTANCE_ELEMENTS // n_ref)
+        target_idx = np.empty((n_label, self.top_k), dtype=np.intp)
+        for start in range(0, n_label, chunk_size):
+            stop = start + chunk_size
+            distance = self._distance(label[start:stop], ref_label)
+            target_idx[start:stop] = np.argsort(distance,
+                                                axis=1)[:, :self.top_k]
 
         if data.shape[1] != ref_data.shape[1]:
             raise ValueError(
