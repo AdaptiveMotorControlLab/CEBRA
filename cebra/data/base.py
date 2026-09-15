@@ -161,13 +161,15 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
         offset = torch.arange(-self.offset.left,
                               self.offset.right,
                               device=index.device)
-        
+
+        trial_ids = torch.as_tensor(trial_ids, device=index.device)
+        trial_borders = torch.as_tensor(trial_borders, device=index.device)
         batch_trial_ids = trial_ids[index]
         min_borders = trial_borders[batch_trial_ids] + self.offset.left
         max_borders = trial_borders[batch_trial_ids + 1] - self.offset.right
-        
+
         index = torch.clamp(index, min=min_borders, max=max_borders)
-        
+
         return index[:, None] + offset[None, :]
 
     @abc.abstractmethod
