@@ -169,8 +169,7 @@ def requires_package_version(module, version: str):
                 installed_version = packaging.version.parse(
                     patched_version)  # Use the patched version if provided
             else:
-                installed_version = packaging.version.parse(
-                    module.__version__)
+                installed_version = packaging.version.parse(module.__version__)
 
             if installed_version < required_version:
                 raise ImportError(
