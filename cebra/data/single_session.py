@@ -138,7 +138,9 @@ class DiscreteDataLoader(cebra_data.Loader):
                 f"Invalid choice of prior distribution. Got '{self.prior}', but "
                 f"only accept 'uniform' or 'empirical' as potential values.")
 
-    def get_indices(self, num_samples: int) -> BatchIndex:
+    def get_indices(self,
+                    num_samples: int,
+                    num_negatives: int = None) -> BatchIndex:
         """Samples indices for reference, positive and negative examples.
 
         The reference samples will be sampled from the empirical or uniform prior
@@ -246,7 +248,9 @@ class ContinuousDataLoader(cebra_data.Loader):
             else:
                 raise ValueError(self.conditional)
 
-    def get_indices(self, num_samples: int) -> BatchIndex:
+    def get_indices(self,
+                    num_samples: int,
+                    num_negatives: int = None) -> BatchIndex:
         """Samples indices for reference, positive and negative examples.
 
         The reference and negative samples will be sampled uniformly from
@@ -262,7 +266,9 @@ class ContinuousDataLoader(cebra_data.Loader):
         Returns:
             Indices for reference, positive and negatives samples.
         """
-        reference_idx = self.distribution.sample_prior(num_samples * 2)
+        num_negatives = num_samples if num_negatives is None else num_negatives
+        total_samples = num_samples + num_negatives
+        reference_idx = self.distribution.sample_prior(total_samples)
         negative_idx = reference_idx[num_samples:]
         reference_idx = reference_idx[:num_samples]
         positive_idx = self.distribution.sample_conditional(reference_idx)
@@ -305,7 +311,9 @@ class MixedDataLoader(cebra_data.Loader):
             continuous=self.cindex,
             time_delta=self.time_offset)
 
-    def get_indices(self, num_samples: int) -> BatchIndex:
+    def get_indices(self,
+                    num_samples: int,
+                    num_negatives: int = None) -> BatchIndex:
         """Samples indices for reference, positive and negative examples.
 
         The reference and negative samples will be sampled uniformly from
@@ -421,7 +429,9 @@ class HybridDataLoader(cebra_data.Loader):
         else:
             raise ValueError
 
-    def get_indices(self, num_samples: int) -> BatchIndex:
+    def get_indices(self,
+                    num_samples: int,
+                    num_negatives: int = None) -> BatchIndex:
         """Samples indices for reference, positive and negative examples.
 
         The reference and negative samples will be sampled uniformly from

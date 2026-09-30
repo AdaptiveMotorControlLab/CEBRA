@@ -42,6 +42,10 @@ It can jointly use behavioral and neural data in a hypothesis- or discovery-driv
 Steffen Schneider, Rodrigo González Laiz, Anastasiia Filipova, Markus Frey, Mackenzie Weygandt Mathis. AISTATS 2025.
 
 
+- 📄 **Publication April 2025**:
+  [Self-supervised contrastive learning performs non-linear system identification](https://arxiv.org/abs/2410.14673)
+  Rodrigo González Laiz*, Tobias Schmidt*, Steffen Schneider. ICLR 2025.
+
 - 📄 **Publication May 2023**:
   [Learnable latent embeddings for joint behavioural and neural analysis.](https://doi.org/10.1038/s41586-023-06031-6)
   Steffen Schneider*, Jin Hwa Lee* and Mackenzie Weygandt Mathis. Nature 2023.

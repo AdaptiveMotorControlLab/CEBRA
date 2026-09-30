@@ -37,6 +37,7 @@ these components in other contexts and research code bases.
    api/pytorch/datasets
    api/pytorch/distributions
    api/pytorch/models
+   api/pytorch/dynamics
    api/pytorch/helpers
    api/pytorch/multiobjective
    api/pytorch/regularized

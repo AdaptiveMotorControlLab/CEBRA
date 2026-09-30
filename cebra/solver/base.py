@@ -910,9 +910,9 @@ class AuxiliaryVariableSolver(Solver):
             The output embedding.
         """
         self._check_is_fitted()
-        model, offset = self._select_model(
-            inputs, session_id, use_reference_model=use_reference_model)
-
+        model = self._get_model(session_id=session_id,
+                                use_reference_model=use_reference_model)
+        offset = model.get_offset()
         if len(offset) < 2 and pad_before_transform:
             pad_before_transform = False
 

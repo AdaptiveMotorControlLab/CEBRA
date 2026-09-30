@@ -23,4 +23,10 @@ It is a publicly available tool that has benefited from contributions and sugges
 ### 2025
 - **Steffen Schneider, Rodrigo González Laiz, Anastasiia Filippova, Markus Frey, Mackenzie W. Mathis**
   [*Time-series attribution maps with regularized contrastive learning.*](https://openreview.net/forum?id=aGrCXoTB4P)
-  AISTATS (2025)
+  AISTATS (2025).
+
+- **Rodrigo González Laiz*, Tobias Schmidt*, Steffen Schneider**:
+  [*Self-supervised contrastive learning performs non-linear system identification*](https://arxiv.org/abs/2410.14673)
+  ICLR (2025).
+  Adds the `cebra.dynamics` module and introduces improvements to `cebra.criterions`. For advanced features on dynamics learning,
+  the full reference implementation for the paper is available at https://github.com/dynamical-inference/dcl.
