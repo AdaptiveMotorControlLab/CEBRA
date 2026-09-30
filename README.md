@@ -50,9 +50,9 @@ Steffen Schneider, Rodrigo González Laiz, Anastasiia Filipova, Markus Frey, Mac
   [Learnable latent embeddings for joint behavioral and neural analysis.](https://arxiv.org/abs/2204.00673)
   Steffen Schneider*, Jin Hwa Lee* and Mackenzie Weygandt Mathis
 
-# Patent Information 
+# Patent Information
 
-- [Dimensionality reduction of time-series data, and systems and devices that use the resultant embeddings](https://patents.google.com/patent/US12499131B2/en).  Steffen Schneider* & Mackenzie Weygandt Mathis*. Awarded Dec 2025. Please contact the [TTO office](adam.swetloff@epfl.ch) at EPFL for licensing.  
+- [Dimensionality reduction of time-series data, and systems and devices that use the resultant embeddings](https://patents.google.com/patent/US12499131B2/en).  Steffen Schneider* & Mackenzie Weygandt Mathis*. Awarded Dec 2025. Please contact the [TTO office](adam.swetloff@epfl.ch) at EPFL for licensing.
 
 # License
 
