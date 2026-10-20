@@ -68,10 +68,51 @@ class DistanceMatrix(cebra.io.HasDevice):
         datasets for which the dataset can be hosted on GPU memory.
     """
 
-    def __init__(self, samples: torch.Tensor):
+    def __init__(self, samples: torch.Tensor, chunk_size: int = 500_000):
         _check_is_float_tensor(self, samples)
         self.index = samples
+        self.chunk_size = chunk_size
         self.xTx = self.index.square().sum(1, keepdim=True)
+
+    def argmin(self, query, mask=None) -> torch.Tensor:
+        """Find the nearest neighbor index in chunks.
+        
+        Args:
+            query: (n, d)
+                The query matrix
+            mask: (N,)
+                A binary mask with same length as the index
+                
+        Returns: (n,)
+            The index of the nearest neighbor in the index for each query sample.
+        """
+
+        query = query.to(self.device)
+        B = query.shape[0]
+        qTq = query.square().sum(1, keepdim=True).T
+        
+        index = self.index if mask is None else self.index[mask]
+        xTx = self.xTx if mask is None else self.xTx[mask]
+        N = index.shape[0]
+
+        best_dist = torch.full((B,), float("inf"), dtype=torch.float32, device=self.device)
+        best_idx = torch.zeros((B,), dtype=torch.int64, device=self.device)
+
+        chunk_size = self.chunk_size if self.chunk_size is not None else N
+
+        for start in range(0, N, chunk_size):
+            end = min(start + chunk_size, N)
+
+            dist_chunk = torch.mm(index[start:end], query.T)
+            dist_chunk.mul_(-2).add_(xTx[start:end]).add_(qTq)
+
+            min_val, min_arg = dist_chunk.min(dim=0)
+            smaller = min_val < best_dist
+            
+            best_dist[smaller] = min_val[smaller]
+            best_idx[smaller] = min_arg[smaller] + start
+
+        return best_idx
 
     def __call__(self, query, mask=None):
         """Compute the pairwise distances between index and query.
@@ -144,8 +185,7 @@ class ContinuousIndex(cebra_distributions.Index, cebra.io.HasDevice):
 
     def search(self, query):
         """Return index location closest to query."""
-        distance = self.dist_matrix(query)
-        return torch.argmin(distance, dim=0)
+        return self.dist_matrix.argmin(query)
         # TODO(stes) handle offsets
         # + self.dist_matrix.offset.left
 
