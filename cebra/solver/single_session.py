@@ -22,7 +22,6 @@
 """Single session solvers embed a single pair of time series."""
 
 import copy
-import warnings
 from typing import Optional
 
 import literate_dataclasses as dataclasses
@@ -225,35 +224,9 @@ class SingleSessionAuxVariableSolver(SingleSessionSolver,
         return cebra.data.Batch(ref, pos, neg)
 
 
-class _DynamicsStateMixin:
-    """Include dynamics parameters in solver checkpoints."""
-
-    def state_dict(self) -> dict:
-        """Save the encoder, optimizer, criterion, and dynamics model."""
-        state = super().state_dict()
-        state["dynamics_model"] = self.dynamics_model.state_dict()
-        return state
-
-    def load_state_dict(self, state_dict: dict, strict: bool = True):
-        """Restore dynamics; reject incomplete legacy checkpoints in strict mode."""
-        if "dynamics_model" not in state_dict:
-            message = (
-                "Checkpoint is missing dynamics_model parameters. "
-                "Legacy DCL checkpoints did not save them. "
-                "Use strict=False only to retain the initialized dynamics.")
-            if strict:
-                raise KeyError(message)
-            warnings.warn(message, UserWarning, stacklevel=2)
-        else:
-            self.dynamics_model.load_state_dict(state_dict["dynamics_model"],
-                                                strict=strict)
-        super().load_state_dict(state_dict, strict=strict)
-
-
 @register("single-session-dcl")
 @dataclasses.dataclass
-class SingleSessionDCLSolver(_DynamicsStateMixin,
-                             SingleSessionAuxVariableSolver):
+class SingleSessionDCLSolver(SingleSessionAuxVariableSolver):
     dynamics_model: torch.nn.Module = None
 
     def __post_init__(self):
@@ -395,7 +368,7 @@ class BatchSingleSessionSolver(SingleSessionSolver):
 
 @register("single-session-full-dcl")
 @dataclasses.dataclass
-class BatchSingleSessionDCLSolver(_DynamicsStateMixin, BatchSingleSessionSolver,
+class BatchSingleSessionDCLSolver(BatchSingleSessionSolver,
                                   SingleSessionAuxVariableSolver):
     """Optimize a DCL model with batch gradient descent.
 

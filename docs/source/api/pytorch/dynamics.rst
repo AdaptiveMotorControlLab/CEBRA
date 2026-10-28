@@ -28,9 +28,11 @@ Models
 Checkpoint behavior
 ~~~~~~~~~~~~~~~~~~~
 
-Both minibatch and full-batch DCL solver checkpoints include the dynamics
-parameters. Historical DCL checkpoints that omitted those parameters cannot
-restore the trained dynamics. Strict loading raises an explanatory error.
-Low-level ``solver.load_state_dict(checkpoint, strict=False)`` loads the
-available components and warns that the dynamics retain their initialization.
-Ordinary CEBRA checkpoints have no dynamics requirement.
+Auxiliary solver checkpoints include ``reference_model``. For both minibatch
+and full-batch DCL solvers, this contains the encoder and dynamics parameters.
+Historical auxiliary solver checkpoints omitted the reference model and cannot
+restore its unsaved parameters, including trained DCL dynamics. Strict loading
+raises an explanatory error. Low-level
+``solver.load_state_dict(checkpoint, strict=False)`` loads the available
+components and warns that unsaved reference model parameters retain their
+current values. Solvers without an auxiliary reference model are unchanged.

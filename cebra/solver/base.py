@@ -892,6 +892,34 @@ class MultiobjectiveSolver(Solver):
 
 class AuxiliaryVariableSolver(Solver):
 
+    def state_dict(self) -> dict:
+        """Save the solver state, including the reference model parameters."""
+        state = super().state_dict()
+        state["reference_model"] = self.reference_model.state_dict()
+        return state
+
+    def load_state_dict(self, state_dict: dict, strict: bool = True):
+        """Restore the solver and reference model from a checkpoint.
+
+        Args:
+            state_dict: Solver checkpoint, including ``reference_model``.
+            strict: Require reference model parameters. If ``False``, load
+                available components and warn when the reference model is absent.
+        """
+        if "reference_model" not in state_dict:
+            message = (
+                "Checkpoint is missing reference_model parameters. "
+                "Legacy auxiliary solver checkpoints did not save them. "
+                "Use strict=False only to load available components and leave "
+                "unsaved reference model parameters unchanged.")
+            if strict:
+                raise KeyError(message)
+            warnings.warn(message, UserWarning, stacklevel=2)
+        else:
+            self.reference_model.load_state_dict(state_dict["reference_model"],
+                                                 strict=strict)
+        super().load_state_dict(state_dict, strict=strict)
+
     @torch.no_grad()
     def transform(self,
                   inputs: torch.Tensor,
