@@ -264,9 +264,14 @@ class AlignedTrialLoader(Loader):
         default=2, doc='Distinct repetitions per reference window.')
     seed: int = dataclasses.field(
         default=42, doc='Seed for a private CPU sampling generator.')
+    candidate_mode: str = dataclasses.field(
+        default='independent',
+        doc='Independent negative windows or in_batch trajectory candidates.')
 
     def __post_init__(self):
         super().__post_init__()
+        if self.candidate_mode not in ('independent', 'in_batch'):
+            raise ValueError('candidate_mode must be independent or in_batch.')
         if not isinstance(self.dataset, AlignedTrialDataset):
             raise ValueError(
                 'AlignedTrialLoader requires an AlignedTrialDataset.')
@@ -320,7 +325,11 @@ class AlignedTrialLoader(Loader):
         _positive_int(num_negatives, 'num_negatives')
         self._check_groups()
         trials, starts = self._sample(num_samples, self.num_views)
-        negative_trials, negative_starts = self._sample(num_negatives, 1)
+        if self.candidate_mode == 'in_batch':
+            negative_trials = torch.empty((0, 1), dtype=torch.long)
+            negative_starts = torch.empty(0, dtype=torch.long)
+        else:
+            negative_trials, negative_starts = self._sample(num_negatives, 1)
         return AlignedWindowIndex(trials, starts, negative_trials[:, 0],
                                   negative_starts, self.rollout_steps + 1).to(
                                       self.dataset.device)
