@@ -92,6 +92,10 @@ def __getattr__(key):
         from cebra.integrations.sklearn.cebra import CEBRA
 
         return CEBRA
+    elif key == "DYSCO":
+        from cebra.integrations.sklearn.dysco import DYSCO
+
+        return DYSCO
     elif key == "DCL":
         from cebra.integrations.sklearn.cebra import DCL
 
@@ -101,7 +105,8 @@ def __getattr__(key):
 
         return KNNDecoder
     elif key == "L1LinearRegressor":
-        from cebra.integrations.sklearn.decoder import L1LinearRegressor  # noqa: F811
+        from cebra.integrations.sklearn.decoder import \
+            L1LinearRegressor  # noqa: F811
 
         return L1LinearRegressor
     elif not key.startswith("_"):

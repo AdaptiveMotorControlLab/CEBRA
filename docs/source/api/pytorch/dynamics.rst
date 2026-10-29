@@ -10,7 +10,7 @@ applied to the reference samples during training and selected by name via
    :show-inheritance:
 
 Registration and initialization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. autofunction:: init
 
@@ -26,7 +26,7 @@ Models
    :show-inheritance:
 
 Polynomial vector fields and flow maps
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 ``polynomial-flow`` integrates a continuous-time polynomial vector field using
 fixed-step RK4. Its forward method returns the state after one interval, so it
@@ -66,9 +66,9 @@ The control array has shape ``(*batch, num_steps + 1, control_dim)``. Negative
 ``dt`` integrates backward; reverse the control-node order as well. DCL's
 existing sampler does not pass control segments to the registered map.
 
-This component supplies polynomial dynamics for DCL and a foundation for
-aligned-trial DYSCO training. The multi-view DYSCO objective, candidate
-potential and aligned-trial sampling are separate components under development.
+This component supplies polynomial dynamics for DCL and aligned-trial DYSCO
+training. See :doc:`../sklearn/dysco` for the trajectory objective, candidate
+potential, aligned-trial sampling and public estimator.
 Polynomial coefficients are directly trainable; this component does not
 perform sparsification or select a symbolic library automatically.
 

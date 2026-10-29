@@ -1516,6 +1516,14 @@ class CEBRA(TransformerMixin, BaseEstimator):
         return checkpoint
 
     @classmethod
+    def _from_checkpoint(cls, checkpoint, map_location=None):
+        """Reconstruct an estimator after loading its dictionary checkpoint."""
+        if checkpoint.get("metadata", {}).get("estimator") == "DYSCO":
+            from cebra.integrations.sklearn.dysco import DYSCO
+            return DYSCO._from_checkpoint(checkpoint, map_location=map_location)
+        return _load_cebra_with_sklearn_backend(checkpoint)
+
+    @classmethod
     def load(cls,
              filename: str,
              backend: Literal["auto", "sklearn", "torch"] = "auto",
@@ -1612,7 +1620,8 @@ class CEBRA(TransformerMixin, BaseEstimator):
                 "Cannot use 'sklearn' backend a non dictionary-based checkpoint. "
                 f"Please try a different backend. Got: {type(checkpoint)}")
 
-        cebra_ = _load_cebra_with_sklearn_backend(checkpoint)
+        cebra_ = cls._from_checkpoint(checkpoint,
+                                      map_location=kwargs.get("map_location"))
 
         n_features = cebra_.n_features_
         cebra_.solver_.n_features = ([
