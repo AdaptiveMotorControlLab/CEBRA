@@ -29,6 +29,17 @@ import torch
 
 import cebra.integrations.sklearn.cebra as cebra_sklearn_cebra
 import cebra.integrations.sklearn.helpers as cebra_sklearn_helpers
+from cebra.models.dysco import DYSCOInfoNCE
+
+
+def _check_standard_infonce(model):
+    """Keep single-session scoring and its information baseline explicit."""
+    criterion = getattr(getattr(model, "solver_", None), "criterion", None)
+    if isinstance(criterion, DYSCOInfoNCE):
+        raise NotImplementedError(
+            "CEBRA InfoNCE/goodness-of-fit metrics do not support DYSCO's "
+            "aligned-trial objective. Evaluate held-out embeddings, vector "
+            "fields and rollouts; raw loss is available in solver_.history.")
 
 
 def infonce_loss(
@@ -69,6 +80,7 @@ def infonce_loss(
 
     """
     sklearn_utils_validation.check_is_fitted(cebra_model, "n_features_")
+    _check_standard_infonce(cebra_model)
 
     # score is computed on single session dataset only
     if isinstance(X, list) and isinstance(X[0], Iterable) and len(
@@ -222,6 +234,7 @@ def infonce_to_goodness_of_fit(
         ValueError: If both ``model`` and ``(batch_size, num_sessions)`` are provided.
     """
     if model is not None:
+        _check_standard_infonce(model)
         if batch_size is not None or num_sessions is not None:
             raise ValueError(
                 "batch_size and num_sessions should not be provided if model is provided."

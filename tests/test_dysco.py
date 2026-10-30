@@ -99,6 +99,57 @@ def test_submission_event_sampling_matches_frozen_indices():
         torch.testing.assert_close(actual[key], torch.tensor(expected))
 
 
+@pytest.mark.parametrize("count", [1, 2, 4])
+def test_nonmultiple_negative_counts_have_uniform_window_marginal(count):
+    encoded = torch.zeros(3, 2, 4, 2)
+    criterion = DYSCOInfoNCE(num_negatives=count)
+    rows = torch.cat([
+        criterion.sample_indices(encoded, 6)["negative"][0] for _ in range(600)
+    ])
+    counts = torch.bincount(rows, minlength=3)
+    assert torch.all((counts / len(rows) - 1 / 3).abs() < .07)
+
+
+def test_centered_potential_uses_a_common_query_gauge():
+
+    class CenteredQuadratic(QuadraticPotential):
+
+        def forward(self, query, support=None):
+            values = super().forward(query, support)
+            return values - values.mean()
+
+    generator = torch.Generator().manual_seed(7)
+    encoded = torch.randn(2,
+                          2,
+                          3,
+                          2,
+                          generator=generator,
+                          dtype=torch.float64,
+                          requires_grad=True)
+    predictions = torch.randn(2,
+                              2,
+                              2,
+                              3,
+                              2,
+                              generator=generator,
+                              dtype=torch.float64,
+                              requires_grad=True)
+    candidates = torch.cat((encoded[None], predictions)).flatten(1, 2)
+    first = DYSCOInfoNCE(sample_interval=.2,
+                         potential=QuadraticPotential()).double()
+    second = DYSCOInfoNCE(sample_interval=.2,
+                          potential=CenteredQuadratic()).double()
+    indices = first.sample_indices(encoded, 4)
+    loss = first(encoded, predictions, candidates, indices=indices)[0]
+    centered = second(encoded, predictions, candidates, indices=indices)[0]
+    torch.testing.assert_close(loss, centered)
+    variables = (encoded, predictions)
+    gradients = torch.autograd.grad(loss, variables)
+    centered_gradients = torch.autograd.grad(centered, variables)
+    for actual, expected in zip(centered_gradients, gradients):
+        torch.testing.assert_close(actual, expected)
+
+
 @pytest.mark.parametrize("bidirectional", [True, False])
 def test_criterion_finite_difference_gradients(bidirectional):
     torch.manual_seed(5)

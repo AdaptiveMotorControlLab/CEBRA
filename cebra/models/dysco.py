@@ -81,13 +81,13 @@ class MLPPotential(nn.Module):
     def __init__(self, latent_dim: int, num_hidden_units: int = 32):
         super().__init__()
         self.network = nn.Sequential(nn.Linear(latent_dim, num_hidden_units),
-                                     nn.GELU(), nn.Linear(num_hidden_units, 1))
-        self.offset = nn.Parameter(torch.zeros(1))
+                                     nn.GELU(),
+                                     nn.Linear(num_hidden_units, 1, bias=False))
 
     def forward(self, query, support=None):
         """Evaluate and center the potential over the query batch."""
         value = self.network(query)
-        return value - value.mean() + self.offset
+        return value - value.mean()
 
 
 class DYSCOInfoNCE(ContrastiveLoss):
@@ -105,9 +105,9 @@ class DYSCOInfoNCE(ContrastiveLoss):
         negative_temperature: Negative noise scale; defaults to temperature.
         num_positive: Events sampled per reference window.
         num_negatives: Number of sampled negative events; defaults to batch size.
-        candidate_mode: ``in_batch`` matches submission sampling, excluding the
-            reference window row for each negative draw. ``independent`` uses
-            the loader's separately sampled windows and independent times.
+        candidate_mode: ``in_batch`` uses submitted row-offset sampling for
+            negative counts divisible by batch size, otherwise uniform rows.
+            ``independent`` uses separately sampled windows and times.
         bidirectional: Include all three blocks; False uses forward/encoded.
         potential: Optional module accepting query and detached support.
         seed: Seed for checkpointed, private event sampling.
@@ -164,9 +164,12 @@ class DYSCOInfoNCE(ContrastiveLoss):
         count = self.num_negatives or batch
         references = torch.arange(batch).repeat_interleave(self.num_positive)
         if self.candidate_mode == "in_batch":
-            offsets = draw(1, batch, count)
-            negative_rows = (torch.arange(count) * batch // count +
-                             offsets) % batch
+            if count % batch == 0:
+                offsets = draw(1, batch, count)
+                negative_rows = (torch.arange(count) * batch // count +
+                                 offsets) % batch
+            else:
+                negative_rows = draw(0, batch, count)
         else:
             negative_rows = draw(0, num_candidates, count)
         view_offsets = draw(0, views, len(references))
@@ -244,12 +247,14 @@ class DYSCOInfoNCE(ContrastiveLoss):
             support = ref.reshape(-1,
                                   ref.shape[-1])[indices["support"]].detach()
             corrected = len(r[0]) * (2 if self.bidirectional else 1)
+            # Center both query sets together to preserve relative logits.
+            potential = self.potential(torch.cat(
+                (positives[:corrected], candidates)),
+                                       support=support)
             positive_scores = torch.cat(
-                (positive_scores[:corrected] - self.potential(
-                    positives[:corrected], support=support).flatten(),
+                (positive_scores[:corrected] - potential[:corrected].flatten(),
                  positive_scores[corrected:]))
             negative_scores = torch.cat(
-                (negative_scores[:corrected] -
-                 self.potential(candidates, support=support).T,
+                (negative_scores[:corrected] - potential[corrected:].T,
                  negative_scores[corrected:]))
         return infonce_full_denominator(positive_scores, negative_scores)

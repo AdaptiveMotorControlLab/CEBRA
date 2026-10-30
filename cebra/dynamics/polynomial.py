@@ -26,6 +26,7 @@ underlying vector field is also available for continuous-time diagnostics.
 """
 
 import itertools
+import keyword
 import math
 from typing import Optional
 
@@ -124,6 +125,78 @@ class PolynomialField(nn.Module):
                 control: Optional[torch.Tensor] = None) -> torch.Tensor:
         """Evaluate the vector field at each state and observed control."""
         return self.features(state, control) @ self.coefficients.T
+
+    def equations(self,
+                  precision=6,
+                  threshold=0.0,
+                  variable_names=None,
+                  control_names=None):
+        """Return one readable differential equation per latent coordinate.
+
+        Args:
+            precision: Positive number of significant coefficient digits.
+            threshold: Omit coefficients with absolute value at most this
+                nonnegative value. This changes only the displayed equations.
+            variable_names: Unique Python identifiers for states; defaults to
+                ``z0``, ``z1``, etc.
+            control_names: Unique Python identifiers for observed controls;
+                defaults to ``u0``, ``u1``, etc. Must differ from state names.
+
+        Returns:
+            List of strings such as ``dz0/dt = -10*z0 + 10*z1``. Coefficients
+            describe the learned latent coordinates and original time units.
+            No coordinate alignment, sparsification or refitting is applied.
+        """
+        _positive_integer(precision, "precision")
+        if not math.isfinite(threshold) or threshold < 0:
+            raise ValueError("threshold must be finite and nonnegative.")
+
+        def names_or_default(names, count, prefix):
+            if names is None:
+                return [f"{prefix}{i}" for i in range(count)]
+            if isinstance(names, str):
+                raise ValueError("Names must be a sequence of identifiers.")
+            names = list(names)
+            if len(names) != count or any(
+                    not isinstance(name, str) or not name.isidentifier() or
+                    keyword.iskeyword(name) for name in names):
+                raise ValueError(
+                    "Supply one valid identifier per state or control coordinate."
+                )
+            return names
+
+        states = names_or_default(variable_names, self.latent_dim, "z")
+        names = states + names_or_default(control_names, self.control_dim, "u")
+        if len(set(names)) != len(names):
+            raise ValueError("State and control names must be unique.")
+        monomials = []
+        for term in self.terms:
+            factors = []
+            for index, repeated in itertools.groupby(term):
+                power = len(list(repeated))
+                factors.append(names[index] if power ==
+                               1 else f"{names[index]}**{power}")
+            monomials.append("*".join(factors))
+        equations = []
+        for name, row in zip(states, self.coefficients.detach().cpu().tolist()):
+            terms = []
+            for coefficient, monomial in zip(row, monomials):
+                if not math.isfinite(coefficient):
+                    raise ValueError("Cannot display nonfinite coefficients.")
+                if abs(coefficient) <= threshold:
+                    continue
+                value = f"{abs(coefficient):.{precision}g}"
+                term = f"{value}*{monomial}" if monomial else value
+                sign = "-" if coefficient < 0 else "+"
+                terms.append((sign, term))
+            if terms:
+                sign, term = terms[0]
+                rhs = ("-" if sign == "-" else "") + term
+                rhs += "".join(f" {sign} {term}" for sign, term in terms[1:])
+            else:
+                rhs = "0"
+            equations.append(f"d{name}/dt = {rhs}")
+        return equations
 
 
 class RK4Flow(nn.Module):

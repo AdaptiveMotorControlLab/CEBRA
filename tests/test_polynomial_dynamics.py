@@ -61,6 +61,87 @@ def test_polynomial_features_match_sklearn():
     np.testing.assert_allclose(field.features(state, control).numpy(), expected)
 
 
+def test_lorenz_rollout_matches_adaptive_reference_with_views():
+    from scipy.integrate import solve_ivp
+
+    field = PolynomialField(3).double()
+    with torch.no_grad():
+        field.coefficients.zero_()
+        field.coefficients[0, 1:3] = torch.tensor([-10., 10.])
+        field.coefficients[1, [1, 2, 6]] = torch.tensor([28., -1., -1.],
+                                                        dtype=torch.float64)
+        field.coefficients[2, [3, 5]] = torch.tensor([-8 / 3, 1.],
+                                                     dtype=torch.float64)
+    initial = torch.tensor([[[1., 1., 1.], [-2., 3., 5.]]], dtype=torch.float64)
+    flow = RK4Flow(field, dt=.01, substeps=2)
+    actual = flow.rollout(initial, 10).detach().numpy()
+    assert actual.shape == (1, 2, 11, 3)
+
+    def reference(time, state):
+        x, y, z = state
+        return [10 * (y - x), x * (28 - z) - y, x * y - 8 * z / 3]
+
+    for view in range(2):
+        expected = solve_ivp(reference, (0, .1),
+                             initial[0, view].numpy(),
+                             t_eval=np.linspace(0, .1, 11),
+                             rtol=1e-11,
+                             atol=1e-12).y.T
+        np.testing.assert_allclose(actual[0, view],
+                                   expected,
+                                   atol=3e-6,
+                                   rtol=1e-6)
+
+
+def test_equations_match_controlled_polynomial_and_preserve_coefficients():
+    field = PolynomialField(2, degree=3, control_dim=1).double()
+    state = torch.tensor([[0.3, -0.7]], dtype=torch.float64)
+    control = torch.tensor([[0.2]], dtype=torch.float64)
+    coefficients = field.coefficients.detach().clone()
+    equations = field.equations(precision=17,
+                                variable_names=["x", "y"],
+                                control_names=["forcing"])
+    values = {"x": 0.3, "y": -0.7, "forcing": 0.2}
+    evaluated = [
+        eval(equation.split(" = ")[1], {"__builtins__": {}}, values)
+        for equation in equations
+    ]
+    np.testing.assert_allclose(evaluated, field(state, control).detach()[0])
+    assert field.equations(threshold=1.0) == ["dz0/dt = 0", "dz1/dt = 0"]
+    torch.testing.assert_close(coefficients, field.coefficients)
+
+
+def test_equations_lorenz_order_signs_and_precision():
+    field = PolynomialField(3).double()
+    with torch.no_grad():
+        field.coefficients.zero_()
+        field.coefficients[0, 1:3] = torch.tensor([-10., 10.])
+        field.coefficients[1, [1, 2, 6]] = torch.tensor([28., -1., -1.],
+                                                        dtype=torch.float64)
+        field.coefficients[2, [3, 5]] = torch.tensor([-8 / 3, 1.],
+                                                     dtype=torch.float64)
+    assert field.equations(precision=4, variable_names=["x", "y", "z"]) == [
+        "dx/dt = -10*x + 10*y", "dy/dt = 28*x - 1*y - 1*x*z",
+        "dz/dt = -2.667*z + 1*x*y"
+    ]
+
+
+@pytest.mark.parametrize("kwargs", [
+    dict(precision=0),
+    dict(threshold=-1),
+    dict(threshold=float("nan")),
+    dict(variable_names="xy"),
+    dict(variable_names=["x"]),
+    dict(variable_names=["x", "x"]),
+    dict(variable_names=["x", "x+y"]),
+    dict(variable_names=["u0", "y"]),
+    dict(variable_names=["x", "class"])
+])
+def test_equations_reject_invalid_format_configuration(kwargs):
+    with pytest.raises(ValueError):
+        PolynomialField(2, control_dim=1).equations(**kwargs)
+
+
 def test_rk4_fourth_order_convergence_and_backward():
     field = PolynomialField(1, degree=1, include_bias=False).double()
     with torch.no_grad():

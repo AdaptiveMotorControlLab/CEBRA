@@ -22,6 +22,7 @@
 """Explicitly aligned repeated-trial windows for dynamics learning."""
 
 import math
+import numbers
 from dataclasses import dataclass
 from typing import Optional, Sequence
 
@@ -125,6 +126,12 @@ class AlignedTrialDataset(Dataset):
                 'Aligned trials must share an observation feature dimension.')
         grouped = {}
         for i, label in enumerate(alignment_ids):
+            if isinstance(label, torch.Tensor):
+                if label.ndim != 0:
+                    raise ValueError('Tensor alignment IDs must be scalars.')
+                label = label.item()
+            if isinstance(label, numbers.Real) and not math.isfinite(label):
+                raise ValueError('Numeric alignment IDs must be finite.')
             try:
                 grouped.setdefault(label, []).append(i)
             except TypeError as error:

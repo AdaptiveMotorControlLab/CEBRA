@@ -21,7 +21,9 @@
 #
 """Scikit-learn entry point for aligned-trial dynamics learning."""
 
+import copy
 import itertools
+import math
 
 import numpy as np
 import torch
@@ -48,6 +50,7 @@ class DYSCO(CEBRA):
 
     Args:
         model_architecture: Encoder name from the existing CEBRA registry.
+            Defaults to an unnormalized Euclidean encoder.
         output_dimension: Number of latent coordinates.
         num_hidden_units: Encoder and optional potential hidden width.
         polynomial_degree: Maximum total state/control polynomial degree.
@@ -67,6 +70,9 @@ class DYSCO(CEBRA):
         batch_size_negatives: Negative event count, defaults to batch_size.
         max_iterations: Optimizer updates per fit or partial_fit call.
         learning_rate: Adam learning rate.
+        dynamics_learning_rate: Optional finite, nonnegative Adam rate for
+            polynomial coefficients; defaults to learning_rate. Encoder and
+            potential keep learning_rate.
         optimizer_kwargs: Adam options as key/value pairs, following CEBRA.
         device: CEBRA device string.
         random_state: Private initialization and sampling seed.
@@ -75,7 +81,7 @@ class DYSCO(CEBRA):
     """
 
     def __init__(self,
-                 model_architecture="offset1-model",
+                 model_architecture="offset1-model-mse",
                  output_dimension=3,
                  num_hidden_units=32,
                  polynomial_degree=2,
@@ -94,6 +100,7 @@ class DYSCO(CEBRA):
                  batch_size_negatives=None,
                  max_iterations=1000,
                  learning_rate=3e-4,
+                 dynamics_learning_rate=None,
                  optimizer_kwargs=(("betas", (0.9, 0.999)), ("eps", 1e-8)),
                  device="cuda_if_available",
                  random_state=42,
@@ -124,6 +131,7 @@ class DYSCO(CEBRA):
         self.potential_bandwidth = potential_bandwidth
         self.negative_temperature = negative_temperature
         self.random_state = random_state
+        self.dynamics_learning_rate = dynamics_learning_rate
 
     def _prepare_criterion(self):
         if self.potential == "kde":
@@ -147,6 +155,11 @@ class DYSCO(CEBRA):
                             seed=self.random_state)
 
     def _initialize(self, num_features, num_controls):
+        if self.dynamics_learning_rate is not None and (
+                not math.isfinite(self.dynamics_learning_rate) or
+                self.dynamics_learning_rate < 0):
+            raise ValueError(
+                "dynamics_learning_rate must be finite and nonnegative.")
         self.device_ = check_device(self.device)
         with torch.random.fork_rng(devices=[]):
             torch.random.default_generator.manual_seed(self.random_state)
@@ -166,9 +179,13 @@ class DYSCO(CEBRA):
                 substeps=self.integration_substeps,
                 control_dim=num_controls).to(self.device_)
             criterion = self._prepare_criterion().to(self.device_)
-        optimizer = torch.optim.Adam(itertools.chain(
-            self.model_.parameters(), self.dynamics_model_.parameters(),
-            criterion.parameters()),
+        optimizer = torch.optim.Adam([
+            dict(params=itertools.chain(self.model_.parameters(),
+                                        criterion.parameters())),
+            dict(params=self.dynamics_model_.parameters(),
+                 lr=self.learning_rate if self.dynamics_learning_rate is None
+                 else self.dynamics_learning_rate)
+        ],
                                      lr=self.learning_rate,
                                      **dict(self.optimizer_kwargs))
         self.solver_name_ = "aligned-trial-dysco"
@@ -183,9 +200,12 @@ class DYSCO(CEBRA):
         self.label_types_ = []
         self.sampling_state_ = torch.Generator().manual_seed(
             self.random_state).get_state()
+        self._fit_configuration = copy.deepcopy(self.get_params())
 
     def _fit_trials(self, X, alignment_ids, controls, reset, callback,
                     callback_frequency):
+        if not reset:
+            self._check_fit_configuration()
         device = check_device(self.device) if reset else self.device_
         dataset = cebra.data.AlignedTrialDataset(X,
                                                  alignment_ids,
@@ -211,14 +231,36 @@ class DYSCO(CEBRA):
             candidate_mode=self.candidate_mode,
             seed=self.random_state)
         loader.generator.set_state(self.sampling_state_.cpu())
-        self._partial_fit(self.solver_,
-                          self.model_,
-                          loader,
-                          False,
-                          callback=callback,
-                          callback_frequency=callback_frequency)
-        self.sampling_state_ = loader.generator.get_state()
+        self._active_window_generator = loader.generator
+        # Establish metadata before training so callbacks may save even on
+        # the first fit call, through the standard checkpoint envelope.
+        self.n_features_ = dataset.input_dimension
+        self.n_features_in_ = dataset.input_dimension
+        self.num_sessions_ = None
+        self.solver_.tqdm_on = self.verbose
+        try:
+            self._partial_fit(self.solver_,
+                              self.model_,
+                              loader,
+                              False,
+                              callback=callback,
+                              callback_frequency=callback_frequency)
+        finally:
+            self.sampling_state_ = loader.generator.get_state()
+            del self._active_window_generator
         return self
+
+    def _check_fit_configuration(self):
+        """Reject changes that would reconstruct a different training model."""
+        mutable = {"max_iterations", "verbose", "pad_before_transform"}
+        changed = [
+            name for name, value in self.get_params().items()
+            if name not in mutable and value != self._fit_configuration[name]
+        ]
+        if changed:
+            raise ValueError(
+                "Fitted DYSCO configuration changed: " + ", ".join(changed) +
+                ". Call fit to apply new parameters; use to() to move devices.")
 
     def fit(self,
             X,
@@ -271,7 +313,27 @@ class DYSCO(CEBRA):
     def fit_transform(self, X, y=None, *, alignment_ids=None, controls=None):
         """Fit aligned trials and return one embedding array per trial."""
         self.fit(X, y, alignment_ids=alignment_ids, controls=controls)
-        return [self.transform(trial) for trial in X]
+        return self.transform(X)
+
+    def transform(self, X, batch_size=None, session_id=None):
+        """Embed one recording or a sequence of trials with the shared encoder.
+
+        A two-dimensional recording returns an array. A sequence of trial
+        arrays, or a three-dimensional array, returns a list of arrays. Trial
+        lengths may differ; all observations share the same feature space.
+        """
+        if getattr(X, "ndim", None) == 3 or (isinstance(X, (list, tuple)) and
+                                             len(X) > 0 and
+                                             getattr(X[0], "ndim", None) == 2):
+            return [
+                super(DYSCO, self).transform(trial,
+                                             batch_size=batch_size,
+                                             session_id=session_id)
+                for trial in X
+            ]
+        return super().transform(X,
+                                 batch_size=batch_size,
+                                 session_id=session_id)
 
     def vector_field(self, states, controls=None):
         """Evaluate derivatives at latent states, returning a NumPy array."""
@@ -284,6 +346,29 @@ class DYSCO(CEBRA):
             controls, dtype=reference.dtype, device=self.device_)
         with torch.no_grad():
             return self.dynamics_model_.field(states, controls).cpu().numpy()
+
+    def equations(self,
+                  precision=6,
+                  threshold=0.0,
+                  variable_names=None,
+                  control_names=None):
+        """Inspect the learned polynomial dynamics as a list of equation strings.
+
+        ``print(*model.equations(), sep="\\n")`` prints the complete field.
+        Names default to ``z0``, ``z1``, etc., and ``u0``, ``u1`` for controls.
+        ``precision`` controls significant digits; ``threshold`` hides terms
+        with absolute coefficients at most that value, without changing the
+        model. Equations use learned latent coordinates and the time units of
+        ``sample_interval``. They do not perform coordinate alignment or infer
+        a sparse model. See
+        :meth:`cebra.dynamics.polynomial.PolynomialField.equations` for arguments.
+        """
+        check_is_fitted(self, "n_features_")
+        return self.dynamics_model_.field.equations(
+            precision=precision,
+            threshold=threshold,
+            variable_names=variable_names,
+            control_names=control_names)
 
     def rollout(self, states, num_steps, controls=None, direction="forward"):
         """Integrate latent initial states, including the initial node.
@@ -315,22 +400,35 @@ class DYSCO(CEBRA):
         target = check_device(str(device))
         self.solver_.to(target)
         self.solver_.criterion.to(target)
+        # Torch's optimizer loader casts moment tensors to their parameter
+        # devices while retaining the appropriate device for scalar steps.
+        optimizer = self.solver_.optimizer
+        optimizer.load_state_dict(optimizer.state_dict())
         self.device = self.device_ = target
+        self._fit_configuration["device"] = target
         return self
 
     def _get_state(self):
+        self._check_fit_configuration()
         state = super()._get_state()
+        sampling_state = self.sampling_state_
+        if hasattr(self, "_active_window_generator"):
+            sampling_state = self._active_window_generator.get_state()
         state.update(control_dimension_=self.control_dimension_,
-                     sampling_state_=self.sampling_state_)
+                     sampling_state_=sampling_state)
         return state
 
     def _get_state_dict(self):
         checkpoint = super()._get_state_dict()
-        checkpoint["metadata"]["estimator"] = "DYSCO"
+        checkpoint["metadata"].update(estimator="DYSCO", dysco_version=1)
         return checkpoint
 
     @classmethod
     def _from_checkpoint(cls, checkpoint, map_location=None):
+        if checkpoint.get("metadata", {}).get("dysco_version") != 1:
+            raise ValueError(
+                "Unsupported DYSCO checkpoint version. Unversioned development "
+                "checkpoints require the matching implementation revision.")
         args, state = dict(checkpoint["args"]), checkpoint["state"]
         if isinstance(map_location, (str, torch.device)):
             args["device"] = str(map_location)

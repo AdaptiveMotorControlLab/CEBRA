@@ -108,6 +108,17 @@ def test_singleton_groups_are_explicit_single_view():
                            rollout_steps=3)
 
 
+def test_tensor_alignment_labels_have_value_semantics():
+    trials = [np.zeros((12, 2))] * 4
+    data = AlignedTrialDataset(trials, torch.tensor([0, 0, 1, 1]), .1)
+    assert data.groups == ((0, 1), (2, 3))
+    for labels in (torch.zeros(4, 1), [0, 0, float("nan"),
+                                       float("nan")],
+                   np.array([0, 0, np.nan, np.nan], dtype="float32")):
+        with pytest.raises(ValueError, match="alignment IDs"):
+            AlignedTrialDataset(trials, labels, .1)
+
+
 def test_shortest_legal_window_and_invalid_context():
     data = AlignedTrialDataset([np.zeros((7, 2))] * 2, [0, 0], .1)
     data.offset = Offset(2, 2)
