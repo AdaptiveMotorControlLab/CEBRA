@@ -37,10 +37,8 @@ from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import literate_dataclasses as dataclasses
 import numpy as np
-import packaging.version
 import torch
 import torch.nn.functional as F
-import wandb
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 
@@ -51,30 +49,34 @@ import cebra.models
 from cebra.solver.util import Meter
 from cebra.solver.util import ProgressBar
 
-# NOTE(stes): From torch 2.6 onwards, we need to specify the following list
-# when loading CEBRA models to allow weights_only = True.
-CEBRA_LOAD_SAFE_GLOBALS = [
-    cebra.data.Offset, torch.torch_version.TorchVersion, np.dtype, np.float64,
-    np.int64
+try:
+    from numpy._core.multiarray import scalar as _numpy_scalar  # numpy>=2
+except ImportError:
+    from numpy.core.multiarray import scalar as _numpy_scalar  # numpy<2
+
+# From torch 2.6, ``torch.load`` only unpickles tensors and Python primitives by default
+# (``weights_only=True``). A numpy scalar stored in a checkpoint, e.g. a value computed with numpy
+# and saved in ``n_features`` or in the training ``log``, then fails to load. These globals let
+# ``Solver.load`` rebuild numpy scalars, and nothing else. The module of the scalar function is
+# ``numpy._core`` for files written with numpy>=2 and ``numpy.core`` with numpy<2, so both names
+# are listed.
+_CHECKPOINT_SAFE_GLOBALS = [
+    (_numpy_scalar, "numpy._core.multiarray.scalar"),
+    (_numpy_scalar, "numpy.core.multiarray.scalar"),
+    np.dtype,
+] + [
+    getattr(np.dtypes, name)
+    for name in ("Int32DType", "Int64DType", "Float32DType", "Float64DType")
+    if hasattr(np, "dtypes")
 ]
 
 
-def _safe_torch_load(filename, weights_only, **kwargs):
-    if weights_only is None:
-        if packaging.version.parse(
-                torch.__version__) >= packaging.version.parse("2.6.0"):
-            weights_only = True
-        else:
-            weights_only = False
-
-    if not weights_only:
-        checkpoint = torch.load(filename, weights_only=False, **kwargs)
-    else:
-        # NOTE(stes): This is only supported for torch 2.6+
-        with torch.serialization.safe_globals(CEBRA_LOAD_SAFE_GLOBALS):
-            checkpoint = torch.load(filename, weights_only=True, **kwargs)
-
-    return checkpoint
+def _load_checkpoint(path: str, map_location) -> dict:
+    """:py:func:`torch.load` that also accepts numpy scalars (see ``_CHECKPOINT_SAFE_GLOBALS``)."""
+    if not hasattr(torch.serialization, "safe_globals"):  # torch<2.5
+        return torch.load(path, map_location=map_location)
+    with torch.serialization.safe_globals(_CHECKPOINT_SAFE_GLOBALS):
+        return torch.load(path, map_location=map_location)
 
 
 def _check_indices(batch_start_idx: int, batch_end_idx: int,
@@ -328,6 +330,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             as the logs for positive (``pos``) and negative (``neg``) pairs. For the standard
             criterions in CEBRA, also contains the value of the ``temperature``.
         tqdm_on: Use ``tqdm`` for showing a progress bar during training.
+        scheduler: An optional PyTorch learning rate scheduler. If set, it is stepped
+            after every optimizer step (i.e., once per training iteration).
     """
 
     model: torch.nn.Module
@@ -385,29 +389,16 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """
 
         def _contains(key):
-            if isinstance(state_dict, Solver):
-                if hasattr(state_dict, key):
-                    return True
-                elif strict:
-                    raise KeyError(
-                        f"Key {key} missing in state_dict. Contains: {list(state_dict.keys())}."
-                    )
-
-            elif isinstance(state_dict, dict):
-                if key in state_dict:
-                    return True
-                elif strict:
-                    raise KeyError(
-                        f"Key {key} missing in state_dict. Contains: {list(state_dict.keys())}."
-                    )
-
+            if key in state_dict:
+                return True
+            elif strict:
+                raise KeyError(
+                    f"Key {key} missing in state_dict. Contains: {list(state_dict.keys())}."
+                )
             return False
 
         def _get(key):
-            if isinstance(state_dict, Solver):
-                return getattr(state_dict, key)
-            elif isinstance(state_dict, dict):
-                return state_dict.get(key)
+            return state_dict.get(key)
 
         if _contains("model"):
             self.model.load_state_dict(_get("model"))
@@ -543,11 +534,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         self.optimizer.step()
         if self.scheduler is not None:
             self.scheduler.step()
+
         self.history.append(loss.item())
-
-        if wandb.run is not None:
-            wandb.log({"loss": loss.item()})
-
         stats = dict(
             pos=align.item(),
             neg=uniform.item(),
@@ -776,41 +764,19 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         """
         raise NotImplementedError
 
-    def load(self,
-             logdir: str,
-             filename: str = "checkpoint.pth",
-             weights_only: bool = False,
-             map_location=None):
+    def load(self, logdir: str, filename: str = "checkpoint.pth"):
         """Load the experiment from its checkpoint file.
 
         Args:
             logdir: Logging directory.
             filename: Checkpoint name for loading the experiment.
-            weights_only: Indicates whether unpickler should be restricted to loading only tensors, primitive types,
-                dictionaries and any types added via :py:func:`torch.serialization.add_safe_globals`.
-                See :py:func:`torch.load` with ``weights_only=True`` for more details. It it recommended to leave this
-                at the default value of ``None``, which sets the argument to ``False`` for torch<2.6, and ``True`` for
-                higher versions of torch. If you experience issues with loading custom models (specified outside
-                of the CEBRA package), you can try to set this to ``False`` if you trust the source of the model.
-            map_location: Optional location passed to :py:func:`torch.load`.
-                If not provided, checkpoints are remapped to the current model device.
         """
 
         savepath = os.path.join(logdir, filename)
         if not os.path.exists(savepath):
             print("Did not find a previous experiment. Starting from scratch.")
             return
-
-        if map_location is None:
-            map_location = next(self.model.parameters()).device
-
-        checkpoint = _safe_torch_load(
-            savepath,
-            weights_only,
-            map_location=map_location,
-        )
-
-        #checkpoint = torch.load(savepath, map_location=self.device, weights_only=weights_only)
+        checkpoint = _load_checkpoint(savepath, map_location=self.device)
         self.load_state_dict(checkpoint, strict=True)
 
         n_features = self.n_features

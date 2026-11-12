@@ -401,3 +401,39 @@ def test_unified_session(data_name, model_architecture, loader_initfunc,
 
         emb = solver.transform(data, labels, session_id=i, batch_size=300)
         assert emb.shape == (loader.dataset.num_timepoints, 3)
+
+
+def test_load_checkpoint_with_numpy_scalars(tmp_path):
+    # Checkpoints of unified solvers saved before n_features was a Python int store it as a
+    # numpy int64; torch>=2.6 loads with weights_only=True by default.
+    model = cebra.models.init("offset1-model", num_neurons=4, num_units=8, num_output=3)
+    solver = cebra.solver.SingleSessionSolver(
+        model=model,
+        criterion=cebra.models.InfoNCE(),
+        optimizer=torch.optim.Adam(model.parameters()))
+    solver.n_features = np.int64(4)
+    solver.log[("loss_val", 0)] = [np.float64(0.5)]
+    solver.save(str(tmp_path), "model.pt")
+
+    other = cebra.solver.SingleSessionSolver(
+        model=cebra.models.init("offset1-model", num_neurons=4, num_units=8, num_output=3),
+        criterion=cebra.models.InfoNCE(),
+        optimizer=torch.optim.Adam(model.parameters()))
+    other.load(str(tmp_path), "model.pt")
+    assert other.n_features == 4
+    assert other.log[("loss_val", 0)] == [0.5]
+    for key, value in solver.model.state_dict().items():
+        assert torch.equal(value, other.model.state_dict()[key])
+
+
+@pytest.mark.skipif(not hasattr(torch.serialization, "safe_globals"),
+                    reason="torch<2.5 has no weights_only allowlist")
+def test_load_checkpoint_rejects_other_objects(tmp_path):
+    # Only numpy scalars are added to the allowlist: a checkpoint holding any other
+    # object (here a numpy array) is still refused when torch loads with weights_only=True.
+    path = tmp_path / "model.pt"
+    torch.save({"n_features": np.arange(3)}, path)
+    with pytest.raises(Exception):
+        with torch.serialization.safe_globals(
+                cebra.solver.base._CHECKPOINT_SAFE_GLOBALS):
+            torch.load(path, weights_only=True)
