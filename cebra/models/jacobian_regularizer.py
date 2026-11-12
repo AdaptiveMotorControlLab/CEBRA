@@ -114,6 +114,8 @@ class JacobianReg(nn.Module):
         v = torch.randn(B, C, device=device)
         arxilirary_zero = torch.zeros(B, C, device=device)
         vnorm = torch.norm(v, 2, 1, True)
+        #NOTE:``value`` as a keyword: the positional form ``addcdiv(input, value, t1, t2)`` is
+        # no longer supported and will be deprecated.
         v = torch.addcdiv(arxilirary_zero, v, vnorm, value=1.0)
         return v
 

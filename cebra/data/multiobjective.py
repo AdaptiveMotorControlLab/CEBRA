@@ -204,16 +204,13 @@ class UnifiedContrastiveMultiObjectiveLoader(cebra_data.Loader):
         self.distributions = []
 
     def add_config(self, config):
-        """Add a per-objective configuration with time_delta distribution.
-        
-        Only time_delta distributions are supported for unified continuous multiobjective.
-        Uses the primary continuous index from the unified dataset.
-        
+        """Add the positive-sample distribution of one objective.
+
         Args:
-            config: A dict with keys 'distribution' and 'kwargs'.
-                - 'distribution': must be "time_delta"
-                - 'kwargs': dict with 'time_delta' (int, the time window).
-                           'label_name' is ignored; primary continuous index is used.
+            config: Dict with ``"distribution"``, which must be ``"unified_time_delta"``, and
+                ``"kwargs"``. Note: ``kwargs["time_delta"]`` and ``kwargs["label_name"]`` are
+                ignored; the sampler uses the loader's ``time_offset`` and the dataset's
+                ``continuous_index``.
         """
         kwargs_distribution = config['kwargs']
         

@@ -213,3 +213,18 @@ def test_apply_mask_with_chunk_size():
     assert masked_data.shape == data.shape, "Masked data shape should match input data shape"
     assert not torch.equal(
         data, masked_data), "Data should be modified when a mask is applied"
+
+
+def test_session_block_mask():
+    data = torch.ones((8, 10, 4))
+    mask = cebra.data.masking.SessionBlockMask(([3, 3, 4], 1))
+    out = mask.apply_mask(data)
+    assert out.shape == data.shape
+    # Exactly one whole session is masked, identically for all samples.
+    assert (out == out[:1]).all()
+    masked = int((out[0, :, 0] == 0).sum())
+    assert masked in (3, 4)
+
+    with pytest.raises(ValueError):
+        cebra.data.masking.SessionBlockMask(
+            ([3, 3, 4], 1)).apply_mask(torch.ones((2, 11, 4)))

@@ -182,31 +182,6 @@ def _assert_datasets_same_device(
     return devices.pop()
 
 
-class TrialTensorDataset(TensorDataset):
-    """A dataset that returns items on the range [idx, idx + offset).
-    
-    Note:
-        This is useful for training models on predictive neural activity (e.g., grid cells, place cells).
-    """
-
-    def __init__(self,
-                 neural: Union[torch.Tensor, npt.NDArray],
-                 continuous: Union[torch.Tensor, npt.NDArray] = None,
-                 discrete: Union[torch.Tensor, npt.NDArray] = None,
-                 offset: Offset = Offset(0, 1),
-                 device: str = "cpu",
-                 trial_ids: Union[torch.Tensor, npt.NDArray] = None,
-                 trial_borders: Union[torch.Tensor, npt.NDArray] = None):
-        super().__init__(neural, continuous, discrete, offset, device)
-        self.trial_ids = trial_ids
-        self.trial_borders = trial_borders
-
-    def __getitem__(self, index: torch.Tensor) -> torch.Tensor:
-        index = self.expand_index_in_trial_padding(index, self.trial_ids,
-                                                   self.trial_borders)
-        return self.neural[index].transpose(2, 1)
-
-
 class DatasetCollection(cebra_data.MultiSessionDataset):
     """Multi session dataset made up of a list of datasets.
 
@@ -507,10 +482,11 @@ class UnifiedDataset(DatasetCollection):
     @property
     def input_dimension(self) -> int:
         """Returns the sum of the input dimension for each session."""
-        return np.sum([
-            self.get_input_dimension(session_id)
-            for session_id in range(self.num_sessions)
-        ])
+        # A Python int, not a numpy scalar: it is saved as ``n_features`` in the solver
+        # checkpoint, and ``torch.load(weights_only=True)`` rejects numpy scalars.
+        return sum(
+            int(self.get_input_dimension(session_id))
+            for session_id in range(self.num_sessions))
 
     def _get_batches(self, index):
         """Return the data at the specified index location."""

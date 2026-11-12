@@ -2,8 +2,10 @@ import numpy as np
 import pytest
 import torch
 
+import cebra.attribution
 import cebra.attribution._jacobian
 import cebra.attribution.jacobian_attribution as jacobian_attribution
+import cebra.models
 from cebra.attribution import attribution_models
 from cebra.models import Model
 
@@ -212,3 +214,109 @@ def test_attribution_map_transforms():
             model=model, input_data=input_data, aggregate=aggregate)
         assert isinstance(jf, np.ndarray)
         assert isinstance(jhatg, np.ndarray)
+
+
+def _optimized_and_reference(model, input_data, batch_size, **kwargs):
+    """Maps of ``jacobian-based-batched-optimized`` and of ``jacobian-based-batched``."""
+    optimized = cebra.attribution.init("jacobian-based-batched-optimized",
+                                       model=model,
+                                       input_data=input_data,
+                                       output_dimension=3)
+    reference = cebra.attribution.init("jacobian-based-batched",
+                                       model=model,
+                                       input_data=input_data,
+                                       output_dimension=3)
+    return (optimized.compute_attribution_map(batch_size=batch_size,
+                                              **kwargs),
+            reference.compute_attribution_map(batch_size=batch_size))
+
+
+_JACOBIAN_KEYS = ("jf", "jf-convabs", "jf-inv-lsq", "jf-inv-svd",
+                  "jf-convabs-inv-lsq", "jf-convabs-inv-svd")
+
+
+@pytest.mark.parametrize("conv", [False, True])
+def test_jacobian_batched_optimized_matches_batched(conv):
+    torch.manual_seed(0)
+    if conv:
+        model = cebra.models.init("offset10-model",
+                                  num_neurons=6,
+                                  num_units=8,
+                                  num_output=3)
+    else:
+        model = torch.nn.Sequential(torch.nn.Linear(6, 8), torch.nn.Tanh(),
+                                    torch.nn.Linear(8, 3))
+    input_data = torch.randn(70, 6, requires_grad=True)
+    # batch_size does not divide the number of samples: the last batch is smaller.
+    full, reference = _optimized_and_reference(model, input_data, batch_size=32)
+    for key in _JACOBIAN_KEYS:
+        np.testing.assert_allclose(full[key], reference[key], rtol=1e-5, atol=1e-6)
+
+    mean, _ = _optimized_and_reference(model,
+                                       input_data,
+                                       batch_size=32,
+                                       return_full=False)
+    assert mean["num_samples"] == len(reference["jf"])
+    for key in _JACOBIAN_KEYS:
+        np.testing.assert_allclose(mean[key],
+                                   reference[key].mean(axis=0),
+                                   rtol=1e-5,
+                                   atol=1e-6)
+
+
+def test_jacobian_batched_optimized_selected_keys_and_latent_batching():
+    torch.manual_seed(0)
+    model = torch.nn.Sequential(torch.nn.Linear(6, 8), torch.nn.Tanh(),
+                                torch.nn.Linear(8, 3))
+    input_data = torch.randn(40, 6, requires_grad=True)
+    full, reference = _optimized_and_reference(model,
+                                               input_data,
+                                               batch_size=16,
+                                               selected_keys=["jf", "jf_inv_svd"],
+                                               latent_batch_size=1)
+    # "_" is read as "-"; only the selected maps and the timings are returned.
+    assert set(full) == {"jf", "jf-inv-svd", "time_inversion_lsq", "time_inversion_svd"}
+    assert full["time_inversion_lsq"] == 0.0
+    np.testing.assert_allclose(full["jf"], reference["jf"], rtol=1e-5, atol=1e-6)
+    np.testing.assert_allclose(full["jf-inv-svd"],
+                               reference["jf-inv-svd"],
+                               rtol=1e-5,
+                               atol=1e-6)
+
+
+def test_jacobian_batched_optimized_errors():
+    model = torch.nn.Linear(6, 3)
+    method = cebra.attribution.init("jacobian-based-batched-optimized",
+                                    model=model,
+                                    input_data=torch.randn(10, 6),
+                                    output_dimension=3)
+    with pytest.raises(ValueError, match="bigger than data"):
+        method.compute_attribution_map(batch_size=11)
+    with pytest.raises(ValueError, match="Unknown attribution result key"):
+        method.compute_attribution_map(batch_size=5, selected_keys=["jf-abs"])
+
+
+@pytest.mark.parametrize("output_batch_size", [1, 2, 3, 100])
+def test_compute_jacobian_output_batching(output_batch_size):
+    torch.manual_seed(0)
+    model = torch.nn.Sequential(torch.nn.Linear(6, 8), torch.nn.Tanh(),
+                                torch.nn.Linear(8, 5))
+    x = torch.randn(7, 6)
+    kwargs = dict(double_precision=True)
+    full = cebra.attribution._jacobian.compute_jacobian(
+        model, [x.clone().requires_grad_(True)], **kwargs)
+    batched = cebra.attribution._jacobian.compute_jacobian(
+        model, [x.clone().requires_grad_(True)],
+        output_batch_size=output_batch_size,
+        **kwargs)
+    assert full.shape == (7, 5, 6)
+    np.testing.assert_allclose(batched, full, atol=1e-10)
+
+
+def test_compute_jacobian_invalid_output_batch_size():
+    model = torch.nn.Linear(3, 2)
+    with pytest.raises(ValueError):
+        cebra.attribution._jacobian.compute_jacobian(
+            model, [torch.randn(4, 3, requires_grad=True)],
+            double_precision=True,
+            output_batch_size=0)

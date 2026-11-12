@@ -43,8 +43,6 @@ class MaskedMixin:
             Dict[str, Any],
             List[Union[Tuple[str, Any], Dict[str, Any]]],
         ]] = None,
-        apply_multiple_masks: bool = False,
-        fill_with_noise: bool = False,
     ) -> None:
         """Set the mask types and parameters for the dataset.
 
@@ -56,13 +54,6 @@ class MaskedMixin:
 
         Args:
             masking: Mask configuration. See formats above.
-            apply_multiple_masks: When True, `apply_mask` will randomly pick a
-                number of configured masks and apply them all in a single call
-                (combined). When False, a single mask is sampled per call
-                (default/legacy behavior).
-            fill_with_noise: When True, masked positions are filled with Gaussian
-                noise sampled from per-neuron mean and std (computed from unmasked
-                values). When False, masked positions are zeroed (default/legacy behavior).
 
         Note:
             - By default, no masks are applied.
@@ -70,10 +61,6 @@ class MaskedMixin:
               class are replaced. When using the list format, entries are
               appended, allowing duplicates with different parameters.
         """
-        # Store strategy
-        self._apply_multiple_masks = bool(apply_multiple_masks)
-        self._fill_with_noise = bool(fill_with_noise)
-
         if masking is None:
             return
 
@@ -183,53 +170,17 @@ class MaskedMixin:
         if not self._masks:
             return data
 
-        # Compute the mask to apply (single or combined)
-        if getattr(self, "_apply_multiple_masks", False):
-            # Randomly choose how many masks to apply (at least one, at most all)
-            num_to_apply = random.randint(1, len(self._masks))
-            selected_masks = random.sample(self._masks, num_to_apply)
+        sampled_mask = random.choice(self._masks)
+        mask = sampled_mask.apply_mask(data)
 
-            # Start with all-ones mask and combine multiplicatively (logical AND)
-            mask = torch.ones_like(data, dtype=torch.int)
-            for m in selected_masks:
-                mask = mask.mul(m.apply_mask(data))
-        else:
-            sampled_mask = random.choice(self._masks)
-            mask = sampled_mask.apply_mask(data)
+        num_chunks = (data.shape[0] + chunk_size -
+                      1) // chunk_size  # Compute number of chunks
 
-        # Apply masking strategy: zeros or Gaussian noise
-        if getattr(self, "_fill_with_noise", False):
-            # Fill masked positions with per-neuron Gaussian noise
-            # mask: (batch_size, n_neurons, offset) with 1=keep, 0=mask
-            inverse_mask = (mask == 0)  # True where we need to fill
-
-            # Compute per-neuron mean and std from unmasked values
-            # Shape: (batch_size, n_neurons)
-            masked_data = data * mask  # Zero out masked positions
-            sum_unmasked = masked_data.sum(dim=2)  # Sum over time
-            count_unmasked = mask.sum(dim=2).clamp(
-                min=1)  # Count valid timesteps
-            mean_per_neuron = sum_unmasked / count_unmasked  # (batch_size, n_neurons)
-
-            # Compute std
-            squared_diff = ((data - mean_per_neuron.unsqueeze(2))**2) * mask
-            var_per_neuron = squared_diff.sum(dim=2) / count_unmasked
-            std_per_neuron = var_per_neuron.sqrt().clamp(
-                min=1e-6)  # Avoid div by zero
-
-            # Generate Gaussian noise and fill masked positions
-            noise = torch.randn_like(data) * std_per_neuron.unsqueeze(
-                2) + mean_per_neuron.unsqueeze(2)
-            data = torch.where(inverse_mask, noise, data)
-        else:
-            # Legacy behavior: multiply by mask (zeros out masked positions)
-            num_chunks = (data.shape[0] + chunk_size -
-                          1) // chunk_size  # Compute number of chunks
-
-            for i in range(num_chunks):
-                start, end = i * chunk_size, min((i + 1) * chunk_size,
-                                                 data.shape[0])
-                data[start:end].mul_(mask[start:end])  # in-place for memory
+        for i in range(num_chunks):
+            start, end = i * chunk_size, min((i + 1) * chunk_size,
+                                             data.shape[0])
+            data[start:end].mul_(
+                mask[start:end])  # apply mask in-place to save memory
 
         return data
 
@@ -472,6 +423,13 @@ class NeuronBlockMask(Mask):
 
 
 class SessionBlockMask(Mask):
+    """Mask all the neurons of randomly chosen sessions of a unified input.
+
+    Args:
+        masking_value: Number of neurons of each session, in the order of the concatenated
+            input. Or a tuple ``(neurons_per_session, num_sessions)`` to always mask
+            ``num_sessions`` sessions; otherwise 1 to ``len(neurons_per_session) - 1`` are masked.
+    """
 
     def __init__(self, masking_value: Union[List[int], Tuple[List[int], int]]):
         super().__init__(masking_value)
@@ -487,16 +445,15 @@ class SessionBlockMask(Mask):
         return "SessionBlockMask"
 
     def apply_mask(self, data: torch.Tensor) -> torch.Tensor:
-        """ Apply masking to contiguous blocks of neurons corresponding to sessions.
+        """Build a mask that hides the neurons of the selected sessions.
+
+        The same sessions are masked for the whole batch.
 
         Args:
-            data: batch of size (batch_size, n_neurons, offset).
-            self.mask_prop: Proportion of neurons to mask. The neurons are masked in a
-                contiguous block.
+            data: Batch of shape ``(batch_size, n_neurons, offset)``.
 
         Returns:
-            torch.Tensor: The mask, a tensor of the same size as the input data with the
-                masked neurons set to 1.
+            Mask of the same shape as ``data``: 0 for masked neurons, 1 otherwise.
         """
         batch_size, n_neurons, offset_length = data.shape
 

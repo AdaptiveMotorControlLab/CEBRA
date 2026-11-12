@@ -26,6 +26,7 @@ import torch
 from torch import nn
 
 import cebra.models
+import cebra.models.jacobian_regularizer as jacobian_regularizer
 import cebra.models.model
 import cebra.registry
 
@@ -366,3 +367,25 @@ def test_parametrized_offset_models_layer_structure(offset_n):
         f"Offset left for offset{offset_n} should be {expected_left}, got {offset.left}"
     assert offset.right == expected_right, \
         f"Offset right for offset{offset_n} should be {expected_right}, got {offset.right}"
+
+
+@pytest.mark.parametrize("n", [1, -1])
+def test_jacobian_reg_positive_and_gradient_flows(n):
+    torch.manual_seed(0)
+    model = nn.Linear(5, 3)
+    x = torch.randn(8, 5, requires_grad=True)
+    reg = jacobian_regularizer.JacobianReg(n=n)(x, model(x))
+    assert reg.item() > 0
+    reg.backward()
+    assert model.weight.grad is not None
+    assert model.weight.grad.abs().sum() > 0
+
+
+def test_jacobian_reg_exact_value_linear():
+    # For y = W x, (1/2) tr(J J^T) = (1/2) ||W||_F^2 with n=-1.
+    torch.manual_seed(0)
+    model = nn.Linear(5, 3, bias=False)
+    x = torch.randn(8, 5, requires_grad=True)
+    value = jacobian_regularizer.JacobianReg(n=-1)(x, model(x))
+    assert value.item() == pytest.approx(0.5 * model.weight.pow(2).sum().item(),
+                                         rel=1e-4)

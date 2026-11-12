@@ -50,6 +50,7 @@ _VALID_ATTRIBUTION_RESULT_KEYS = {
 
 
 def _normalize_selected_result_keys(selected_keys):
+    """Map names as a set (``_`` read as ``-``), or ``None``; raise on unknown names."""
     if selected_keys is None:
         return None
     normalized = []
@@ -430,14 +431,9 @@ class JFMethodBasedBatched(JFMethodBased):
 @dataclasses.dataclass
 @register("jacobian-based-batched-optimized")
 class JFMethodBasedBatchedOptimized(JFMethodBased):
-    """Optimized Jacobian-based attribution using streaming mini-batches.
+    """Jacobian-based attribution computed in mini-batches, with an optional running mean.
 
-    This class keeps the original ``jacobian-based-batched`` behavior untouched.
-    
-    Args:
-        batch_size: Number of samples per Jacobian mini-batch.
-        return_full: If True, returns per-sample maps (same shape contract as the
-            original class). If False, returns sample-averaged maps to reduce memory.
+    Same results as ``jacobian-based-batched``, with less memory.
     """
 
     def compute_attribution_map(
@@ -447,6 +443,17 @@ class JFMethodBasedBatchedOptimized(JFMethodBased):
         selected_keys=None,
         latent_batch_size=None,
     ):
+        """Compute the attribution maps.
+
+        Args:
+            batch_size: Samples per Jacobian batch.
+            return_full: Return one map per sample. If ``False``, return the mean over samples.
+            selected_keys: Maps to compute, e.g. ``["jf"]``. ``None``: all of them.
+            latent_batch_size: Embedding dimensions per autograd pass. ``None``: all at once.
+
+        Returns:
+            Dict from map name to array, ``(T, D, N)`` per sample or ``(D, N)`` averaged.
+        """
         selected_keys = _normalize_selected_result_keys(selected_keys)
         if batch_size > self.input_data.shape[0]:
             raise ValueError(
@@ -511,8 +518,6 @@ class JFMethodBasedBatchedOptimized(JFMethodBased):
                 for key, chunks in per_key_chunks.items()
             }
         else:
-            if total_samples == 0:
-                raise ValueError("No samples available for attribution aggregation.")
             result = {
                 key: value / float(total_samples)
                 for key, value in running_sums.items()
