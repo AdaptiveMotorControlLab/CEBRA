@@ -181,7 +181,6 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
         ],
                              device=index.device)
 
-        print(index)
         return index[:, None] + offset[None, :]
 
     def expand_index_in_trial_padding(self, index: torch.Tensor,
@@ -201,30 +200,6 @@ class Dataset(abc.ABC, cebra.io.HasDevice, cebra_data_masking.MaskedMixin):
 
         return torch.minimum(torch.maximum(base, trial_start[:, None]),
                              trial_end[:, None])
-
-    def expand_index_forward(self, index: torch.Tensor) -> torch.Tensor:
-        """Expand the index to include the offset in the forward direction only.
-        
-        Args:
-            index: A one-dimensional tensor of type long containing indices
-                to select from the dataset.
-        
-        Returns:
-            An expanded index of shape ``(len(index), len(self.offset))``.
-            
-        
-        Note:
-            Requires the :py:attr:`offset` to be set.
-            
-        """
-        offset = torch.arange(self.offset.left + self.offset.right + 1,
-                              device=index.device)
-
-        index = torch.clamp(
-            index, 0,
-            len(self) - (self.offset.right + self.offset.left + 1))
-
-        return index[:, None] + offset[None, :]
 
     @abc.abstractmethod
     def __getitem__(self, index: torch.Tensor) -> torch.Tensor:

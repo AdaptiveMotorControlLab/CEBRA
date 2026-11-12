@@ -78,7 +78,6 @@ def smoothing(kern_sd, spikes, bin_size_ms):
 
     if kern_sd != 0:
         convolved = np.apply_along_axis(filt, 1, spikes)
-        print(np.any(np.isnan(convolved)))
         return convolved
     else:
         return spikes

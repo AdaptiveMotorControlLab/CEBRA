@@ -25,6 +25,19 @@ Multi session training
    :members:
    :show-inheritance:
 
+Unified session training
+------------------------
+
+.. automodule:: cebra.solver.unified_session
+   :members:
+   :show-inheritance:
+
+Multi-objective training
+------------------------
+
+The multi-objective solvers (:py:mod:`cebra.solver.multiobjective`) are documented under
+:doc:`Multi-objective models </api/pytorch/multiobjective>`.
+
 Training utilities
 ------------------
 

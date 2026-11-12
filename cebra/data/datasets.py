@@ -152,8 +152,10 @@ class TensorDataset(cebra_data.SingleSessionDataset):
         """
         super().to(device)
         self.neural = self.neural.to(device)
-        self.continuous = self.continuous.to(device) if self.continuous is not None else None
-        self.discrete = self.discrete.to(device) if self.discrete is not None else None
+        self.continuous = self.continuous.to(
+            device) if self.continuous is not None else None
+        self.discrete = self.discrete.to(
+            device) if self.discrete is not None else None
         return self
 
     def __getitem__(self, index):
@@ -178,18 +180,6 @@ def _assert_datasets_same_device(
     if len(devices) != 1:
         raise ValueError("Datasets are not all on the same device")
     return devices.pop()
-
-
-class ForwardTensorDataset(TensorDataset):
-    """A dataset that returns items on the range [idx, idx + offset).
-    
-    Note:
-        This is useful for training models on predictive neural activity (e.g., grid cells, place cells).
-    """
-
-    def __getitem__(self, index: torch.Tensor) -> torch.Tensor:
-        index = self.expand_index_forward(index)
-        return self.neural[index].transpose(2, 1)
 
 
 class TrialTensorDataset(TensorDataset):
@@ -633,14 +623,12 @@ class UnifiedxCEBRADataset(UnifiedDataset):
         if len(label_list) != self.num_sessions:
             raise ValueError(
                 f"Expected {self.num_sessions} label tensors (one per session), "
-                f"got {len(label_list)}"
-            )
-        
+                f"got {len(label_list)}")
+
         # Concatenate per-session labels into a single unified tensor
-        concatenated_labels = torch.cat([
-            self._to_tensor(label) for label in label_list
-        ], dim=0)
-        
+        concatenated_labels = torch.cat(
+            [self._to_tensor(label) for label in label_list], dim=0)
+
         self.labels[label_name] = concatenated_labels
 
     @staticmethod
@@ -674,18 +662,16 @@ class UnifiedxCEBRADataset(UnifiedDataset):
             positive=index.positive[0],  # Use first objective for structure
         )
         batches = self._get_batches(temp_index)
-        
+
         if hasattr(self, "apply_mask"):
             reference = self.apply_mask(
-                torch.cat([batch.reference for batch in batches], dim=1)
-            )
+                torch.cat([batch.reference for batch in batches], dim=1))
             negative = self.apply_mask(
-                torch.cat([batch.negative for batch in batches], dim=1)
-            )
+                torch.cat([batch.negative for batch in batches], dim=1))
         else:
             reference = torch.cat([batch.reference for batch in batches], dim=1)
             negative = torch.cat([batch.negative for batch in batches], dim=1)
-        
+
         # Get positives per objective
         positive_per_obj = []
         for obj_idx_tensor in index.positive:
@@ -695,16 +681,15 @@ class UnifiedxCEBRADataset(UnifiedDataset):
                 positive=obj_idx_tensor,
             )
             batches = self._get_batches(temp_index)
-            
+
             if hasattr(self, "apply_mask"):
                 pos = self.apply_mask(
-                    torch.cat([batch.positive for batch in batches], dim=1)
-                )
+                    torch.cat([batch.positive for batch in batches], dim=1))
             else:
                 pos = torch.cat([batch.positive for batch in batches], dim=1)
-            
+
             positive_per_obj.append(pos)
-        
+
         return cebra_data.Batch(
             reference=reference,
             negative=negative,

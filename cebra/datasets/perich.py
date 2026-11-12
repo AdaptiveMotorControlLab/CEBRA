@@ -1,3 +1,24 @@
+#
+# CEBRA: Consistent EmBeddings of high-dimensional Recordings using Auxiliary variables
+# © Mackenzie W. Mathis & Steffen Schneider (v0.4.0+)
+# Source code:
+# https://github.com/AdaptiveMotorControlLab/CEBRA
+#
+# Please see LICENSE.md for the full license document:
+# https://github.com/AdaptiveMotorControlLab/CEBRA/blob/main/LICENSE.md
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 import pathlib
 from enum import Enum
 from typing import Union
@@ -5,7 +26,6 @@ from typing import Union
 import joblib as jl
 import numpy as np
 import pandas as pd
-from torch_brain.data import Dataset  # Migrated from poyo to torch_brain
 
 import cebra.data
 import cebra.io
@@ -72,7 +92,7 @@ class PerichDataset(cebra.data.SingleSessionDataset):
         index = self.expand_index(index)
         return self.neural[index].transpose(2, 1)
 
-    def load_dataset(self, path: str, split: str = "train") -> Dataset:
+    def load_dataset(self, path: str, split: str = "train"):
         """Load dataset from processed torch_brain format.
         
         Args:
@@ -82,6 +102,9 @@ class PerichDataset(cebra.data.SingleSessionDataset):
         Returns:
             Dataset object containing the recording
         """
+        # torch_brain is an optional dependency, imported lazily.
+        from torch_brain.data import Dataset
+
         # Extract the recording_id from the path
         # torch_brain expects: root/brainset/session.h5
         # Format: recording_id = "brainset/session"
