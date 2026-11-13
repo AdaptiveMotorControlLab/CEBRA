@@ -32,6 +32,9 @@ import cebra.distributions as cebra_distr
 import cebra.distributions.base as cebra_distr_base
 
 
+# ---- helpers ----
+
+
 def assert_is_tensor(T, device=None):
     assert isinstance(T, torch.Tensor)
     if device is not None:
@@ -49,6 +52,9 @@ def prepare(N=1000, n=128, d=5, probs=[0.3, 0.1, 0.6], device="cpu"):
     query = query.to(device)
 
     return discrete, continuous
+
+
+# ---- indices and distance matrices ----
 
 
 def test_init_discrete():
@@ -92,6 +98,9 @@ def test_init_index():
     assert torch.eq(b, torch.arange(10)).all()
     assert torch.allclose(continuous[b], continuous[:10])
     assert torch.eq(b, torch.arange(10)).all()
+
+
+# ---- mixed distributions ----
 
 
 class _TestMixedBase:
@@ -188,6 +197,9 @@ def test_mixed():
     assert not torch.eq(samples_both, reference_idx).all()
 
 
+# ---- continuous and discrete indices ----
+
+
 def test_continuous(benchmark):
     discrete, continuous = prepare()
 
@@ -229,6 +241,9 @@ def test_discrete_uniform_discrete():
         np.bincount(resample_uni) / N, np.array([0.3424, 0.3278, 0.3298]))
     assert np.allclose(
         np.bincount(resample_emp) / N, np.array([0.2969, 0.098, 0.6051]))
+
+
+# ---- single-session samplers ----
 
 
 @pytest.mark.parametrize("time_offset", [1, 5, 10])
@@ -277,6 +292,9 @@ def test_single_session_discrete():
     pass
 
 
+# ---- multi-session samplers ----
+
+
 def test_multi_session_time_delta():
     pass
 
@@ -322,6 +340,9 @@ def test_multi_session_discrete():
     positive_labels = sampler.all_data[(positive +
                                         sampler.lengths[:, None]).flatten()]
     assert (sample_labels == positive_labels).all()
+
+
+# ---- delta distributions ----
 
 
 class OldDeltaDistribution(cebra_distr_base.JointDistribution,
@@ -414,6 +435,9 @@ def test_new_delta_normal_with_multidimensional_index(delta, numerical_check):
             "given parameters. TODO: Add a warning message for these cases.")
 
 
+# ---- unified sampler ----
+
+
 @pytest.mark.parametrize("time_offset", [1, 5, 10])
 def test_unified_distribution(time_offset):
     dataset = cebra_datasets.init("demo-continuous-unified")
@@ -474,3 +498,115 @@ def test_unified_sampler_random_ties_uses_every_repeat(set_after_init):
     ref_frame = ref[0] % n_frames
     for s in range(1, ref.shape[0]):
         assert torch.equal(labels[ref[s]], labels[ref_frame])
+
+
+# ---- unified sampler: nearest-label search (distinct labels, random ties) ----
+
+
+def _tied_sessions(
+        lengths=(60, 90, 75), n_channels=(3, 4, 5), n_frames=15, seed=0):
+    """Sessions whose labels repeat exactly (ties), as in repeated stimulus presentations."""
+    gen = torch.Generator().manual_seed(seed)
+    base = torch.randn(n_frames, 2, generator=gen)
+    inputs, labels = [], []
+    for length, n in zip(lengths, n_channels):
+        reps = -(-length // n_frames)
+        labels.append(base.repeat(reps, 1)[:length].clone())
+        inputs.append(torch.randn(length, n, generator=gen))
+    return inputs, labels
+
+
+def _unified_sampler(labels, **kwargs):
+    inputs = [torch.zeros(len(x), 1) for x in labels]
+    dataset = cebra.data.UnifiedDataset(*[
+        cebra.data.TensorDataset(i, continuous=l)
+        for i, l in zip(inputs, labels)
+    ])
+    return cebra_distr.UnifiedSampler(dataset, time_offset=1, **kwargs)
+
+
+def _brute(sampler, session_id, query):
+    """Full row-by-row distance matrix and tie mask (reference implementation)."""
+    dm = sampler.index[session_id].dist_matrix
+    distance = dm(query)
+    dmin = distance.min(dim=0, keepdim=True).values
+    tied = distance <= dmin + sampler.tie_rtol * dmin.abs().clamp_min(1.0)
+    return distance, tied
+
+
+def _dup_labels(seed=0, n=120, n_unique=12, near=3):
+    gen = torch.Generator().manual_seed(seed)
+    base = torch.randn(n_unique, 4, generator=gen)
+    labels = base[torch.randint(n_unique, (n, ), generator=gen)].clone()
+    # near-duplicates: tiny perturbations, within tie_rtol of their source label
+    idx = torch.randperm(n, generator=gen)[:near]
+    labels[idx] += 1e-9
+    return labels, base
+
+
+@pytest.mark.parametrize("duplicates", [True, False])
+def test_search_unique_labels_matches_brute_force(duplicates):
+    if duplicates:
+        labels, base = _dup_labels()
+        query = torch.cat([base, base[:5] + 0.3, torch.randn(10, 4)])
+        query = query[torch.randint(len(query), (200, ))]
+    else:
+        labels = torch.randn(80, 4)
+        query = torch.randn(50, 4)
+    sampler = _unified_sampler([labels, labels[:30]], random_ties=False)
+    # distinct labels are only used when they are at most half of the rows
+    num_labels = len(sampler._unique_labels(0)[2])
+    assert num_labels == (12 if duplicates else len(labels))
+    distance, tied = _brute(sampler, 0, query)
+    # first tie: exactly argmin over all rows
+    assert torch.equal(sampler._search(0, query), distance.argmin(dim=0))
+    # random ties: always in the tie set, chunk size invariant, seed deterministic
+    sampler.random_ties = True
+    ref = sampler._search(0, query, torch.Generator().manual_seed(3))
+    assert tied[ref, torch.arange(len(query))].all()
+    for chunk_rows in (1, 7, 1000):
+        sampler.max_search_elements = chunk_rows * len(labels)
+        out = sampler._search(0, query, torch.Generator().manual_seed(3))
+        assert torch.equal(out, ref)
+    sampler.max_search_elements = 2**24
+    # same u as the brute-force rank rule: identical draws
+    u = torch.rand(len(query), generator=torch.Generator().manual_seed(3))
+    k = tied.sum(0)
+    rank = (u * k).floor().long().clamp_max(k - 1)
+    expected = (tied.cumsum(0) <= rank[None]).sum(0)
+    assert torch.equal(ref, expected)
+    # very small distance blocks (unique-query sub-chunks) give the same result
+    sampler.max_search_elements = 3 * len(labels)
+    assert torch.equal(
+        sampler._search(0, query,
+                        torch.Generator().manual_seed(3)), ref)
+
+
+def test_search_unique_labels_uniform_over_tied_rows():
+    labels, base = _dup_labels(near=0)
+    sampler = _unified_sampler([labels, labels[:30]], random_ties=True)
+    query = base[:1].repeat(6000, 1)
+    _, tied = _brute(sampler, 0, query[:1])
+    tied_rows = tied[:, 0].nonzero().flatten()
+    out = sampler._search(0, query, torch.Generator().manual_seed(0))
+    counts = torch.bincount(out, minlength=len(labels))[tied_rows].double()
+    assert counts.sum() == len(query)
+    expected = len(query) / len(tied_rows)
+    chi2 = ((counts - expected)**2 / expected).sum().item()
+    # df = len(tied_rows) - 1; 99.9th percentile is well below df + 5 * sqrt(2 df) + 20
+    df = len(tied_rows) - 1
+    assert chi2 < df + 5 * (2 * df)**0.5 + 20
+
+
+def test_sample_all_sessions_generator_argument():
+    _, labels = _tied_sessions()
+    sampler = _unified_sampler(labels, random_ties=True)
+    ref = torch.arange(40)
+    a = sampler.sample_all_sessions(ref,
+                                    0,
+                                    generator=torch.Generator().manual_seed(5))
+    b = sampler.sample_all_sessions(ref,
+                                    0,
+                                    generator=torch.Generator().manual_seed(5))
+    torch.testing.assert_close(a, b)
+    torch.testing.assert_close(a[0], ref)

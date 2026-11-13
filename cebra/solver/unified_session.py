@@ -54,11 +54,222 @@ import cebra.distributions
 import cebra.models
 import cebra.solver.base as abc_
 from cebra.solver import register
+from cebra.solver.multiobjective import MultiobjectiveSolverBase
+
+
+def _check_sessions(inputs, labels, session_id):
+    """Check that inputs and labels have the same sessions and that ``session_id`` exists."""
+    num_sessions = len(inputs)
+    if len(labels) != num_sessions:
+        raise ValueError(
+            f"Got {num_sessions} sessions of inputs but {len(labels)} of labels."
+        )
+    if not 0 <= session_id < num_sessions:
+        raise ValueError(
+            f"Invalid session_id {session_id}: must be between 0 and {num_sessions - 1}."
+        )
+
+
+def _build_aligned_indices(inputs: List[torch.Tensor],
+                           labels: List[torch.Tensor],
+                           session_id: int,
+                           indices=None,
+                           random_ties: bool = False,
+                           seed: Optional[int] = 0) -> torch.Tensor:
+    """Indices of the samples matched to the reference samples of one session.
+
+    In every other session, the sample with the nearest auxiliary label is chosen. Only indices
+    are returned; :py:func:`_gather_aligned_inputs` builds the model input from them.
+
+    Args:
+        inputs: Neural data of each session, ``(T_s, N_s)``.
+        labels: Auxiliary variables of each session, ``(T_s, d)``, shared label space.
+        session_id: Reference session.
+        indices: Samples of the reference session, ``(T,)`` integers. ``None``: the whole session.
+        random_ties: Break nearest-label ties uniformly at random, otherwise take the first one.
+        seed: Seed of the tie draws. The default 0 gives the same draws in every
+            call (``transform``, ``aligned_inputs``, ``feature_attribution_map``); keep the same
+            seed in all of them. ``None`` is only allowed with ``random_ties=False``.
+
+    Returns:
+        Long tensor ``(num_sessions, len(indices))`` on CPU; row ``s`` holds the sample of
+        session ``s`` matched to each reference sample (row ``session_id`` is ``indices``).
+    """
+    _check_sessions(inputs, labels, session_id)
+    num_sessions = len(inputs)
+    if indices is None:
+        indices = torch.arange(len(inputs[session_id]))
+    indices = torch.as_tensor(indices, dtype=torch.long).cpu().reshape(-1)
+
+    # Always built on CPU: the draws and the distance computations are device independent.
+    # The neural data is not used by the search: zero-width placeholders avoid copying it.
+    dataset = cebra.data.UnifiedDataset(*[
+        cebra.data.TensorDataset(torch.empty(len(labels[i]), 0),
+                                 continuous=torch.as_tensor(labels[i]).cpu(),
+                                 offset=cebra.data.Offset(0, 1),
+                                 device="cpu") for i in range(num_sessions)
+    ])
+    sampler = cebra.distributions.UnifiedSampler(dataset,
+                                                 time_offset=1,
+                                                 device="cpu",
+                                                 random_ties=bool(random_ties))
+    if random_ties and seed is None:
+        raise ValueError(
+            "random_ties=True needs a seed, so that the embedding and the attribution map use "
+            "the same tie draws. Pass the same seed to transform and feature_attribution_map "
+            "(default 0).")
+    generator = None if seed is None else torch.Generator().manual_seed(
+        int(seed))
+    return sampler.sample_all_sessions(ref_idx=indices,
+                                       session_id=session_id,
+                                       generator=generator).cpu().long()
+
+
+def _gather_aligned_inputs(inputs: List[torch.Tensor],
+                           aligned_indices: torch.Tensor,
+                           rows=None,
+                           device=None) -> torch.Tensor:
+    """Model input of the unified model for the given aligned indices.
+
+    Args:
+        inputs: Neural data of each session, ``(T_s, N_s)``.
+        aligned_indices: Output of :py:func:`_build_aligned_indices`, ``(num_sessions, T)``.
+        rows: Columns of ``aligned_indices`` to gather. ``None``: all of them.
+        device: Device of the output. Default: device of the first input.
+
+    Returns:
+        Tensor ``(len(rows), sum_s N_s)``: the channels of all sessions, concatenated.
+    """
+    idx = aligned_indices if rows is None else aligned_indices[:, rows]
+    if device is None:
+        device = torch.as_tensor(inputs[0]).device
+    out = torch.empty(idx.shape[1],
+                      sum(x.shape[1] for x in inputs),
+                      dtype=torch.float32,
+                      device=device)
+    start = 0
+    for s, x in enumerate(inputs):
+        x = torch.as_tensor(x)
+        out[:, start:start + x.shape[1]] = x[idx[s].to(
+            x.device)].float().to(device)
+        start += x.shape[1]
+    return out
+
+
+class _AlignedInputsMixin:
+    """Shared aligned-input building and whole-session transform of the unified solvers."""
+
+    def aligned_inputs(self,
+                       inputs: List[torch.Tensor],
+                       labels: List[torch.Tensor],
+                       session_id: int,
+                       indices=None,
+                       random_ties: bool = False,
+                       seed: Optional[int] = 0) -> torch.Tensor:
+        """Model input of the unified model for the reference samples of one session.
+
+        In every other session, the sample with the nearest auxiliary label (squared Euclidean
+        distance; one-hot encode discrete labels) is chosen, and the channels of all sessions are
+        concatenated.
+
+        Args:
+            inputs: Neural data of each session, ``(T_s, N_s)``.
+            labels: Auxiliary variables of each session, ``(T_s, d)``, same ``d`` for all.
+            session_id: Reference session.
+            indices: Samples of the reference session, ``(T,)`` integers. ``None``: all of them.
+            random_ties: Draw one of several equally near samples at random instead of taking
+                the first. Training uses ``True``.
+            seed: Seed of the tie draws. The default 0 gives the same draws in every
+                call (``transform``, ``aligned_inputs``, ``feature_attribution_map``); keep the same
+                seed in all of them. ``None`` is only allowed with ``random_ties=False``.
+
+        Returns:
+            Tensor ``(T, sum_s N_s)`` on the model device.
+
+        Example:
+            >>> import torch
+            >>> import cebra
+            >>> inputs = [torch.rand(50, 3), torch.rand(60, 5)]
+            >>> labels = [torch.rand(50, 2), torch.rand(60, 2)]
+            >>> model = cebra.models.init("offset1-model", num_neurons=8, num_units=16,
+            ...                           num_output=4)
+            >>> solver = cebra.solver.UnifiedSolver(model=model,
+            ...                                     criterion=cebra.models.InfoNCE(),
+            ...                                     optimizer=torch.optim.Adam(model.parameters()))
+            >>> x = solver.aligned_inputs(inputs, labels, session_id=0, indices=[0, 1, 2],
+            ...                           random_ties=True, seed=0)
+            >>> tuple(x.shape)
+            (3, 8)
+        """
+        idx = _build_aligned_indices(inputs,
+                                     labels,
+                                     session_id,
+                                     indices=indices,
+                                     random_ties=random_ties,
+                                     seed=seed)
+        return _gather_aligned_inputs(inputs,
+                                      idx,
+                                      device=next(
+                                          self.model.parameters()).device)
+
+    def _transform_session(self, inputs, labels, pad_before_transform,
+                           session_id, batch_size, random_ties, seed):
+        """Align the sessions on ``session_id`` and embed the session batch by batch.
+
+        The matches are computed once; each batch of ``batch_size`` output rows is then gathered
+        with the context of the receptive field, so the result does not depend on ``batch_size``.
+        Arguments are those of :py:meth:`UnifiedSolver.transform`.
+
+        Returns:
+            Tensor ``(T, output_dimension)`` (``T - len(offset) + 1`` rows without padding)
+            on the model device.
+        """
+        if not isinstance(inputs, list):
+            raise ValueError(
+                f"Inputs to transform() should be a list, not {type(inputs)}.")
+        self._check_is_fitted()
+        if session_id is None:
+            raise ValueError("Session ID is required for multi-session models.")
+
+        aligned_idx = _build_aligned_indices(inputs,
+                                             labels,
+                                             session_id,
+                                             random_ties=random_ties,
+                                             seed=seed)
+        device = next(self.model.parameters()).device
+        offset = self.model.get_offset()
+        num_samples = aligned_idx.shape[1]
+        if pad_before_transform:
+            targets = torch.arange(num_samples)
+        else:
+            targets = torch.arange(
+                offset.left, max(offset.left, num_samples - offset.right + 1))
+        if len(targets) == 0:
+            raise ValueError(
+                f"Session {session_id} has {num_samples} samples, fewer than the "
+                f"receptive field of the model ({len(offset)}).")
+        if batch_size is None:
+            batch_size = len(targets)
+        window = torch.arange(-offset.left, offset.right)
+
+        self.model.eval()
+        outputs = []
+        for start in range(0, len(targets), batch_size):
+            t = targets[start:start + batch_size]
+            # input rows of the batch: its first window to its last one, edges repeated
+            rows = torch.arange(t[0] + window[0], t[-1] + window[-1] + 1)
+            rows = rows.clamp(0, num_samples - 1)
+            batch = _gather_aligned_inputs(inputs,
+                                           aligned_idx,
+                                           rows=rows,
+                                           device=device)
+            outputs.append(abc_._inference_transform(self.model, batch))
+        return torch.cat(outputs, dim=0)
 
 
 @register("unified-session")
 @dataclasses.dataclass
-class UnifiedSolver(abc_.Solver):
+class UnifiedSolver(_AlignedInputsMixin, abc_.Solver):
     """Multi session training, considering a single model for all sessions."""
 
     _variant_name = "unified-session"
@@ -196,94 +407,49 @@ class UnifiedSolver(abc_.Solver):
                   pad_before_transform: bool = True,
                   session_id: Optional[int] = None,
                   batch_size: Optional[int] = 512,
-                  random_ties: bool = True) -> torch.Tensor:
-        """Compute the embedding for the `session_id`th session of the dataset.
+                  random_ties: bool = False,
+                  seed: Optional[int] = 0) -> torch.Tensor:
+        """Compute the embedding of session ``session_id``.
 
-        Note:
-            Compared to the other :py:class:`cebra.solver.base.Solver`, we need all the sessions of
-            the dataset to transform the data, as the sampling is across all the sessions.
+        The other sessions are aligned on ``session_id`` (see :py:meth:`aligned_inputs`), then
+        the session is embedded in batches. Each batch keeps its real neighbouring samples, so
+        the result does not depend on ``batch_size``.
 
         Args:
-            inputs: The input signal for all sessions.
-            labels: The auxiliary variables to use for sampling.
-            session_id: The session ID, an :py:class:`int` between 0 and
-                the number of sessions -1.
-            batch_size: If not None, batched inference will be applied.
-            random_ties: Break nearest-label ties uniformly at random when aligning the other
-                sessions (``UnifiedSampler.random_ties``). Default ``True``;
-                ``False`` restores the legacy first-tie behaviour.
-
-        Note:
-            The ``session_id`` is needed in order to sample the corresponding number of samples and
-            return an embedding of the expected shape.
-
-        Note:
-            The batched inference will be required in most cases. Default is set to ``100`` for that reason.
+            inputs: Neural data of all sessions, ``(T_s, N_s)``.
+            labels: Auxiliary variables of all sessions, ``(T_s, d)``, used for the alignment.
+            pad_before_transform: Pad the session edges by replication, so that the output has
+                one row per sample.
+            session_id: Session to embed, between 0 and the number of sessions - 1.
+            batch_size: Output rows per forward pass. ``None``: the whole session at once.
+            random_ties: Break nearest-label ties at random instead of taking the first.
+                Training uses ``True``.
+            seed: Seed of the tie draws. The default 0 gives the same draws in every
+                call (``transform``, ``aligned_inputs``, ``feature_attribution_map``); keep the same
+                seed in all of them. ``None`` is only allowed with ``random_ties=False``.
 
         Returns:
-            The output embedding for the session corresponding to the provided ID `session_id`. The shape
-            is (num_samples(session_id), output_dimension)``.
+            The embedding ``(T, output_dimension)``, with ``T - len(offset) + 1`` rows without
+            padding.
 
+        Example:
+            >>> import torch
+            >>> import cebra
+            >>> inputs = [torch.rand(50, 3), torch.rand(60, 5)]
+            >>> labels = [torch.rand(50, 2), torch.rand(60, 2)]
+            >>> model = cebra.models.init("offset1-model", num_neurons=8, num_units=16,
+            ...                           num_output=4)
+            >>> solver = cebra.solver.UnifiedSolver(model=model,
+            ...                                     criterion=cebra.models.InfoNCE(),
+            ...                                     optimizer=torch.optim.Adam(model.parameters()))
+            >>> solver.n_features, solver.num_sessions = 8, 2  # set by ``fit`` normally
+            >>> emb = solver.transform(inputs, labels, session_id=1, random_ties=True, seed=0)
+            >>> tuple(emb.shape)
+            (60, 4)
         """
-        if not isinstance(inputs, list):
-            raise ValueError(
-                f"Inputs to transform() should be a list, not {type(inputs)}.")
-
-        self._check_is_fitted()
-
-        if session_id is None:
-            raise ValueError("Session ID is required for multi-session models.")
-
-        # Sampling according to session_id required
-        dataset = cebra.data.UnifiedDataset(
-            cebra.data.TensorDataset(
-                inputs[i], continuous=labels[i], offset=cebra.data.Offset(0, 1))
-            for i in range(len(inputs))).to(self.device)
-
-        # Only used to sample the reference samples
-        loader = cebra.data.UnifiedLoader(dataset, num_steps=1)
-        loader.sampler.random_ties = bool(random_ties)
-
-        # Sampling in batch
-        refs_data_batch_embeddings = []
-        batch_range = range(0, len(dataset.get_session(session_id)), batch_size)
-        if len(batch_range) < 2:
-            raise ValueError(
-                "Not enough data to perform the batched transform. Please provide a larger dataset or reduce the batch size."
-            )
-        for batch_start in batch_range:
-            batch_end = min(batch_start + batch_size,
-                            len(dataset.get_session(session_id)))
-
-            if batch_start == batch_range[-2]:  # one before last batch
-                last_start = batch_start
-                continue
-            if batch_start == batch_range[-1]:  # last batch, likely incomplete
-                batch_start = last_start
-                batch_end = len(dataset.get_session(session_id))
-
-            refs_idx_batch = loader.sampler.sample_all_sessions(
-                ref_idx=torch.arange(batch_start, batch_end),
-                session_id=session_id).to(self.device)
-
-            refs_data_batch = torch.cat([
-                session[refs_idx_batch[session_id]]
-                for session_id, session in enumerate(dataset.iter_sessions())
-            ],
-                                        dim=1).squeeze()
-
-            if len(self.model.get_offset()) < 2 and pad_before_transform:
-                pad_before_transform = False
-
-            self.model.eval()
-            refs_data_batch_embeddings.append(
-                self._transform(model=self.model,
-                                inputs=refs_data_batch,
-                                pad_before_transform=pad_before_transform,
-                                offset=self.model.get_offset(),
-                                batch_size=batch_size))
-
-        return torch.cat(refs_data_batch_embeddings, dim=0)
+        return self._transform_session(inputs, labels, pad_before_transform,
+                                       session_id, batch_size, random_ties,
+                                       seed)
 
     @torch.no_grad()
     def decoding(self,
@@ -385,3 +551,209 @@ class UnifiedSolver(abc_.Solver):
             return np.array(train_scores).mean()
         else:
             return np.array(train_scores).mean(), np.array(valid_scores).mean()
+
+
+@register("unified-multiobjective-solver",
+          deprecated=True)  # NOTE: earlier name, kept for compatibility
+@register("unified-xcebra")
+@dataclasses.dataclass
+class UnifiedSolverxCEBRA(_AlignedInputsMixin, MultiobjectiveSolverBase):
+    """Unified CEBRA solver with Jacobian regularization (unified xCEBRA).
+
+    Trains one model shared by all sessions, like :py:class:`~cebra.solver.unified_session.UnifiedSolver`,
+    and adds the Jacobian regularization of xCEBRA
+    (:py:class:`~cebra.models.jacobian_regularizer.JacobianReg`, passed as ``regularizer``, with its
+    weight set over training by ``scheduler_regularizer`` in :py:meth:`fit`). It builds on the
+    multi-objective solver only because that solver supports the regularizer.
+
+    Unified xCEBRA uses a single objective: one slice covering the whole embedding, with a
+    contrastive loss on the auxiliary variables, set with
+    :py:class:`~cebra.solver.multiobjective.MultiObjectiveConfig` (one ``set_slice`` /
+    ``set_loss`` / ``set_distribution`` / ``push``). Several slices (subspaces) are accepted by
+    the code but have not been used or validated with the unified sampler.
+
+    Takes batches from :py:class:`~cebra.data.multiobjective.UnifiedContrastiveMultiObjectiveLoader`,
+    in which the samples of all sessions are already aligned and concatenated.
+
+    Example:
+        >>> # loader: a UnifiedContrastiveMultiObjectiveLoader over the unified dataset
+        >>> config = cebra.solver.MultiObjectiveConfig(loader)  # doctest: +SKIP
+        >>> config.set_slice(0, 128)                    # one objective: the whole embedding  # doctest: +SKIP
+        >>> config.set_loss("FixedCosineInfoNCE", temperature=1.0)  # doctest: +SKIP
+        >>> config.set_distribution("unified_time_delta", time_delta=10)  # doctest: +SKIP
+        >>> config.push(); config.finalize()  # doctest: +SKIP
+        >>> solver = cebra.solver.init("unified-xcebra", model=model,
+        ...     feature_ranges=config.feature_ranges, criterion=config.criterion,
+        ...     regularizer=cebra.models.jacobian_regularizer.JacobianReg(),
+        ...     renormalize=True, use_sam=False, optimizer=optimizer)  # doctest: +SKIP
+        >>> solver.fit(loader, scheduler_regularizer=weight_scheduler)  # doctest: +SKIP
+
+    See Also:
+        :py:class:`cebra.data.multiobjective.UnifiedContrastiveMultiObjectiveLoader`
+        :py:class:`cebra.solver.multiobjective.MultiObjectiveConfig`
+        :py:class:`cebra.models.multicriterions.MultiCriterions`
+    """
+
+    _variant_name = "unified-xcebra"
+
+    def _set_fitted_params(self, loader: cebra.data.Loader):
+        """Set parameters once the solver is fitted for unified multiobjective training.
+
+        For unified training, num_sessions is the number of sessions in the unified dataset,
+        and n_features is the total concatenated feature dimension across all sessions.
+
+        Args:
+            loader: Loader used to fit the solver.
+        """
+        self.num_sessions = loader.dataset.num_sessions
+        self.n_features = loader.dataset.input_dimension
+
+    def _check_is_inputs_valid(self,
+                               inputs: Optional[List[torch.Tensor]],
+                               session_id: Optional[int] = None):
+        """Check that the inputs can be inferred using the unified model.
+
+        For unified training, inputs should be a list of per-session tensors,
+        and the concatenated feature dimension must match the model's input dimension.
+
+        Args:
+            inputs: List of input tensors, one per session. Each has shape
+                   (n_samples, num_features_session, ...).
+            session_id: The target session ID (required for unified models).
+        """
+        if inputs is None:
+            return
+
+        if isinstance(inputs, list):
+            inputs_shape = 0
+            for i in range(len(inputs)):
+                inputs_shape += inputs[i].shape[1]
+        elif isinstance(inputs, torch.Tensor):
+            raise NotImplementedError(
+                "Unified models require a list of per-session tensors, not a single tensor."
+            )
+        else:
+            raise NotImplementedError(
+                f"Invalid input type: {type(inputs)}. Expected list of tensors."
+            )
+
+        if self.n_features != inputs_shape:
+            raise ValueError(
+                f"Invalid input shape: model requires an input of shape "
+                f"(n_samples, {self.n_features}), but got total feature dimension "
+                f"(n_samples, {inputs_shape}) from concatenated sessions.")
+
+    def _check_is_session_id_valid(
+        self,
+        session_id: Optional[int] = None,
+    ):
+        """Check that the session ID provided is valid for the unified solver.
+
+        The session ID must be non-null and between 0 and the number of sessions.
+
+        Args:
+            session_id: The session ID to check.
+        """
+        if session_id is None:
+            raise RuntimeError(
+                "No session_id provided: unified multiobjective model requires a session_id "
+                "as the target session to use to align the sessions.")
+        if session_id >= self.num_sessions or session_id < 0:
+            raise RuntimeError(
+                f"Invalid session_id {session_id}: session_id for the current unified model "
+                f"must be between 0 and {self.num_sessions-1}.")
+
+    def _get_model(self, session_id: Optional[int] = None):
+        """Get the unified model (independent of session_id).
+
+        For unified models, there is only one shared model regardless of session.
+        The session_id is still validated but not used for model selection.
+
+        Args:
+            session_id: The session ID, required for validation.
+
+        Returns:
+            The shared unified model.
+        """
+        self._check_is_session_id_valid(session_id=session_id)
+        self._check_is_fitted()
+        return self.model
+
+    def _inference(self, batch: cebra.data.Batch) -> cebra.data.Batch:
+        """Compute predictions for unified multiobjective batch.
+
+        For unified batches, reference, positive, and negative samples are already
+        aligned across sessions (concatenated along the neuron dimension). We apply
+        the single model to each and return per-objective prediction batches.
+
+        Args:
+            batch: A Batch with reference, positive (list), and negative tensors
+                   already unified across sessions.
+
+        Returns:
+            A list of Batch objects, one per objective, with model predictions.
+        """
+        pred_refs = self.model(batch.reference)
+        pred_negs = self.model(batch.negative)
+
+        prediction_batches = []
+        for i, positive in enumerate(batch.positive):
+            pred_pos = self.model(positive)
+            prediction_batches.append(
+                cebra.data.Batch(reference=pred_refs[i].unsqueeze(0).view(
+                    -1, pred_refs[i].shape[-1]),
+                                 positive=pred_pos[i].unsqueeze(0).view(
+                                     -1, pred_pos[i].shape[-1]),
+                                 negative=pred_negs[i].unsqueeze(0).view(
+                                     -1, pred_negs[i].shape[-1])))
+
+        return prediction_batches
+
+    @torch.no_grad()
+    def transform(self,
+                  inputs: List[torch.Tensor],
+                  labels: List[torch.Tensor],
+                  pad_before_transform: bool = True,
+                  session_id: Optional[int] = None,
+                  batch_size: Optional[int] = 512,
+                  random_ties: bool = False,
+                  seed: Optional[int] = 0) -> torch.Tensor:
+        """Compute the embedding of session ``session_id``.
+
+        Same as :py:meth:`UnifiedSolver.transform`. The model is run with ``split_outputs``
+        off (its training mode returns one output per slice) and its mode is restored
+        afterwards, also if an error is raised.
+
+        Args:
+            inputs: Neural data of all sessions, ``(T_s, N_s)``.
+            labels: Auxiliary variables of all sessions, ``(T_s, d)``, used for the alignment.
+            pad_before_transform: Pad the session edges by replication, so that the output has
+                one row per sample.
+            session_id: Session to embed. Required.
+            batch_size: Output rows per forward pass. ``None``: the whole session at once.
+            random_ties: Break nearest-label ties at random instead of taking the first.
+                Training uses ``True``.
+            seed: Seed of the tie draws. The default 0 gives the same draws in every
+                call (``transform``, ``aligned_inputs``, ``feature_attribution_map``); keep the same
+                seed in all of them. ``None`` is only allowed with ``random_ties=False``.
+
+        Returns:
+            The embedding ``(T, output_dimension)``.
+
+        Example:
+            >>> # ``solver`` is a fitted UnifiedSolverxCEBRA, ``inputs``/``labels``
+            >>> # the lists of per-session neural data and auxiliary variables
+            >>> emb = solver.transform(inputs, labels, session_id=0)  # doctest: +SKIP
+            >>> emb = solver.transform(inputs, labels, session_id=0,
+            ...                        random_ties=True, seed=0)  # doctest: +SKIP
+        """
+        previous = self.model.split_outputs
+        try:
+            # Training runs the model with one output per slice (one per loss);
+            # inference needs the single concatenated embedding.
+            self.model.set_split_outputs(False)
+            return self._transform_session(inputs, labels, pad_before_transform,
+                                           session_id, batch_size, random_ties,
+                                           seed)
+        finally:
+            self.model.set_split_outputs(previous)

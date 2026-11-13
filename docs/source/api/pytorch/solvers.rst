@@ -28,6 +28,10 @@ Multi session training
 Unified session training
 ------------------------
 
+:py:class:`~cebra.solver.unified_session.UnifiedSolver` trains one model shared by all sessions;
+:py:class:`~cebra.solver.unified_session.UnifiedSolverxCEBRA` adds the Jacobian regularization of
+xCEBRA (registered as ``"unified-xcebra"``).
+
 .. automodule:: cebra.solver.unified_session
    :members:
    :show-inheritance:
