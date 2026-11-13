@@ -189,7 +189,10 @@ class UnifiedContrastiveMultiObjectiveLoader(cebra_data.Loader):
     Reference and negative samples are shared across all objectives and sampled uniformly
     across sessions via UnifiedSampler. Positive samples are drawn per-objective using
     time_delta sampling with random shifts.
-    
+
+    The historical ``MultiObjective`` name is retained; the current unified xCEBRA
+    workflow uses a single objective.
+
     Yields batches of the specified size from the given UnifiedDataset.
     """
 

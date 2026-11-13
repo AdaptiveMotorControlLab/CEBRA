@@ -573,6 +573,9 @@ class UnifiedSolverxCEBRA(AlignedInputsMixin, MultiobjectiveSolverBase):
     ``set_loss`` / ``set_distribution`` / ``push``). Several slices (subspaces) are accepted by
     the code but have not been used or validated with the unified sampler.
 
+    The loader's historical ``MultiObjective`` name is retained; this solver currently uses one
+    objective.
+
     Takes batches from ``cebra.data.multiobjective.UnifiedContrastiveMultiObjectiveLoader``,
     in which the samples of all sessions are already aligned and concatenated.
 

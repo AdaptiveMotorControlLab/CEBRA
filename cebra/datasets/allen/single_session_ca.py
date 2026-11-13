@@ -117,16 +117,17 @@ class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
 
 
 class SingleSessionAllenCaCortex(SingleSessionAllenCa):
-    """A single mouse 30Hz calcium events dataset during the allen MOVIE1 stimulus.
+    """Single-session Allen calcium data with configurable cortex and neuron type.
 
-    A dataset of a single mouse 30Hz calcium events from the excitatory neurons in the primary visual cortex
-    during the 10 repeats of the MOVIE1 stimulus in session type A. The preprocessed data from *Deitch et al. (2021) are used.
-    The continuous labels corresponding to a DINO embedding of each stimulus frame.
+    Unlike :class:`SingleSessionAllenCa`, which selects one of four fixed VISp
+    excitatory sessions by index, this class selects a recording by its
+    experiment-container ID and allows the cortex and neuron type to vary.
 
     Args:
-        session_id: The integer value to pick a session among 4 sessions with the largest number of recorded neruons. Choose between 0-3.
-        frame_feature_path: The path of the movie frame features.
-
+        session_id: Allen experiment-container ID, e.g. ``680156909``.
+        frame_feature_path: Path to the movie frame features.
+        cortex: Cortical area, e.g. ``"VISp"``.
+        neuron_type: Neuron data directory, e.g. ``"calcium_excitatory"``.
     """
 
     def __init__(
