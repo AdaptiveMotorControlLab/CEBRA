@@ -205,8 +205,9 @@ class UnifiedContrastiveMultiObjectiveLoader(cebra_data.Loader):
 
         Args:
             config: Dict with ``"distribution"``, which must be ``"unified_time_delta"``, and
-                ``"kwargs"``. Note: ``kwargs["time_delta"]`` and ``kwargs["label_name"]`` are
-                ignored; the sampler uses the loader's ``time_offset`` and the dataset's
+                ``"kwargs"``. ``kwargs["time_delta"]`` sets the label-difference offset,
+                falling back to the loader's ``time_offset`` when omitted.
+                ``kwargs["label_name"]`` is ignored; the sampler uses the dataset's
                 ``continuous_index``.
         """
         kwargs_distribution = config['kwargs']
@@ -222,13 +223,9 @@ class UnifiedContrastiveMultiObjectiveLoader(cebra_data.Loader):
                 "UnifiedDataset must have 'continuous_index' attribute."
             )
         
-        # Not handled: the sampler always uses the loader's ``time_offset``
-        # (default 10), not ``kwargs['time_delta']``, and always samples on the dataset's primary
-        # ``continuous_index``; per-objective labels (``label_name`` / ``add_labels``) are ignored.
-        # Every current launcher passes time_delta=10, so the two agree.
         distribution = cebra.distributions.UnifiedSampler(
             self.dataset,
-            self.time_offset,
+            kwargs_distribution.get('time_delta', self.time_offset),
             device=self.device,
         )
         self.distributions.append(distribution)
