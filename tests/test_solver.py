@@ -31,6 +31,7 @@ import cebra.data
 import cebra.datasets
 import cebra.models
 import cebra.solver
+from cebra.solver.supervised import SupervisedNNSolver
 
 
 # ---- helpers ----
@@ -251,12 +252,15 @@ def test_single_session_hybrid(data_name, loader_initfunc, model_architecture,
     solver = solver_initfunc(model=model,
                              criterion=criterion,
                              optimizer=optimizer)
+    solver.scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, step_size=1, gamma=0.5)
 
     batch = next(iter(loader))
     inference = solver._inference(batch)
     assert len(inference) == 2
     log = solver.step(batch)
     assert isinstance(log, dict)
+    assert optimizer.param_groups[0]["lr"] == pytest.approx(5e-4)
 
     X = loader.dataset.neural
     with pytest.raises(ValueError, match="not.*fitted"):
@@ -417,6 +421,45 @@ def test_unified_session(data_name, model_architecture, loader_initfunc,
 
 
 # ---- checkpoint loading ----
+
+
+@pytest.mark.parametrize("variant", ["regularized", "multiobjective", "unified", "supervised"])
+def test_custom_solver_steps_scheduler(variant, monkeypatch):
+    model = cebra.models.init("offset1-model", num_neurons=4, num_units=8,
+                              num_output=3)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    scheduler = torch.optim.lr_scheduler.StepLR(
+        optimizer, step_size=1, gamma=0.5)
+    kwargs = dict(model=model, optimizer=optimizer, scheduler=scheduler)
+    batch = cebra.data.Batch(torch.randn(8, 4, 1), torch.randn(8, 4, 1),
+                             torch.randn(8, 4, 1))
+    if variant == "regularized":
+        solver = cebra.solver.RegularizedSolver(
+            **kwargs, criterion=cebra.models.InfoNCE(), lambda_JR=0.01)
+    elif variant in ("multiobjective", "unified"):
+        criterion = cebra.models.MultiCriterions([{
+            "indices": (0, 3),
+            "contrastive_loss": {"name": "InfoNCE", "kwargs": {}},
+        }], mode="contrastive")
+        solver_type = (cebra.solver.ContrastiveMultiobjectiveSolverxCEBRA
+                       if variant == "multiobjective" else cebra.solver.UnifiedSolverxCEBRA)
+        solver = solver_type(**kwargs, criterion=criterion,
+                             feature_ranges=[slice(0, 3)], renormalize=False)
+        batch.positive = [batch.positive]
+    else:
+        solver = cebra.solver.SingleSessionSolver(
+            **kwargs, criterion=torch.nn.MSELoss())
+        monkeypatch.setattr(solver, "_inference",
+                            lambda batch: solver.model(batch["neural"]))
+        batch = {"neural": batch.reference, "label": torch.randn(8, 3)}
+    initial_epoch = scheduler.last_epoch
+    for iteration in range(1, 3):
+        if variant == "supervised":
+            SupervisedNNSolver.step(solver, batch)
+        else:
+            solver.step(batch)
+        assert scheduler.last_epoch == initial_epoch + iteration
+        assert optimizer.param_groups[0]["lr"] == pytest.approx(0.1 * 0.5**iteration)
 
 
 @pytest.mark.parametrize("scheduler_type", ["lambda", "cosine"])

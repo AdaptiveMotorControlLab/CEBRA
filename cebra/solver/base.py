@@ -923,6 +923,8 @@ class MultiobjectiveSolver(Solver):
         loss = behavior_loss + time_loss
         loss.backward()
         self.optimizer.step()
+        if self.scheduler is not None:
+            self.scheduler.step()
         self.history.append(loss.item())
         return dict(
             behavior_pos=behavior_align.item(),

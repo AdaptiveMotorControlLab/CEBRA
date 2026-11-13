@@ -78,6 +78,8 @@ class RegularizedSolver(SingleSessionSolver):
 
         loss_reg.backward()
         self.optimizer.step()
+        if self.scheduler is not None:
+            self.scheduler.step()
         self.history.append(loss.item())
         stats = dict(pos=align.item(),
                      neg=uniform.item(),

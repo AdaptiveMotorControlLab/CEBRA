@@ -363,6 +363,8 @@ class MultiobjectiveSolverBase(cebra_solver_single.SingleSessionSolver):
 
         loss.backward()
         self.optimizer.step(closure)
+        if self.scheduler is not None:
+            self.scheduler.step()
         self.optimizer.zero_grad()
 
         if weights_regularizer is not None:
