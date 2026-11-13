@@ -222,7 +222,8 @@ class AlignedInputsMixin:
 
         Returns:
             Tensor ``(T, output_dimension)`` (``T - len(offset) + 1`` rows without padding)
-            on the model device.
+            on the model device. Resampling models produce fewer rows and are evaluated
+            in one pass to preserve their stride grid, including when wrapped.
         """
         if not isinstance(inputs, list):
             raise ValueError(
@@ -248,7 +249,9 @@ class AlignedInputsMixin:
             raise ValueError(
                 f"Session {session_id} has {num_samples} samples, fewer than the "
                 f"receptive field of the model ({len(offset)}).")
-        if batch_size is None:
+        if batch_size is None or any(
+                isinstance(module, cebra.models.ResampleModelMixin)
+                for module in self.model.modules()):
             batch_size = len(targets)
         window = torch.arange(-offset.left, offset.right)
 
@@ -420,9 +423,10 @@ class UnifiedSolver(AlignedInputsMixin, abc_.Solver):
             inputs: Neural data of all sessions, ``(T_s, N_s)``.
             labels: Auxiliary variables of all sessions, ``(T_s, d)``, used for the alignment.
             pad_before_transform: Pad the session edges by replication, so that the output has
-                one row per sample.
+                one row per sample before any model downsampling.
             session_id: Session to embed, between 0 and the number of sessions - 1.
             batch_size: Output rows per forward pass. ``None``: the whole session at once.
+                Ignored for resampling models, including wrapped models.
             random_ties: Break nearest-label ties at random instead of taking the first.
                 Training uses ``True``.
             seed: Seed of the tie draws. The default 0 gives the same draws in every
@@ -431,7 +435,7 @@ class UnifiedSolver(AlignedInputsMixin, abc_.Solver):
 
         Returns:
             The embedding ``(T, output_dimension)``, with ``T - len(offset) + 1`` rows without
-            padding.
+            padding. Resampling models downsample these rows.
 
         Example:
             >>> import torch
@@ -732,9 +736,10 @@ class UnifiedSolverxCEBRA(AlignedInputsMixin, MultiobjectiveSolverBase):
             inputs: Neural data of all sessions, ``(T_s, N_s)``.
             labels: Auxiliary variables of all sessions, ``(T_s, d)``, used for the alignment.
             pad_before_transform: Pad the session edges by replication, so that the output has
-                one row per sample.
+                one row per sample before any model downsampling.
             session_id: Session to embed. Required.
             batch_size: Output rows per forward pass. ``None``: the whole session at once.
+                Ignored for resampling models, including wrapped models.
             random_ties: Break nearest-label ties at random instead of taking the first.
                 Training uses ``True``.
             seed: Seed of the tie draws. The default 0 gives the same draws in every
@@ -742,7 +747,7 @@ class UnifiedSolverxCEBRA(AlignedInputsMixin, MultiobjectiveSolverBase):
                 seed in all of them. ``None`` is only allowed with ``random_ties=False``.
 
         Returns:
-            The embedding ``(T, output_dimension)``.
+            The embedding ``(T, output_dimension)``. Resampling models produce fewer rows.
 
         Example:
             >>> # ``solver`` is a fitted UnifiedSolverxCEBRA, ``inputs``/``labels``

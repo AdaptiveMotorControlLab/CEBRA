@@ -668,6 +668,34 @@ def test_unified_transform_session_shorter_than_window():
                          pad_before_transform=False)
 
 
+@pytest.mark.parametrize("wrapped", [False, True])
+@pytest.mark.parametrize("pad", [False, True])
+def test_unified_resampling_transform_ignores_batch_size(wrapped, pad):
+    inputs, labels = _tied_sessions(lengths=(60, 90, 75))
+    module = cebra.models.init("offset40-model-4x-subsample",
+                               num_neurons=12, num_units=8, num_output=4)
+    kwargs = dict(model=module, criterion=cebra.models.InfoNCE(),
+                  optimizer=torch.optim.Adam(module.parameters()))
+    if wrapped:
+        solver = cebra.solver.UnifiedSolverxCEBRA(
+            **kwargs, feature_ranges=[slice(0, 4)], renormalize=False)
+    else:
+        solver = cebra.solver.UnifiedSolver(**kwargs)
+    solver.n_features, solver.num_sessions = 12, 3
+    aligned = solver.aligned_inputs(inputs, labels, session_id=1)
+    module.eval()
+    with torch.no_grad():
+        expected = cebra.solver.base._not_batched_transform(
+            model=module, inputs=aligned, pad_before_transform=pad,
+            offset=module.get_offset())
+    assert expected.shape[0] < len(inputs[1])
+    for batch_size in (None, 1, 7):
+        actual = solver.transform(
+            inputs, labels, session_id=1, batch_size=batch_size,
+            pad_before_transform=pad)
+        torch.testing.assert_close(actual, expected)
+
+
 def test_unified_transform_random_ties_default_false_and_seed():
     inputs, labels = _tied_sessions()
     solver = _unified_solver(12)
