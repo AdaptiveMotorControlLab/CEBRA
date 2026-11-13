@@ -47,6 +47,7 @@ class MaskedMixin:
         """Set the mask types and parameters for the dataset.
 
         Supports two input formats:
+
         - Dict[str, params]: One instance per mask type; replaces any previous
           instance of the same class (backward compatible).
         - List[ (name, params) | {name: params} ]: Adds one instance per entry,
@@ -186,6 +187,11 @@ class MaskedMixin:
 
 
 class Mask:
+    """Base class of the masks: subclasses implement ``apply_mask``.
+
+    Args:
+        masking_value: Masking parameter(s) of the subclass, e.g. the fraction of the data to mask.
+    """
 
     def __init__(self, masking_value: Union[float, List[float], Tuple[float]]):
         self._check_masking_parameters(masking_value)

@@ -346,7 +346,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         "temperature": []
     }))
     tqdm_on: bool = True
-    scheduler: torch.optim.lr_scheduler = None
+    scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None
 
     def __post_init__(self):
         cebra.io.HasDevice.__init__(self)

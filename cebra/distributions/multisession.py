@@ -40,10 +40,11 @@ def _resolve_device(dataset, device: Optional[str] = None) -> str:
             return device_name
 
         # Prefer the concrete device index from dataset tensors if available.
-        if hasattr(dataset, "continuous_index"):
-            idx_device = dataset.continuous_index.device
-            if idx_device.type == "cuda" and idx_device.index is not None:
-                return f"cuda:{idx_device.index}"
+        index = getattr(dataset, "continuous_index", None)
+        if index is None:
+            index = getattr(dataset, "discrete_index", None)
+        if index is not None and index.device.type == "cuda" and index.device.index is not None:
+            return f"cuda:{index.device.index}"
 
         # Fall back to currently selected CUDA device instead of implicit cuda:0.
         if torch.cuda.is_available():

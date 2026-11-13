@@ -230,7 +230,7 @@ JACOBIAN_METHODS = (
 
 
 def _check_method(method: str):
-    """Raise if ``method`` is not one of :data:`JACOBIAN_METHODS`."""
+    """Raise if ``method`` is not one of ``JACOBIAN_METHODS``."""
     if method not in JACOBIAN_METHODS:
         raise ValueError(
             f"method must be one of {JACOBIAN_METHODS}, got {method!r}.")
@@ -431,7 +431,7 @@ def feature_attribution_map(
         indices: Rows of the (reference) session's inputs at which the map is computed. For a
             unified solver the other sessions are aligned to these rows. Default: all.
         output_slice: Single session only. Embedding columns of one head, e.g. one subspace of a
-            :py:class:`~cebra.models.SubspaceMultiobjectiveModel`.
+            :py:class:`~cebra.models.multiobjective.SubspaceMultiobjectiveModel`.
         average: ``True`` for the time mean ``(N, F)``, ``False`` for one map per valid row
             ``(T_valid, N, F)`` (see the module notes).
         random_ties: Unified only. Break nearest-label ties at random instead of taking the
@@ -442,10 +442,11 @@ def feature_attribution_map(
         latent_batch_size: Embedding dimensions per autograd pass. Only used by the default
             ``method``.
         method: Attribution method that computes the Jacobian, one of
-            :data:`JACOBIAN_METHODS`.
+            ``JACOBIAN_METHODS``.
 
     Returns:
-        Array, float64: ``(N, F)`` for ``average=True``, ``(T_valid, N, F)`` for ``average=False``.
+        The map as a float64 array, ``(N, F)`` for ``average=True`` and ``(T_valid, N, F)`` for
+        ``average=False``.
 
     Raises:
         TypeError: If ``solver`` was not trained with the Jacobian regularizer.

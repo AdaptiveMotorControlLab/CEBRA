@@ -626,10 +626,9 @@ class UnifiedxCEBRADataset(UnifiedDataset):
                 - positive: list of (num_sessions, num_samples) tensors, one per objective
         
         Returns:
-            Batch with:
-                - reference: concatenated across sessions
-                - negative: concatenated across sessions
-                - positive: list of tensors, each concatenated across sessions per objective
+            A :py:class:`~cebra.data.datatypes.Batch` whose ``reference`` and ``negative`` are
+            concatenated across sessions and whose ``positive`` is a list of tensors, one per
+            objective, each concatenated across sessions.
         """
         # Get reference and negative once (shared across objectives)
         temp_index = BatchIndex(

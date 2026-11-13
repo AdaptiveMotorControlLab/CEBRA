@@ -25,7 +25,7 @@ We added support for training contrastive models on unified-session datasets.
 This allows users to align and embed multiple sessions into a common latent
 space using a single shared model.
 
-This module implements the :py:class:`~cebra.solver.unified.UnifiedSolver`, which
+This module implements the :py:class:`~cebra.solver.unified_session.UnifiedSolver`, which
 is designed for training a single embedding model across multiple recording sessions.
 Unlike the standard multi-session solvers, the unified session approach uses
 a global model that requires session-specific information for sampling but maintains
@@ -34,12 +34,12 @@ a shared representation across all data.
 Features:
 - Single model inference across all sessions.
 - Batched transform.
-- Compatibility with :py:class:`~cebra.data.UnifiedDataset` and :py:class:`~cebra.data.UnifiedLoader`.
+- Compatibility with :py:class:`~cebra.data.datasets.UnifiedDataset` and :py:class:`~cebra.data.multi_session.UnifiedLoader`.
 
 See Also:
     :py:class:`~cebra.solver.base.Solver`
-    :py:class:`~cebra.data.UnifiedDataset`
-    :py:class:`~cebra.data.UnifiedLoader`
+    :py:class:`~cebra.data.datasets.UnifiedDataset`
+    :py:class:`~cebra.data.multi_session.UnifiedLoader`
 """
 
 from typing import List, Optional, Union
@@ -156,7 +156,7 @@ def _gather_aligned_inputs(inputs: List[torch.Tensor],
     return out
 
 
-class _AlignedInputsMixin:
+class AlignedInputsMixin:
     """Shared aligned-input building and whole-session transform of the unified solvers."""
 
     def aligned_inputs(self,
@@ -269,7 +269,7 @@ class _AlignedInputsMixin:
 
 @register("unified-session")
 @dataclasses.dataclass
-class UnifiedSolver(_AlignedInputsMixin, abc_.Solver):
+class UnifiedSolver(AlignedInputsMixin, abc_.Solver):
     """Multi session training, considering a single model for all sessions."""
 
     _variant_name = "unified-session"
@@ -411,7 +411,8 @@ class UnifiedSolver(_AlignedInputsMixin, abc_.Solver):
                   seed: Optional[int] = 0) -> torch.Tensor:
         """Compute the embedding of session ``session_id``.
 
-        The other sessions are aligned on ``session_id`` (see :py:meth:`aligned_inputs`), then
+        The other sessions are aligned on ``session_id`` (see
+        :py:meth:`~cebra.solver.unified_session.AlignedInputsMixin.aligned_inputs`), then
         the session is embedded in batches. Each batch keeps its real neighbouring samples, so
         the result does not depend on ``batch_size``.
 
@@ -557,13 +558,13 @@ class UnifiedSolver(_AlignedInputsMixin, abc_.Solver):
           deprecated=True)  # NOTE: earlier name, kept for compatibility
 @register("unified-xcebra")
 @dataclasses.dataclass
-class UnifiedSolverxCEBRA(_AlignedInputsMixin, MultiobjectiveSolverBase):
+class UnifiedSolverxCEBRA(AlignedInputsMixin, MultiobjectiveSolverBase):
     """Unified CEBRA solver with Jacobian regularization (unified xCEBRA).
 
     Trains one model shared by all sessions, like :py:class:`~cebra.solver.unified_session.UnifiedSolver`,
     and adds the Jacobian regularization of xCEBRA
     (:py:class:`~cebra.models.jacobian_regularizer.JacobianReg`, passed as ``regularizer``, with its
-    weight set over training by ``scheduler_regularizer`` in :py:meth:`fit`). It builds on the
+    weight set over training by ``scheduler_regularizer`` in ``fit``). It builds on the
     multi-objective solver only because that solver supports the regularizer.
 
     Unified xCEBRA uses a single objective: one slice covering the whole embedding, with a
@@ -572,7 +573,7 @@ class UnifiedSolverxCEBRA(_AlignedInputsMixin, MultiobjectiveSolverBase):
     ``set_loss`` / ``set_distribution`` / ``push``). Several slices (subspaces) are accepted by
     the code but have not been used or validated with the unified sampler.
 
-    Takes batches from :py:class:`~cebra.data.multiobjective.UnifiedContrastiveMultiObjectiveLoader`,
+    Takes batches from ``cebra.data.multiobjective.UnifiedContrastiveMultiObjectiveLoader``,
     in which the samples of all sessions are already aligned and concatenated.
 
     Example:
@@ -589,7 +590,7 @@ class UnifiedSolverxCEBRA(_AlignedInputsMixin, MultiobjectiveSolverBase):
         >>> solver.fit(loader, scheduler_regularizer=weight_scheduler)  # doctest: +SKIP
 
     See Also:
-        :py:class:`cebra.data.multiobjective.UnifiedContrastiveMultiObjectiveLoader`
+        ``cebra.data.multiobjective.UnifiedContrastiveMultiObjectiveLoader``
         :py:class:`cebra.solver.multiobjective.MultiObjectiveConfig`
         :py:class:`cebra.models.multicriterions.MultiCriterions`
     """

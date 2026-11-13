@@ -45,9 +45,7 @@ under *Multi Session Dataloaders*.
 Masking
 --------------------------------
 
-.. automodule:: cebra.data.masking
-   :members:
-   :show-inheritance:
+The masks (:py:mod:`cebra.data.masking`) are documented under :doc:`Helper functions </api/pytorch/helpers>`.
 
 
 Single Session Dataloaders
