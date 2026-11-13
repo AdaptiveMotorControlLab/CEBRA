@@ -59,15 +59,14 @@ except ImportError:
 # and saved in ``n_features`` or in the training ``log``, then fails to load. These globals let
 # ``Solver.load`` rebuild numpy scalars, and nothing else. The module of the scalar function is
 # ``numpy._core`` for files written with numpy>=2 and ``numpy.core`` with numpy<2, so both names
-# are listed.
+# are listed. Concrete dtype classes are derived from instances to also support numpy<1.25.
 _CHECKPOINT_SAFE_GLOBALS = [
     (_numpy_scalar, "numpy._core.multiarray.scalar"),
     (_numpy_scalar, "numpy.core.multiarray.scalar"),
     np.dtype,
 ] + [
-    getattr(np.dtypes, name)
-    for name in ("Int32DType", "Int64DType", "Float32DType", "Float64DType")
-    if hasattr(np, "dtypes")
+    type(np.dtype(dtype))
+    for dtype in (np.int32, np.int64, np.float32, np.float64)
 ]
 
 

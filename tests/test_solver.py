@@ -419,6 +419,20 @@ def test_unified_session(data_name, model_architecture, loader_initfunc,
 # ---- checkpoint loading ----
 
 
+@pytest.mark.parametrize("dtype", [np.int32, np.int64, np.float32, np.float64])
+@pytest.mark.skipif(
+    tuple(int(part) for part in torch.__version__.split(".")[:2]) < (2, 6),
+    reason="torch<2.6 does not support named safe-global tuples")
+def test_weights_only_checkpoint_with_numpy_scalar(tmp_path, dtype):
+    path = tmp_path / "model.pt"
+    torch.save({"value": dtype(4)}, path)
+    with torch.serialization.safe_globals(
+            cebra.solver.base._CHECKPOINT_SAFE_GLOBALS):
+        checkpoint = torch.load(path, weights_only=True)
+    assert checkpoint["value"] == dtype(4)
+    assert type(checkpoint["value"]) is dtype
+
+
 def test_load_checkpoint_with_numpy_scalars(tmp_path):
     # Checkpoints of unified solvers saved before n_features was a Python int store it as a
     # numpy int64; torch>=2.6 loads with weights_only=True by default.
