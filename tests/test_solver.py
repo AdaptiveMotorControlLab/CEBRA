@@ -419,6 +419,59 @@ def test_unified_session(data_name, model_architecture, loader_initfunc,
 # ---- checkpoint loading ----
 
 
+@pytest.mark.parametrize("scheduler_type", ["lambda", "cosine"])
+def test_checkpoint_resumes_scheduler(tmp_path, scheduler_type):
+    def make_solver():
+        model = torch.nn.Linear(4, 3)
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+        if scheduler_type == "lambda":
+            scheduler = torch.optim.lr_scheduler.LambdaLR(
+                optimizer, lr_lambda=lambda epoch: 0.9**epoch)
+        else:
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, T_max=10)
+        return cebra.solver.SingleSessionSolver(
+            model=model,
+            criterion=cebra.models.InfoNCE(),
+            optimizer=optimizer,
+            scheduler=scheduler)
+
+    original = make_solver()
+    original.n_features = 4
+    for _ in range(4):
+        original.optimizer.step()
+        original.scheduler.step()
+    original.save(str(tmp_path), "model.pt")
+
+    resumed = make_solver()
+    resumed.load(str(tmp_path), "model.pt")
+    assert resumed.scheduler.state_dict() == original.scheduler.state_dict()
+    for _ in range(3):
+        original.optimizer.step()
+        original.scheduler.step()
+        resumed.optimizer.step()
+        resumed.scheduler.step()
+        assert resumed.optimizer.param_groups[0]["lr"] == pytest.approx(
+            original.optimizer.param_groups[0]["lr"])
+
+
+def test_load_legacy_checkpoint_without_scheduler():
+    model = torch.nn.Linear(4, 3)
+    optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
+    solver = cebra.solver.SingleSessionSolver(
+        model=model,
+        criterion=cebra.models.InfoNCE(),
+        optimizer=optimizer)
+    checkpoint = solver.state_dict()
+    assert "scheduler" not in checkpoint
+
+    solver.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=10)
+    scheduler_state = copy.deepcopy(solver.scheduler.state_dict())
+    solver.load_state_dict(checkpoint)
+    assert solver.scheduler.state_dict() == scheduler_state
+
+
 @pytest.mark.parametrize("dtype", [np.int32, np.int64, np.float32, np.float64])
 @pytest.mark.skipif(
     tuple(int(part) for part in torch.__version__.split(".")[:2]) < (2, 6),

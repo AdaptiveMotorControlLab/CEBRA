@@ -330,7 +330,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             criterions in CEBRA, also contains the value of the ``temperature``.
         tqdm_on: Use ``tqdm`` for showing a progress bar during training.
         scheduler: An optional PyTorch learning rate scheduler. If set, it is stepped
-            after every optimizer step (i.e., once per training iteration).
+            after every optimizer step (i.e., once per training iteration). Its state is
+            saved and restored when a scheduler is configured on the receiving solver.
     """
 
     model: torch.nn.Module
@@ -356,8 +357,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         Returns:
             State dictionary, including the state dictionary of the models and
-            optimizer. Also contains the training history and the CEBRA version
-            the model was trained with.
+            optimizer, and the scheduler when configured. Also contains the training
+            history and the CEBRA version the model was trained with.
         """
 
         state_dict = {
@@ -369,6 +370,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             "version": cebra.__version__,
             "log": self.log,
         }
+        if self.scheduler is not None:
+            state_dict["scheduler"] = self.scheduler.state_dict()
 
         if hasattr(self, "n_features"):
             state_dict["n_features"] = self.n_features
@@ -385,6 +388,10 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 and the past loss history for the solver.
             strict: Make sure all states can be loaded. Set to `False` to allow
                 to partially load the state for all given keys.
+
+        Note:
+            Scheduler state is restored only when a scheduler is configured and the
+            checkpoint contains it. Older checkpoints leave the scheduler unchanged.
         """
 
         def _contains(key):
@@ -405,6 +412,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             self.criterion.load_state_dict(_get("criterion"))
         if _contains("optimizer"):
             self.optimizer.load_state_dict(_get("optimizer"))
+        if self.scheduler is not None and "scheduler" in state_dict:
+            self.scheduler.load_state_dict(_get("scheduler"))
         # TODO(stes): This will be deprecated at some point; the "log" attribute
         # holds the same information.
         if _contains("loss"):
