@@ -32,7 +32,6 @@ try:
     from cebra.integrations.sklearn.cebra import DCL
     from cebra.integrations.sklearn.decoder import KNNDecoder
     from cebra.integrations.sklearn.decoder import L1LinearRegressor
-    from cebra.integrations.sklearn.decoder import MLPDecoder
 
     is_sklearn_available = True
 except ImportError:
