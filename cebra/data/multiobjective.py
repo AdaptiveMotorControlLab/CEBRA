@@ -137,12 +137,6 @@ class ContrastiveMultiObjectiveLoader(MultiObjectiveLoader):
                     kwargs_distribution['label_name']],
                 delta=kwargs_distribution['delta'],
                 device=self.device)
-        elif config["distribution"] == "unified_time_delta":
-            distribution = cebra.distributions.UnifiedSampler(
-                self.dataset,
-                kwargs_distribution['time_delta'],
-                device=self.device,
-            )
         else:
             raise NotImplementedError(
                 f"Distribution {config['distribution']} is not implemented yet."
