@@ -58,6 +58,7 @@ class MaskedMixin:
 
         Note:
             - By default, no masks are applied.
+            - Mask configuration is local to this dataset instance.
             - When using the dict format, existing instances of the same mask
               class are replaced. When using the list format, entries are
               appended, allowing duplicates with different parameters.
@@ -116,6 +117,7 @@ class MaskedMixin:
 
         # List mode: append semantics; allow duplicates of the same mask class
         if isinstance(masking, list):
+            self._masks = list(self._masks)
             for entry in masking:
                 if isinstance(entry, tuple) and len(entry) == 2:
                     mask_key, params = entry
