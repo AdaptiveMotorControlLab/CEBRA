@@ -22,17 +22,12 @@
 import dataclasses
 import time
 
-import cvxpy as cp
 import numpy as np
 import scipy.linalg
 import sklearn.metrics
 import torch
 import torch.nn as nn
 import tqdm
-from captum.attr import NeuronFeatureAblation
-from captum.attr import NeuronGradient
-from captum.attr import NeuronGradientShap
-from captum.attr import NeuronIntegratedGradients
 
 import cebra
 import cebra.attribution._jacobian
@@ -283,6 +278,7 @@ class AttributionMap:
         Returns:
             np.ndarray: Least squares inverse matrix
         """
+        import cvxpy as cp
 
         matrix_param = cp.Parameter((matrix.shape[0], matrix.shape[1]))
         matrix_param.value = matrix
@@ -542,6 +538,8 @@ class NeuronGradientMethod(AttributionMap):
 
     def __post_init__(self):
         super().__post_init__()
+        from captum.attr import NeuronGradient
+
         self.captum_model = NeuronGradient(forward_func=self.model,
                                            layer=self.model)
 
@@ -616,6 +614,8 @@ class FeatureAblationMethod(AttributionMap):
 
     def __post_init__(self):
         super().__post_init__()
+        from captum.attr import NeuronFeatureAblation
+
         self.captum_model = NeuronFeatureAblation(forward_func=self.model,
                                                   layer=self.model)
 
@@ -689,6 +689,8 @@ class IntegratedGradientsMethod(AttributionMap):
 
     def __post_init__(self):
         super().__post_init__()
+        from captum.attr import NeuronIntegratedGradients
+
         self.captum_model = NeuronIntegratedGradients(forward_func=self.model,
                                                       layer=self.model)
 
@@ -771,6 +773,8 @@ class NeuronGradientShapMethod(AttributionMap):
 
     def __post_init__(self):
         super().__post_init__()
+        from captum.attr import NeuronGradientShap
+
         self.captum_model = NeuronGradientShap(forward_func=self.model,
                                                layer=self.model)
 

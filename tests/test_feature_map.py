@@ -527,8 +527,8 @@ def test_public_api_exports():
 
 @pytest.mark.parametrize("conv", [False, True])
 def test_feature_map_methods_agree_with_cebra_attribution(conv):
-    # M_t = J_t^T W with J_t from CEBRA's "jacobian-based" method (and, for a model without an
-    # offset, the Captum backend "neuron-gradient"); every `method` option gives the same map.
+    # M_t = J_t^T W with J_t from CEBRA's "jacobian-based" method; every `method` option gives
+    # the same map.
     torch.manual_seed(0)
     rng = np.random.default_rng(8)
     model = ConvTanhEncoder(4, 5, left=2, right=1) if conv else MLPEncoder(4, 5)
@@ -542,16 +542,6 @@ def test_feature_map_methods_agree_with_cebra_attribution(conv):
         input_data=neural.clone().requires_grad_(True),
         output_dimension=5).compute_attribution_map(selected_keys=["jf"])["jf"]
     expected = np.einsum("tdn,df->tnf", jacobian, W)  # J_t^T W, (T_valid, N, F)
-    if not conv:
-        gradient = cebra.attribution.init(
-            "neuron-gradient",
-            model=model,
-            input_data=neural.clone().requires_grad_(True),
-            output_dimension=5).compute_attribution_map()["neuron-gradient"]
-        np.testing.assert_allclose(np.einsum("tdn,df->tnf", gradient, W),
-                                   expected,
-                                   rtol=1e-5,
-                                   atol=1e-6)
 
     for method in feature_map.JACOBIAN_METHODS:
         per_row = feature_map.feature_attribution_map(solver,
@@ -569,3 +559,23 @@ def test_feature_map_methods_agree_with_cebra_attribution(conv):
                                             neural,
                                             W,
                                             method="neuron-gradient")
+
+
+def test_neuron_gradient_backend_matches_jacobian():
+    pytest.importorskip("captum")
+    torch.manual_seed(0)
+    rng = np.random.default_rng(8)
+    model = MLPEncoder(4, 5)
+    neural = torch.randn(30, 4)
+    W = rng.normal(size=(5, 2))
+    jacobian = cebra.attribution.init(
+        "jacobian-based",
+        model=model,
+        input_data=neural.clone().requires_grad_(True),
+        output_dimension=5).compute_attribution_map(selected_keys=["jf"])["jf"]
+    gradient = cebra.attribution.init(
+        "neuron-gradient",
+        model=model,
+        input_data=neural.clone().requires_grad_(True),
+        output_dimension=5).compute_attribution_map()["neuron-gradient"]
+    np.testing.assert_allclose(gradient, jacobian, rtol=1e-5, atol=1e-6)
