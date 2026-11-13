@@ -313,6 +313,50 @@ def test_compute_jacobian_output_batching(output_batch_size):
     np.testing.assert_allclose(batched, full, atol=1e-10)
 
 
+@pytest.mark.parametrize("mixed_mode", [False, True])
+def test_compute_jacobian_output_batching_with_dropout(mixed_mode):
+    torch.manual_seed(0)
+    model = torch.nn.Sequential(torch.nn.Linear(6, 8),
+                                torch.nn.Dropout(0.5),
+                                torch.nn.Linear(8, 5))
+    if mixed_mode:
+        model.eval()
+        model[1].train()
+    x = torch.randn(7, 6)
+    rng_state = torch.random.get_rng_state()
+    full = cebra.attribution._jacobian.compute_jacobian(
+        model, [x.clone().requires_grad_(True)], double_precision=True)
+    expected_rng_state = torch.random.get_rng_state()
+    torch.random.set_rng_state(rng_state)
+    batched = cebra.attribution._jacobian.compute_jacobian(
+        model, [x.clone().requires_grad_(True)],
+        output_batch_size=2,
+        double_precision=True)
+    np.testing.assert_allclose(batched, full, atol=1e-10)
+    assert torch.equal(torch.random.get_rng_state(), expected_rng_state)
+    assert model.training == (not mixed_mode)
+    assert model[1].training
+
+
+@pytest.mark.parametrize("training", [False, True])
+def test_compute_jacobian_output_batching_forward_count(training):
+    model = torch.nn.Sequential(torch.nn.BatchNorm1d(6),
+                                torch.nn.Linear(6, 5))
+    model.train(training)
+    forwards = []
+    handle = model.register_forward_hook(
+        lambda module, inputs, output: forwards.append(None))
+    try:
+        cebra.attribution._jacobian.compute_jacobian(
+            model, [torch.randn(7, 6, requires_grad=True)],
+            output_batch_size=2,
+            double_precision=True)
+    finally:
+        handle.remove()
+    assert len(forwards) == (1 if training else 3)
+    assert model[0].num_batches_tracked.item() == (1 if training else 0)
+
+
 def test_compute_jacobian_invalid_output_batch_size():
     model = torch.nn.Linear(3, 2)
     with pytest.raises(ValueError):

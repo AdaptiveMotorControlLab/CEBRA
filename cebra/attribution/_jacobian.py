@@ -100,8 +100,8 @@ def compute_jacobian(
         hybrid_solver: If True, concatenate multiple outputs along dimension 1
         output_batch_size: Optional number of output/latent dimensions to process
             per autograd chunk. If ``None``, process all outputs in one retained
-            graph as before. Smaller values reduce peak GPU memory without
-            changing the Jacobian math.
+            graph as before. Smaller values reduce peak GPU memory for
+            deterministic evaluation-mode models.
 
     Returns:
         Jacobian matrix as either PyTorch tensor or numpy array
@@ -135,7 +135,10 @@ def compute_jacobian(
         output_vars = _forward_outputs(prepared_model, prepared_inputs)
         n_outputs = int(output_vars.shape[1])
         effective_output_batch_size = (
-            n_outputs if output_batch_size is None else min(int(output_batch_size), n_outputs)
+            n_outputs
+            if output_batch_size is None or any(
+                module.training for module in prepared_model.modules())
+            else min(int(output_batch_size), n_outputs)
         )
 
         jacob_chunks = []
