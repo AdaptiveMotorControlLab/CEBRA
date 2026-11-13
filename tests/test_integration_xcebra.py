@@ -155,14 +155,15 @@ def test_synthetic_data_training(synthetic_data, device):
 
     # Test the transform
     solver.model.split_outputs = False
-    transform_embedding = solver.transform(data.neural.to(device))
+    transform_embedding = solver.transform(data.neural.to(device)).cpu()
     assert transform_embedding.shape[
         1] == n_latents, "Incorrect embedding dimension"
     assert not torch.isnan(transform_embedding).any(), "NaN values in embedding"
     assert np.allclose(embedding, transform_embedding, rtol=1e-4, atol=1e-4)
 
     # Test the transform with batching
-    batched_embedding = solver.transform(data.neural.to(device), batch_size=512)
+    batched_embedding = solver.transform(data.neural.to(device),
+                                         batch_size=512).cpu()
     assert batched_embedding.shape[
         1] == n_latents, "Incorrect embedding dimension"
     assert not torch.isnan(batched_embedding).any(), "NaN values in embedding"
@@ -175,7 +176,7 @@ def test_synthetic_data_training(synthetic_data, device):
 
     # Test and compare the previous transform (transform_deprecated)
     deprecated_transform_embedding = _reference_implementations.multiobjective_transform_deprecated(
-        solver, data.neural.to(device))
+        solver, data.neural.to(device)).detach().cpu()
     assert np.allclose(embedding,
                        deprecated_transform_embedding,
                        rtol=1e-4,

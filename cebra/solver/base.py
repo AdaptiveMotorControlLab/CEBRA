@@ -36,6 +36,7 @@ import warnings
 from typing import Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import literate_dataclasses as dataclasses
+import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -47,6 +48,34 @@ import cebra.io
 import cebra.models
 from cebra.solver.util import Meter
 from cebra.solver.util import ProgressBar
+
+try:
+    from numpy._core.multiarray import scalar as _numpy_scalar  # numpy>=2
+except ImportError:
+    from numpy.core.multiarray import scalar as _numpy_scalar  # numpy<2
+
+# From torch 2.6, ``torch.load`` only unpickles tensors and Python primitives by default
+# (``weights_only=True``). A numpy scalar stored in a checkpoint, e.g. a value computed with numpy
+# and saved in ``n_features`` or in the training ``log``, then fails to load. These globals let
+# ``Solver.load`` rebuild numpy scalars, and nothing else. The module of the scalar function is
+# ``numpy._core`` for files written with numpy>=2 and ``numpy.core`` with numpy<2, so both names
+# are listed. Concrete dtype classes are derived from instances to also support numpy<1.25.
+_CHECKPOINT_SAFE_GLOBALS = [
+    (_numpy_scalar, "numpy._core.multiarray.scalar"),
+    (_numpy_scalar, "numpy.core.multiarray.scalar"),
+    np.dtype,
+] + [
+    type(np.dtype(dtype))
+    for dtype in (np.int32, np.int64, np.float32, np.float64)
+]
+
+
+def _load_checkpoint(path: str, map_location) -> dict:
+    """:py:func:`torch.load` that also accepts numpy scalars (see ``_CHECKPOINT_SAFE_GLOBALS``)."""
+    if not hasattr(torch.serialization, "safe_globals"):  # torch<2.5
+        return torch.load(path, map_location=map_location)
+    with torch.serialization.safe_globals(_CHECKPOINT_SAFE_GLOBALS):
+        return torch.load(path, map_location=map_location)
 
 
 def _check_indices(batch_start_idx: int, batch_end_idx: int,
@@ -300,6 +329,9 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             as the logs for positive (``pos``) and negative (``neg``) pairs. For the standard
             criterions in CEBRA, also contains the value of the ``temperature``.
         tqdm_on: Use ``tqdm`` for showing a progress bar during training.
+        scheduler: An optional PyTorch learning rate scheduler. If set, it is stepped
+            after every optimizer step (i.e., once per training iteration). Its state is
+            saved and restored when a scheduler is configured on the receiving solver.
     """
 
     model: torch.nn.Module
@@ -314,6 +346,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         "temperature": []
     }))
     tqdm_on: bool = True
+    scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None
 
     def __post_init__(self):
         cebra.io.HasDevice.__init__(self)
@@ -324,8 +357,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         Returns:
             State dictionary, including the state dictionary of the models and
-            optimizer. Also contains the training history and the CEBRA version
-            the model was trained with.
+            optimizer, and the scheduler when configured. Also contains the training
+            history and the CEBRA version the model was trained with.
         """
 
         state_dict = {
@@ -337,6 +370,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             "version": cebra.__version__,
             "log": self.log,
         }
+        if self.scheduler is not None:
+            state_dict["scheduler"] = self.scheduler.state_dict()
 
         if hasattr(self, "n_features"):
             state_dict["n_features"] = self.n_features
@@ -353,6 +388,10 @@ class Solver(abc.ABC, cebra.io.HasDevice):
                 and the past loss history for the solver.
             strict: Make sure all states can be loaded. Set to `False` to allow
                 to partially load the state for all given keys.
+
+        Note:
+            Scheduler state is restored only when a scheduler is configured and the
+            checkpoint contains it. Older checkpoints leave the scheduler unchanged.
         """
 
         def _contains(key):
@@ -373,6 +412,8 @@ class Solver(abc.ABC, cebra.io.HasDevice):
             self.criterion.load_state_dict(_get("criterion"))
         if _contains("optimizer"):
             self.optimizer.load_state_dict(_get("optimizer"))
+        if self.scheduler is not None and "scheduler" in state_dict:
+            self.scheduler.load_state_dict(_get("scheduler"))
         # TODO(stes): This will be deprecated at some point; the "log" attribute
         # holds the same information.
         if _contains("loss"):
@@ -499,6 +540,9 @@ class Solver(abc.ABC, cebra.io.HasDevice):
 
         loss.backward()
         self.optimizer.step()
+        if self.scheduler is not None:
+            self.scheduler.step()
+
         self.history.append(loss.item())
         stats = dict(
             pos=align.item(),
@@ -740,7 +784,7 @@ class Solver(abc.ABC, cebra.io.HasDevice):
         if not os.path.exists(savepath):
             print("Did not find a previous experiment. Starting from scratch.")
             return
-        checkpoint = torch.load(savepath, map_location=self.device)
+        checkpoint = _load_checkpoint(savepath, map_location=self.device)
         self.load_state_dict(checkpoint, strict=True)
 
         n_features = self.n_features
@@ -879,6 +923,8 @@ class MultiobjectiveSolver(Solver):
         loss = behavior_loss + time_loss
         loss.backward()
         self.optimizer.step()
+        if self.scheduler is not None:
+            self.scheduler.step()
         self.history.append(loss.item())
         return dict(
             behavior_pos=behavior_align.item(),

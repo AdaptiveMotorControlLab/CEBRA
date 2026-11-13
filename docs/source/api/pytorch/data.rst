@@ -34,6 +34,20 @@ Pre-defined Datasets
    :show-inheritance:
 
 
+Unified Datasets and Dataloaders
+--------------------------------
+
+:py:class:`cebra.data.datasets.UnifiedDataset` and :py:class:`cebra.data.datasets.DatasetxCEBRA`
+are documented under *Pre-defined Datasets* above, and :py:class:`cebra.data.multi_session.UnifiedLoader`
+under *Multi Session Dataloaders*.
+
+
+Masking
+--------------------------------
+
+The masks (:py:mod:`cebra.data.masking`) are documented under :doc:`Helper functions </api/pytorch/helpers>`.
+
+
 Single Session Dataloaders
 --------------------------------
 

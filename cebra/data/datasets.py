@@ -141,6 +141,23 @@ class TensorDataset(cebra_data.SingleSessionDataset):
     def __len__(self):
         return len(self.neural)
 
+    def to(self, device: str) -> "TensorDataset":
+        """Move dataset to the specified device.
+        
+        Args:
+            device: Target device
+            
+        Returns:
+            Self for chaining
+        """
+        super().to(device)
+        self.neural = self.neural.to(device)
+        self.continuous = self.continuous.to(
+            device) if self.continuous is not None else None
+        self.discrete = self.discrete.to(
+            device) if self.discrete is not None else None
+        return self
+
     def __getitem__(self, index):
         index = self.expand_index(index)
         return self.neural[index].transpose(2, 1)
@@ -304,6 +321,13 @@ class DatasetCollection(cebra_data.MultiSessionDataset):
     def _iter_property(self, attr):
         return (getattr(data, attr) for data in self.iter_sessions())
 
+    def to(self, device: str) -> "DatasetCollection":
+        """Move the collection and all contained sessions to the given device."""
+        super().to(device)
+        for session in self.iter_sessions():
+            session.to(device)
+        return self
+
 
 # TODO(stes): This should be a single session dataset?
 class DatasetxCEBRA(cebra_io.HasDevice, cebra_data_masking.MaskedMixin):
@@ -458,10 +482,11 @@ class UnifiedDataset(DatasetCollection):
     @property
     def input_dimension(self) -> int:
         """Returns the sum of the input dimension for each session."""
-        return np.sum([
-            self.get_input_dimension(session_id)
-            for session_id in range(self.num_sessions)
-        ])
+        # A Python int, not a numpy scalar: it is saved as ``n_features`` in the solver
+        # checkpoint, and ``torch.load(weights_only=True)`` rejects numpy scalars.
+        return sum(
+            int(self.get_input_dimension(session_id))
+            for session_id in range(self.num_sessions))
 
     def _get_batches(self, index):
         """Return the data at the specified index location."""
@@ -529,3 +554,119 @@ class UnifiedDataset(DatasetCollection):
 
         session_id, index = args
         return self.get_session(session_id).__getitem__(index)
+
+
+class UnifiedxCEBRADataset(UnifiedDataset):
+    """Multi-session unified dataset with per-objective labels for multiobjective learning.
+    
+    Extends UnifiedDataset to support flexible, per-objective label selection and
+    concatenation across sessions. Designed to work with UnifiedContrastiveMultiObjectiveLoader.
+    
+    Example:
+        >>> import cebra.data
+        >>> import torch
+        >>> session1 = torch.randn((100, 30))
+        >>> session2 = torch.randn((100, 50))
+        >>> index1 = torch.randn((100, 4))
+        >>> index2 = torch.randn((100, 4))
+        >>> label1_obj1 = torch.randn((100,))
+        >>> label1_obj2 = torch.randn((100,))
+        >>> label2_obj1 = torch.randn((100,))
+        >>> label2_obj2 = torch.randn((100,))
+        >>> 
+        >>> dataset1 = cebra.data.TensorDataset(session1, continuous=index1)
+        >>> dataset2 = cebra.data.TensorDataset(session2, continuous=index2)
+        >>> 
+        >>> # Create unified dataset with per-session labels
+        >>> unified_dataset = cebra.data.UnifiedxCEBRADataset(dataset1, dataset2)
+        >>> # Add per-objective labels (stored per session)
+        >>> unified_dataset.add_labels("objective_1", [label1_obj1, label2_obj1])
+        >>> unified_dataset.add_labels("objective_2", [label1_obj2, label2_obj2])
+    """
+
+    def __init__(self, *datasets: cebra_data.SingleSessionDataset):
+        super().__init__(*datasets)
+        self.labels = {}
+
+    def add_labels(self, label_name: str, label_list: List[torch.Tensor]):
+        """Add a set of per-objective labels, one per session.
+        
+        Args:
+            label_name: Name of the label/objective (e.g., "position", "velocity")
+            label_list: List of label tensors, one per session, each of shape (session_length,)
+                       or (session_length, num_dims)
+        """
+        if len(label_list) != self.num_sessions:
+            raise ValueError(
+                f"Expected {self.num_sessions} label tensors (one per session), "
+                f"got {len(label_list)}")
+
+        # Concatenate per-session labels into a single unified tensor
+        concatenated_labels = torch.cat(
+            [self._to_tensor(label) for label in label_list], dim=0)
+
+        self.labels[label_name] = concatenated_labels
+
+    @staticmethod
+    def _to_tensor(data: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
+        """Convert array to tensor if necessary."""
+        if isinstance(data, np.ndarray):
+            return torch.from_numpy(data)
+        return data
+
+    def load_batch_contrastive(self, index: BatchIndex) -> Batch:
+        """Load a batch for contrastive learning with per-objective positives.
+        
+        Returns a single Batch with shared ref/neg and a list of positives (one per objective).
+        
+        Args:
+            index: BatchIndex with:
+                - reference: (num_sessions, num_samples) tensor (shared across objectives)
+                - negative: (num_sessions, num_samples) tensor (shared across objectives)
+                - positive: list of (num_sessions, num_samples) tensors, one per objective
+        
+        Returns:
+            A :py:class:`~cebra.data.datatypes.Batch` whose ``reference`` and ``negative`` are
+            concatenated across sessions and whose ``positive`` is a list of tensors, one per
+            objective, each concatenated across sessions.
+        """
+        # Get reference and negative once (shared across objectives)
+        temp_index = BatchIndex(
+            reference=index.reference,
+            negative=index.negative,
+            positive=index.positive[0],  # Use first objective for structure
+        )
+        batches = self._get_batches(temp_index)
+
+        if hasattr(self, "apply_mask"):
+            reference = self.apply_mask(
+                torch.cat([batch.reference for batch in batches], dim=1))
+            negative = self.apply_mask(
+                torch.cat([batch.negative for batch in batches], dim=1))
+        else:
+            reference = torch.cat([batch.reference for batch in batches], dim=1)
+            negative = torch.cat([batch.negative for batch in batches], dim=1)
+
+        # Get positives per objective
+        positive_per_obj = []
+        for obj_idx_tensor in index.positive:
+            temp_index = BatchIndex(
+                reference=index.reference,
+                negative=index.negative,
+                positive=obj_idx_tensor,
+            )
+            batches = self._get_batches(temp_index)
+
+            if hasattr(self, "apply_mask"):
+                pos = self.apply_mask(
+                    torch.cat([batch.positive for batch in batches], dim=1))
+            else:
+                pos = torch.cat([batch.positive for batch in batches], dim=1)
+
+            positive_per_obj.append(pos)
+
+        return cebra_data.Batch(
+            reference=reference,
+            negative=negative,
+            positive=positive_per_obj,
+        )

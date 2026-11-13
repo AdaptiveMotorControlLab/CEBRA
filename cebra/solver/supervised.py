@@ -81,6 +81,8 @@ class SupervisedNNSolver(abc_.Solver):
         loss = self.criterion(prediction, batch["label"].squeeze())
         loss.backward()
         self.optimizer.step()
+        if self.scheduler is not None:
+            self.scheduler.step()
         self.history.append(loss.item())
         return dict(total=loss.item())
 

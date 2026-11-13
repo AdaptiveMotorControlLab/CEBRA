@@ -34,6 +34,10 @@ Two solvers are currently implemented:
 - :py:class:`cebra.solver.multiobjective.ContrastiveMultiobjectiveSolverxCEBRA`
 - :py:class:`cebra.solver.multiobjective.SupervisedMultiobjectiveSolverxCEBRA`
 
+Unified CEBRA with the Jacobian regularization of xCEBRA uses the base class of these solvers
+and lives in :py:mod:`cebra.solver.unified_session`
+(:py:class:`~cebra.solver.unified_session.UnifiedSolverxCEBRA`).
+
 See Also:
     :py:class:`cebra.solver.multiobjective.SupervisedMultiobjectiveSolverxCEBRA`
     :py:class:`cebra.solver.multiobjective.MultiObjectiveConfig`
@@ -359,6 +363,8 @@ class MultiobjectiveSolverBase(cebra_solver_single.SingleSessionSolver):
 
         loss.backward()
         self.optimizer.step(closure)
+        if self.scheduler is not None:
+            self.scheduler.step()
         self.optimizer.zero_grad()
 
         if weights_regularizer is not None:
@@ -435,6 +441,10 @@ class MultiobjectiveSolverBase(cebra_solver_single.SingleSessionSolver):
             stats_val.update(metrics)
 
         for key, value in stats_val.items():
+            # Log Python numbers, not numpy scalars, so that the checkpoint loads with
+            # ``torch.load(weights_only=True)``.
+            if isinstance(value, np.generic):
+                value = value.item()
             self.log.setdefault(key, []).append(value)
 
         if logger is not None:

@@ -21,6 +21,8 @@
 #
 
 import literate_dataclasses as dataclasses
+import numpy as np
+import torch
 
 import cebra.data as cebra_data
 import cebra.distributions
@@ -166,6 +168,108 @@ class ContrastiveMultiObjectiveLoader(MultiObjectiveLoader):
             )
 
         return batch_index
+
+    def __iter__(self):
+        for _ in range(len(self)):
+            index = self.get_indices(num_samples=self.batch_size)
+            yield self.dataset.load_batch_contrastive(index)
+
+
+@dataclasses.dataclass
+class UnifiedContrastiveMultiObjectiveLoader(cebra_data.Loader):
+    """Unified Contrastive Multiobjective data Loader for multi-session training.
+    
+    Uses a single shared model across sessions with per-objective time_delta distributions.
+    Reference and negative samples are shared across all objectives and sampled uniformly
+    across sessions via UnifiedSampler. Positive samples are drawn per-objective using
+    time_delta sampling with random shifts.
+
+    The historical ``MultiObjective`` name is retained; the current unified xCEBRA
+    workflow uses a single objective.
+
+    Yields batches of the specified size from the given UnifiedDataset.
+    """
+
+    sampling_mode_contrastive: str = dataclasses.field(
+        default="refneg_shared",
+        doc="""Type of sampling performed, re whether reference and negative samples
+            are shared. Only 'refneg_shared' is supported for unified multiobjective."""
+    )
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.distributions = []
+
+    def add_config(self, config):
+        """Add the positive-sample distribution of one objective.
+
+        Args:
+            config: Dict with ``"distribution"``, which must be ``"unified_time_delta"``, and
+                ``"kwargs"``. ``kwargs["time_delta"]`` sets the label-difference offset,
+                falling back to the loader's ``time_offset`` when omitted.
+                ``kwargs["label_name"]`` is ignored; the sampler uses the dataset's
+                ``continuous_index``.
+        """
+        kwargs_distribution = config['kwargs']
+        
+        if config['distribution'] != "unified_time_delta":
+            raise NotImplementedError(
+                f"Only 'unified_time_delta' distribution is supported for unified multiobjective, "
+                f"got '{config['distribution']}'."
+            )
+        
+        if not hasattr(self.dataset, 'continuous_index'):
+            raise ValueError(
+                "UnifiedDataset must have 'continuous_index' attribute."
+            )
+        
+        distribution = cebra.distributions.UnifiedSampler(
+            self.dataset,
+            kwargs_distribution.get('time_delta', self.time_offset),
+            device=self.device,
+        )
+        self.distributions.append(distribution)
+
+    def get_indices(self, num_samples: int):
+        """Sample and return the specified number of indices for unified multiobjective.
+        
+        Reference and negative indices are shared across all objectives and sampled
+        uniformly across sessions. Positive indices are drawn per-objective using
+        time_delta distributions with random shifts.
+        
+        Args:
+            num_samples: Batch size (number of samples per objective).
+            
+        Returns:
+            A BatchIndex with:
+            - reference: shape (num_sessions, num_samples) tensor shared across objectives
+            - positive: list of per-objective positive indices, each (num_sessions, num_samples) tensor
+            - negative: shape (num_sessions, num_samples) tensor shared across objectives
+        """
+        if self.sampling_mode_contrastive != "refneg_shared":
+            raise ValueError(
+                f"Sampling mode {self.sampling_mode_contrastive} is not implemented yet."
+            )
+        
+        # Sample shared reference and negative using the first distribution
+        # These come back as numpy arrays from UnifiedSampler
+        ref_idx_np = self.distributions[0].sample_prior(self.batch_size)
+        neg_idx_np = self.distributions[0].sample_prior(self.batch_size)
+        ref_idx = torch.from_numpy(ref_idx_np).to(self.device)
+        neg_idx = torch.from_numpy(neg_idx_np).to(self.device)
+
+        # Sample per-objective positives
+        positives_idx = []
+        for distribution in self.distributions:
+            pos_idx_np = distribution.sample_conditional(ref_idx_np)
+            pos_idx = torch.from_numpy(pos_idx_np).to(self.device)
+            positives_idx.append(pos_idx)
+
+        return BatchIndex(
+            reference=ref_idx,
+            positive=positives_idx,
+            negative=neg_idx,
+        )
 
     def __iter__(self):
         for _ in range(len(self)):

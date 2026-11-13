@@ -83,6 +83,7 @@ def compute_jacobian(
     double_precision: bool = False,
     convert_to_numpy: bool = True,
     hybrid_solver: bool = False,
+    output_batch_size: int | None = None,
 ) -> Union[torch.Tensor, np.ndarray]:
     """Compute the Jacobian matrix for a given model and input.
 
@@ -97,42 +98,76 @@ def compute_jacobian(
         double_precision: If True, use double precision
         convert_to_numpy: If True, convert output to numpy array
         hybrid_solver: If True, concatenate multiple outputs along dimension 1
+        output_batch_size: Optional number of output/latent dimensions to process
+            per autograd chunk. If ``None``, process all outputs in one retained
+            graph as before. Smaller values reduce peak GPU memory for
+            deterministic evaluation-mode models.
 
     Returns:
         Jacobian matrix as either PyTorch tensor or numpy array
     """
-    if double_precision:
-        model = model.to("cpu").double()
-        input_vars = tensors_to_cpu_and_double(input_vars)
-        if hybrid_solver:
-            output = model(*input_vars)
-            output_vars = torch.cat(output, dim=1).to("cpu").double()
-        else:
-            output_vars = model(*input_vars).to("cpu").double()
-    else:
-        model = model.to(cuda_device).float()
-        input_vars = tensors_to_cuda(input_vars, cuda_device=cuda_device)
+    if output_batch_size is not None and int(output_batch_size) <= 0:
+        raise ValueError(
+            f"output_batch_size must be positive when provided, got {output_batch_size}."
+        )
 
-        if hybrid_solver:
-            output = model(*input_vars)
-            output_vars = torch.cat(output, dim=1)
+    def _prepare_model_and_inputs():
+        if double_precision:
+            prepared_model = model.to("cpu").double()
+            prepared_inputs = tensors_to_cpu_and_double(input_vars)
         else:
-            output_vars = model(*input_vars)
+            prepared_model = model.to(cuda_device).float()
+            prepared_inputs = tensors_to_cuda(input_vars, cuda_device=cuda_device)
+        return prepared_model, prepared_inputs
+
+    def _forward_outputs(prepared_model, prepared_inputs):
+        if hybrid_solver:
+            output = prepared_model(*prepared_inputs)
+            if double_precision:
+                return torch.cat(output, dim=1).to("cpu").double()
+            return torch.cat(output, dim=1)
+        if double_precision:
+            return prepared_model(*prepared_inputs).to("cpu").double()
+        return prepared_model(*prepared_inputs)
 
     if mode == "autograd":
-        jacob = []
-        for i in range(output_vars.shape[1]):
-            grads = torch.autograd.grad(
-                output_vars[:, i:i + 1],
-                input_vars,
-                retain_graph=True,
-                create_graph=False,
-                grad_outputs=torch.ones(output_vars[:, i:i + 1].shape).to(
-                    output_vars.device),
-            )
-            jacob.append(torch.cat(grads, dim=1))
+        prepared_model, prepared_inputs = _prepare_model_and_inputs()
+        output_vars = _forward_outputs(prepared_model, prepared_inputs)
+        n_outputs = int(output_vars.shape[1])
+        effective_output_batch_size = (
+            n_outputs
+            if output_batch_size is None or any(
+                module.training for module in prepared_model.modules())
+            else min(int(output_batch_size), n_outputs)
+        )
 
-        jacobian = torch.stack(jacob, dim=1)
+        jacob_chunks = []
+        for output_start in range(0, n_outputs, effective_output_batch_size):
+            output_end = min(output_start + effective_output_batch_size, n_outputs)
+            if output_start > 0:
+                output_vars = _forward_outputs(prepared_model, prepared_inputs)
+
+            chunk_rows = []
+            for local_idx, output_idx in enumerate(range(output_start, output_end)):
+                is_last_in_chunk = local_idx == (output_end - output_start - 1)
+                grads = torch.autograd.grad(
+                    output_vars[:, output_idx : output_idx + 1],
+                    prepared_inputs,
+                    retain_graph=not is_last_in_chunk,
+                    create_graph=False,
+                    grad_outputs=torch.ones(
+                        output_vars[:, output_idx : output_idx + 1].shape,
+                        device=output_vars.device,
+                    ),
+                )
+                chunk_rows.append(torch.cat(grads, dim=1).detach().cpu())
+                del grads
+
+            jacob_chunks.append(torch.stack(chunk_rows, dim=1))
+            del chunk_rows
+            del output_vars
+
+        jacobian = torch.cat(jacob_chunks, dim=1)
 
     jacobian = jacobian.detach().cpu()
 

@@ -19,3 +19,10 @@ Jacobian-based attribution
 .. automodule:: cebra.attribution.jacobian_attribution
    :members:
    :show-inheritance:
+
+Feature maps
+------------
+
+.. automodule:: cebra.attribution.feature_map
+   :members:
+   :show-inheritance:
