@@ -298,10 +298,8 @@ class SubspaceMultiobjectiveModel(nn.Module):
         check_slices_for_gaps(self.feature_ranges)
 
         if check_overlapping_feature_ranges(self.feature_ranges):
-            print("Computing renormalized ranges...")
             self.renormalize_ranges = compute_renormalize_ranges(
                 self.feature_ranges, sort=True)
-            print("New ranges:", self.renormalize_ranges)
 
     def set_split_outputs(self, val):
         assert isinstance(val, bool)

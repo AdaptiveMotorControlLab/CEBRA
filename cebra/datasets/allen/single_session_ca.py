@@ -116,6 +116,55 @@ class SingleSessionAllenCa(cebra.data.SingleSessionDataset):
         return self.neural[index].transpose(2, 1)
 
 
+class SingleSessionAllenCaCortex(SingleSessionAllenCa):
+    """Single-session Allen calcium data with configurable cortex and neuron type.
+
+    Unlike :class:`SingleSessionAllenCa`, which selects one of four fixed VISp
+    excitatory sessions by index, this class selects a recording by its
+    experiment-container ID and allows the cortex and neuron type to vary.
+
+    Args:
+        session_id: Allen experiment-container ID, e.g. ``680156909``.
+        frame_feature_path: Path to the movie frame features.
+        cortex: Cortical area, e.g. ``"VISp"``.
+        neuron_type: Neuron data directory, e.g. ``"calcium_excitatory"``.
+    """
+
+    def __init__(
+        self,
+        session_id: int = 680156909,
+        frame_feature_path: str = pathlib.Path(_DEFAULT_DATADIR) / "allen" /
+        "features" / "allen_movies" / "vit_base" / "8" /
+        "movie_one_image_stack.npz" / "testfeat.pth",
+        cortex: str = "VISp",
+        neuron_type: str = "calcium_excitatory",
+    ):
+        self.path = pathlib.Path(
+            _DEFAULT_DATADIR
+        ) / "allen" / "visual_drift" / "data" / f'{neuron_type}' / f'{cortex}' / f"{session_id}.mat"
+        traces = scipy.io.loadmat(self.path)
+
+        neural = traces["filtered_traces_days_events"][0, 0].transpose(1, 0)
+        self.neural = torch.from_numpy(neural).float()
+        frame_feature = torch.load(frame_feature_path)
+        self.index = frame_feature.repeat(10, 1)
+
+    def __len__(self):
+        return self.neural.size(0)
+
+    @property
+    def continuous_index(self):
+        return self.index
+
+    @property
+    def input_dimension(self):
+        return self.neural.size(1)
+
+    def __getitem__(self, index):
+        index = self.expand_index(index)
+        return self.neural[index].transpose(2, 1)
+
+
 @parametrize(
     "allen-movie1-ca-single-session-corrupt-{session_id}",
     session_id=range(len(_SINGLE_SESSION_CA)),

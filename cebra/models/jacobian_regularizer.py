@@ -86,19 +86,17 @@ class JacobianReg(nn.Module):
         for ii in range(num_proj):
             if self.n == -1:
                 # orthonormal vector, sequentially spanned
-                v = torch.zeros(B, C)
+                v = torch.zeros(B, C, device=x.device)
                 v[:, ii] = 1
             else:
                 # random properly-normalized vector for each sample
-                v = self._random_vector(C=C, B=B)
-            if x.is_cuda:
-                v = v.cuda()
+                v = self._random_vector(C=C, B=B, device=x.device)
             Jv = self._jacobian_vector_product(y, x, v, create_graph=True)
             J2 += C * torch.norm(Jv)**2 / (num_proj * B)
         R = (1 / 2) * J2
         return R
 
-    def _random_vector(self, C: int, B: int) -> torch.Tensor:
+    def _random_vector(self, C: int, B: int, device: torch.device = None) -> torch.Tensor:
         """Creates a random vector of dimension C with a norm of C^(1/2).
 
         This is needed for the projection formula to work.
@@ -106,16 +104,19 @@ class JacobianReg(nn.Module):
         Args:
             C: Output dimension
             B: Batch size
+            device: Device to create the tensor on
 
         Returns:
             A random normalized vector
         """
         if C == 1:
-            return torch.ones(B)
-        v = torch.randn(B, C)
-        arxilirary_zero = torch.zeros(B, C)
+            return torch.ones(B, device=device)
+        v = torch.randn(B, C, device=device)
+        arxilirary_zero = torch.zeros(B, C, device=device)
         vnorm = torch.norm(v, 2, 1, True)
-        v = torch.addcdiv(arxilirary_zero, 1.0, v, vnorm)
+        #NOTE:``value`` as a keyword: the positional form ``addcdiv(input, value, t1, t2)`` is
+        # no longer supported and will be deprecated.
+        v = torch.addcdiv(arxilirary_zero, v, vnorm, value=1.0)
         return v
 
     def _jacobian_vector_product(self,
