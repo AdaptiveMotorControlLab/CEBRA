@@ -248,19 +248,22 @@ def test_single_session_hybrid(data_name, loader_initfunc, model_architecture,
     data.configure_for(model)
     offset = model.get_offset()
     criterion = cebra.models.InfoNCE()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    lr, gamma = 1e-3, 0.5
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     solver = solver_initfunc(model=model,
                              criterion=criterion,
                              optimizer=optimizer)
+    # StepLR with step_size=1 multiplies the learning rate by gamma at every training step.
     solver.scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer, step_size=1, gamma=0.5)
+        optimizer, step_size=1, gamma=gamma)
 
     batch = next(iter(loader))
     inference = solver._inference(batch)
     assert len(inference) == 2
-    log = solver.step(batch)
-    assert isinstance(log, dict)
-    assert optimizer.param_groups[0]["lr"] == pytest.approx(5e-4)
+    for n_steps in (1, 2):
+        log = solver.step(batch)
+        assert isinstance(log, dict)
+        assert optimizer.param_groups[0]["lr"] == pytest.approx(lr * gamma**n_steps)
 
     X = loader.dataset.neural
     with pytest.raises(ValueError, match="not.*fitted"):

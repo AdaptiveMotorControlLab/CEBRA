@@ -231,12 +231,10 @@ def _optimized_and_reference(model, input_data, batch_size, **kwargs):
             reference.compute_attribution_map(batch_size=batch_size))
 
 
-_JACOBIAN_KEYS = ("jf", "jf-convabs", "jf-inv-lsq", "jf-inv-svd",
-                  "jf-convabs-inv-lsq", "jf-convabs-inv-svd")
-
-
 @pytest.mark.parametrize("conv", [False, True])
 def test_jacobian_batched_optimized_matches_batched(conv):
+    keys = ("jf", "jf-convabs", "jf-inv-lsq", "jf-inv-svd", "jf-convabs-inv-lsq",
+            "jf-convabs-inv-svd")
     torch.manual_seed(0)
     if conv:
         model = cebra.models.init("offset10-model",
@@ -249,7 +247,7 @@ def test_jacobian_batched_optimized_matches_batched(conv):
     input_data = torch.randn(70, 6, requires_grad=True)
     # batch_size does not divide the number of samples: the last batch is smaller.
     full, reference = _optimized_and_reference(model, input_data, batch_size=32)
-    for key in _JACOBIAN_KEYS:
+    for key in keys:
         np.testing.assert_allclose(full[key], reference[key], rtol=1e-5, atol=1e-6)
 
     mean, _ = _optimized_and_reference(model,
@@ -257,7 +255,7 @@ def test_jacobian_batched_optimized_matches_batched(conv):
                                        batch_size=32,
                                        return_full=False)
     assert mean["num_samples"] == len(reference["jf"])
-    for key in _JACOBIAN_KEYS:
+    for key in keys:
         np.testing.assert_allclose(mean[key],
                                    reference[key].mean(axis=0),
                                    rtol=1e-5,
