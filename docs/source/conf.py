@@ -271,8 +271,10 @@ nbsphinx_thumbnails = {
         "_static/thumbnails/dandi_demo_monkey.png",
     "demo_notebooks/Demo_xCEBRA_RatInABox":
         "_static/thumbnails/xCEBRA.png",
-    "demo_notebooks/Demo_hippocampus_unified":
+    "demo_notebooks/Demo_unified_hippocampus":
         "_static/thumbnails/UnifiedCEBRA.png",
+    "demo_notebooks/Demo_unified_allen_attribution":
+        "_static/thumbnails/UnifiedCEBRA_attribution.png",
     "demo_notebooks/Demo_DeepLabCut_CEBRA":
         "_static/thumbnails/DeepLabCutCEBRA.png"
 }
