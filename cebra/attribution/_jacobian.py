@@ -117,7 +117,8 @@ def compute_jacobian(
             prepared_inputs = tensors_to_cpu_and_double(input_vars)
         else:
             prepared_model = model.to(cuda_device).float()
-            prepared_inputs = tensors_to_cuda(input_vars, cuda_device=cuda_device)
+            prepared_inputs = tensors_to_cuda(input_vars,
+                                              cuda_device=cuda_device)
         return prepared_model, prepared_inputs
 
     def _forward_outputs(prepared_model, prepared_inputs):
@@ -135,28 +136,28 @@ def compute_jacobian(
         output_vars = _forward_outputs(prepared_model, prepared_inputs)
         n_outputs = int(output_vars.shape[1])
         effective_output_batch_size = (
-            n_outputs
-            if output_batch_size is None or any(
-                module.training for module in prepared_model.modules())
-            else min(int(output_batch_size), n_outputs)
-        )
+            n_outputs if output_batch_size is None or any(
+                module.training for module in prepared_model.modules()) else
+            min(int(output_batch_size), n_outputs))
 
         jacob_chunks = []
         for output_start in range(0, n_outputs, effective_output_batch_size):
-            output_end = min(output_start + effective_output_batch_size, n_outputs)
+            output_end = min(output_start + effective_output_batch_size,
+                             n_outputs)
             if output_start > 0:
                 output_vars = _forward_outputs(prepared_model, prepared_inputs)
 
             chunk_rows = []
-            for local_idx, output_idx in enumerate(range(output_start, output_end)):
+            for local_idx, output_idx in enumerate(
+                    range(output_start, output_end)):
                 is_last_in_chunk = local_idx == (output_end - output_start - 1)
                 grads = torch.autograd.grad(
-                    output_vars[:, output_idx : output_idx + 1],
+                    output_vars[:, output_idx:output_idx + 1],
                     prepared_inputs,
                     retain_graph=not is_last_in_chunk,
                     create_graph=False,
                     grad_outputs=torch.ones(
-                        output_vars[:, output_idx : output_idx + 1].shape,
+                        output_vars[:, output_idx:output_idx + 1].shape,
                         device=output_vars.device,
                     ),
                 )

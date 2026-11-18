@@ -143,10 +143,10 @@ class TensorDataset(cebra_data.SingleSessionDataset):
 
     def to(self, device: str) -> "TensorDataset":
         """Move dataset to the specified device.
-        
+
         Args:
             device: Target device
-            
+
         Returns:
             Self for chaining
         """
@@ -558,10 +558,10 @@ class UnifiedDataset(DatasetCollection):
 
 class UnifiedxCEBRADataset(UnifiedDataset):
     """Multi-session unified dataset with per-objective labels for multiobjective learning.
-    
+
     Extends UnifiedDataset to support flexible, per-objective label selection and
     concatenation across sessions. Designed to work with UnifiedContrastiveMultiObjectiveLoader.
-    
+
     Example:
         >>> import cebra.data
         >>> import torch
@@ -573,10 +573,10 @@ class UnifiedxCEBRADataset(UnifiedDataset):
         >>> label1_obj2 = torch.randn((100,))
         >>> label2_obj1 = torch.randn((100,))
         >>> label2_obj2 = torch.randn((100,))
-        >>> 
+        >>>
         >>> dataset1 = cebra.data.TensorDataset(session1, continuous=index1)
         >>> dataset2 = cebra.data.TensorDataset(session2, continuous=index2)
-        >>> 
+        >>>
         >>> # Create unified dataset with per-session labels
         >>> unified_dataset = cebra.data.UnifiedxCEBRADataset(dataset1, dataset2)
         >>> # Add per-objective labels (stored per session)
@@ -590,7 +590,7 @@ class UnifiedxCEBRADataset(UnifiedDataset):
 
     def add_labels(self, label_name: str, label_list: List[torch.Tensor]):
         """Add a set of per-objective labels, one per session.
-        
+
         Args:
             label_name: Name of the label/objective (e.g., "position", "velocity")
             label_list: List of label tensors, one per session, each of shape (session_length,)
@@ -616,15 +616,15 @@ class UnifiedxCEBRADataset(UnifiedDataset):
 
     def load_batch_contrastive(self, index: BatchIndex) -> Batch:
         """Load a batch for contrastive learning with per-objective positives.
-        
+
         Returns a single Batch with shared ref/neg and a list of positives (one per objective).
-        
+
         Args:
             index: BatchIndex with:
                 - reference: (num_sessions, num_samples) tensor (shared across objectives)
                 - negative: (num_sessions, num_samples) tensor (shared across objectives)
                 - positive: list of (num_sessions, num_samples) tensors, one per objective
-        
+
         Returns:
             A :py:class:`~cebra.data.datatypes.Batch` whose ``reference`` and ``negative`` are
             concatenated across sessions and whose ``positive`` is a list of tensors, one per

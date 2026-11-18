@@ -30,6 +30,8 @@ import cebra.models.jacobian_regularizer as jacobian_regularizer
 import cebra.models.model
 import cebra.registry
 
+import _reference_implementations  # isort: skip
+
 
 def test_registry():
     assert cebra.registry.is_registry(cebra.models)
@@ -169,24 +171,19 @@ def test_version_check_dropout_available():
 
 
 # Tests for parametrized offset models backward compatibility
-from _reference_implementations import Offset5ModelReference
-from _reference_implementations import Offset10ModelReference
-from _reference_implementations import Offset15ModelReference
-from _reference_implementations import Offset20ModelReference
-from _reference_implementations import Offset36Reference
-from _reference_implementations import Offset40Reference
-from _reference_implementations import Offset50Reference
+
+_OFFSET_REFERENCE_MODELS = [
+    (5, _reference_implementations.Offset5ModelReference),
+    (10, _reference_implementations.Offset10ModelReference),
+    (15, _reference_implementations.Offset15ModelReference),
+    (20, _reference_implementations.Offset20ModelReference),
+    (36, _reference_implementations.Offset36Reference),
+    (40, _reference_implementations.Offset40Reference),
+    (50, _reference_implementations.Offset50Reference),
+]
 
 
-@pytest.mark.parametrize("offset_n,reference_class", [
-    (5, Offset5ModelReference),
-    (10, Offset10ModelReference),
-    (15, Offset15ModelReference),
-    (20, Offset20ModelReference),
-    (36, Offset36Reference),
-    (40, Offset40Reference),
-    (50, Offset50Reference),
-])
+@pytest.mark.parametrize("offset_n,reference_class", _OFFSET_REFERENCE_MODELS)
 def test_parametrized_offset_models_match_reference(offset_n, reference_class):
     """Test that parametrized offset models produce identical output to reference hardcoded models."""
 
@@ -262,19 +259,11 @@ def test_parametrized_offset_models_exist(offset_n):
     assert isinstance(model, cebra.models.ConvolutionalModelMixin)
 
 
-@pytest.mark.parametrize("offset_n,reference_class", [
-    (5, Offset5ModelReference),
-    (10, Offset10ModelReference),
-    (15, Offset15ModelReference),
-    (20, Offset20ModelReference),
-    (36, Offset36Reference),
-    (40, Offset40Reference),
-    (50, Offset50Reference),
-])
+@pytest.mark.parametrize("offset_n,reference_class", _OFFSET_REFERENCE_MODELS)
 def test_parametrized_offset_models_forward_pass_identical(
         offset_n, reference_class):
     """Test that parametrized and reference models produce identical forward pass outputs.
-    
+
     This test verifies that when both models are initialized with the same seed and weights,
     they produce identical outputs.
     """
@@ -351,7 +340,7 @@ def test_parametrized_offset_models_layer_structure(offset_n):
 
     # Last meaningful layer (before Norm and Squeeze) should be Conv1d
     # Find the second-to-last Conv1d layer
-    conv_layers = [l for l in layers if isinstance(l, nn.Conv1d)]
+    conv_layers = [layer for layer in layers if isinstance(layer, nn.Conv1d)]
     assert len(conv_layers) >= 2, \
         f"offset{offset_n} model should have at least 2 Conv1d layers"
 

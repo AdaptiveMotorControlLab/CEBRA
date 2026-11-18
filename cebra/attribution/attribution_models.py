@@ -33,7 +33,6 @@ import cebra
 import cebra.attribution._jacobian
 from cebra.attribution import register
 
-
 _VALID_ATTRIBUTION_RESULT_KEYS = {
     "jf",
     "jf-convabs",
@@ -56,8 +55,7 @@ def _normalize_selected_result_keys(selected_keys):
         if key_str not in _VALID_ATTRIBUTION_RESULT_KEYS:
             raise ValueError(
                 f"Unknown attribution result key {key!r}. "
-                f"Valid keys: {sorted(_VALID_ATTRIBUTION_RESULT_KEYS)}"
-            )
+                f"Valid keys: {sorted(_VALID_ATTRIBUTION_RESULT_KEYS)}")
         normalized.append(key_str)
     return set(normalized)
 
@@ -376,9 +374,9 @@ class JFMethodBased(AttributionMap):
                 if selected_keys is not None and inv_key not in selected_keys:
                     continue
                 print(f"Computing inverse for {key} with method {method}")
-                result[inv_key], result[f'time_inversion_{method}'] = self._inverse(
-                    value, method=method
-                )
+                result[inv_key], result[
+                    f'time_inversion_{method}'] = self._inverse(value,
+                                                                method=method)
                 # result[f"{key}-inv-{method}-conditions"] = self.check_moores_penrose_conditions(value, result[f"{key}-inv-{method}"])
 
         return result
@@ -417,9 +415,9 @@ class JFMethodBasedBatched(JFMethodBased):
                 inv_key = f"{key}-inv-{method}"
                 if selected_keys is not None and inv_key not in selected_keys:
                     continue
-                result[inv_key], result[f'time_inversion_{method}'] = self._inverse(
-                    value, method=method
-                )
+                result[inv_key], result[
+                    f'time_inversion_{method}'] = self._inverse(value,
+                                                                method=method)
 
         return result
 
@@ -457,7 +455,8 @@ class JFMethodBasedBatchedOptimized(JFMethodBased):
             )
 
         input_data_batches = torch.split(self.input_data, batch_size)
-        keys = sorted(_VALID_ATTRIBUTION_RESULT_KEYS if selected_keys is None else selected_keys)
+        keys = sorted(_VALID_ATTRIBUTION_RESULT_KEYS if selected_keys is
+                      None else selected_keys)
 
         if return_full:
             per_key_chunks = {key: [] for key in keys}
@@ -472,8 +471,7 @@ class JFMethodBasedBatchedOptimized(JFMethodBased):
 
         for input_data_batch in input_data_batches:
             jacobian_batch = self._compute_jacobian(
-                input_data_batch, output_batch_size=latent_batch_size
-            )
+                input_data_batch, output_batch_size=latent_batch_size)
             reduced_batch = self._reduce_attribution_map({'jf': jacobian_batch})
             batch_samples = next(iter(reduced_batch.values())).shape[0]
 

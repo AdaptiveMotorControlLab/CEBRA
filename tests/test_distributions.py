@@ -31,7 +31,6 @@ import cebra.datasets as cebra_datasets
 import cebra.distributions as cebra_distr
 import cebra.distributions.base as cebra_distr_base
 
-
 # ---- helpers ----
 
 
@@ -456,20 +455,26 @@ def _tiled_unified_dataset(n_frames=50, n_repeats=6, n_sessions=3, seed=0):
     gen = torch.Generator().manual_seed(seed)
     labels = torch.randn(n_frames, 4, generator=gen).repeat(n_repeats, 1)
     sessions = [
-        cebra.data.TensorDataset(neural=torch.randn(n_frames * n_repeats, 3 + i, generator=gen),
-                                 continuous=labels.clone()) for i in range(n_sessions)
+        cebra.data.TensorDataset(neural=torch.randn(n_frames * n_repeats,
+                                                    3 + i,
+                                                    generator=gen),
+                                 continuous=labels.clone())
+        for i in range(n_sessions)
     ]
     return cebra.data.UnifiedDataset(*sessions), labels
 
 
 def test_unified_sampler_random_ties_default_is_true():
     dataset, _ = _tiled_unified_dataset()
-    assert cebra_distr.UnifiedSampler(dataset, time_offset=1).random_ties is True
+    assert cebra_distr.UnifiedSampler(dataset,
+                                      time_offset=1).random_ties is True
 
 
 def test_unified_sampler_first_tie_when_random_ties_false():
     dataset, _ = _tiled_unified_dataset()
-    sampler = cebra_distr.UnifiedSampler(dataset, time_offset=1, random_ties=False)
+    sampler = cebra_distr.UnifiedSampler(dataset,
+                                         time_offset=1,
+                                         random_ties=False)
     ref = sampler.sample_prior(200, session_id=0)
     # every non-reference session is matched on the first trial: argmin returns the earliest tie
     assert (ref[1:] < 50).all()
@@ -484,13 +489,16 @@ def test_unified_sampler_random_ties_uses_every_repeat(set_after_init):
         sampler = cebra_distr.UnifiedSampler(dataset, time_offset=1)
         sampler.random_ties = True
     else:
-        sampler = cebra_distr.UnifiedSampler(dataset, time_offset=1, random_ties=True)
+        sampler = cebra_distr.UnifiedSampler(dataset,
+                                             time_offset=1,
+                                             random_ties=True)
     np.random.seed(0)
     torch.manual_seed(0)
     ref = sampler.sample_prior(3000, session_id=0)
     pos = sampler.sample_conditional(ref)
     for idx in (ref[1:], pos):
-        repeats = np.bincount((np.asarray(idx) // n_frames).ravel(), minlength=n_repeats)
+        repeats = np.bincount((np.asarray(idx) // n_frames).ravel(),
+                              minlength=n_repeats)
         # spread over all repeats, roughly uniformly
         assert (repeats > 0).all()
         assert repeats.min() / repeats.max() > 0.7
@@ -519,8 +527,8 @@ def _tied_sessions(
 def _unified_sampler(labels, **kwargs):
     inputs = [torch.zeros(len(x), 1) for x in labels]
     dataset = cebra.data.UnifiedDataset(*[
-        cebra.data.TensorDataset(i, continuous=l)
-        for i, l in zip(inputs, labels)
+        cebra.data.TensorDataset(neural, continuous=label)
+        for neural, label in zip(inputs, labels)
     ])
     return cebra_distr.UnifiedSampler(dataset, time_offset=1, **kwargs)
 
@@ -537,7 +545,7 @@ def _brute(sampler, session_id, query):
 def _dup_labels(seed=0, n=120, n_unique=12, near=3):
     gen = torch.Generator().manual_seed(seed)
     base = torch.randn(n_unique, 4, generator=gen)
-    labels = base[torch.randint(n_unique, (n, ), generator=gen)].clone()
+    labels = base[torch.randint(n_unique, (n,), generator=gen)].clone()
     # near-duplicates: tiny perturbations, within tie_rtol of their source label
     idx = torch.randperm(n, generator=gen)[:near]
     labels[idx] += 1e-9
@@ -549,7 +557,7 @@ def test_search_unique_labels_matches_brute_force(duplicates):
     if duplicates:
         labels, base = _dup_labels()
         query = torch.cat([base, base[:5] + 0.3, torch.randn(10, 4)])
-        query = query[torch.randint(len(query), (200, ))]
+        query = query[torch.randint(len(query), (200,))]
     else:
         labels = torch.randn(80, 4)
         query = torch.randn(50, 4)

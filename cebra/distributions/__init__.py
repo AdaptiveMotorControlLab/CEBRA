@@ -64,5 +64,5 @@ __all__ = [
     "DeltaNormalDistribution",
     "MultivariateDiscrete",
     "MultisessionSampler",
-    "UnifiedSampler"
+    "UnifiedSampler",
 ]
