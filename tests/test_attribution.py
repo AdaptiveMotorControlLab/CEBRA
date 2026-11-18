@@ -226,15 +226,14 @@ def _optimized_and_reference(model, input_data, batch_size, **kwargs):
                                        model=model,
                                        input_data=input_data,
                                        output_dimension=3)
-    return (optimized.compute_attribution_map(batch_size=batch_size,
-                                              **kwargs),
+    return (optimized.compute_attribution_map(batch_size=batch_size, **kwargs),
             reference.compute_attribution_map(batch_size=batch_size))
 
 
 @pytest.mark.parametrize("conv", [False, True])
 def test_jacobian_batched_optimized_matches_batched(conv):
-    keys = ("jf", "jf-convabs", "jf-inv-lsq", "jf-inv-svd", "jf-convabs-inv-lsq",
-            "jf-convabs-inv-svd")
+    keys = ("jf", "jf-convabs", "jf-inv-lsq", "jf-inv-svd",
+            "jf-convabs-inv-lsq", "jf-convabs-inv-svd")
     torch.manual_seed(0)
     if conv:
         model = cebra.models.init("offset10-model",
@@ -248,7 +247,10 @@ def test_jacobian_batched_optimized_matches_batched(conv):
     # batch_size does not divide the number of samples: the last batch is smaller.
     full, reference = _optimized_and_reference(model, input_data, batch_size=32)
     for key in keys:
-        np.testing.assert_allclose(full[key], reference[key], rtol=1e-5, atol=1e-6)
+        np.testing.assert_allclose(full[key],
+                                   reference[key],
+                                   rtol=1e-5,
+                                   atol=1e-6)
 
     mean, _ = _optimized_and_reference(model,
                                        input_data,
@@ -267,15 +269,21 @@ def test_jacobian_batched_optimized_selected_keys_and_latent_batching():
     model = torch.nn.Sequential(torch.nn.Linear(6, 8), torch.nn.Tanh(),
                                 torch.nn.Linear(8, 3))
     input_data = torch.randn(40, 6, requires_grad=True)
-    full, reference = _optimized_and_reference(model,
-                                               input_data,
-                                               batch_size=16,
-                                               selected_keys=["jf", "jf_inv_svd"],
-                                               latent_batch_size=1)
+    full, reference = _optimized_and_reference(
+        model,
+        input_data,
+        batch_size=16,
+        selected_keys=["jf", "jf_inv_svd"],
+        latent_batch_size=1)
     # "_" is read as "-"; only the selected maps and the timings are returned.
-    assert set(full) == {"jf", "jf-inv-svd", "time_inversion_lsq", "time_inversion_svd"}
+    assert set(full) == {
+        "jf", "jf-inv-svd", "time_inversion_lsq", "time_inversion_svd"
+    }
     assert full["time_inversion_lsq"] == 0.0
-    np.testing.assert_allclose(full["jf"], reference["jf"], rtol=1e-5, atol=1e-6)
+    np.testing.assert_allclose(full["jf"],
+                               reference["jf"],
+                               rtol=1e-5,
+                               atol=1e-6)
     np.testing.assert_allclose(full["jf-inv-svd"],
                                reference["jf-inv-svd"],
                                rtol=1e-5,
@@ -314,8 +322,7 @@ def test_compute_jacobian_output_batching(output_batch_size):
 @pytest.mark.parametrize("mixed_mode", [False, True])
 def test_compute_jacobian_output_batching_with_dropout(mixed_mode):
     torch.manual_seed(0)
-    model = torch.nn.Sequential(torch.nn.Linear(6, 8),
-                                torch.nn.Dropout(0.5),
+    model = torch.nn.Sequential(torch.nn.Linear(6, 8), torch.nn.Dropout(0.5),
                                 torch.nn.Linear(8, 5))
     if mixed_mode:
         model.eval()
@@ -338,8 +345,7 @@ def test_compute_jacobian_output_batching_with_dropout(mixed_mode):
 
 @pytest.mark.parametrize("training", [False, True])
 def test_compute_jacobian_output_batching_forward_count(training):
-    model = torch.nn.Sequential(torch.nn.BatchNorm1d(6),
-                                torch.nn.Linear(6, 5))
+    model = torch.nn.Sequential(torch.nn.BatchNorm1d(6), torch.nn.Linear(6, 5))
     model.train(training)
     forwards = []
     handle = model.register_forward_hook(

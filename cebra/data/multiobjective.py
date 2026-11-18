@@ -21,7 +21,6 @@
 #
 
 import literate_dataclasses as dataclasses
-import numpy as np
 import torch
 
 import cebra.data as cebra_data
@@ -178,7 +177,7 @@ class ContrastiveMultiObjectiveLoader(MultiObjectiveLoader):
 @dataclasses.dataclass
 class UnifiedContrastiveMultiObjectiveLoader(cebra_data.Loader):
     """Unified Contrastive Multiobjective data Loader for multi-session training.
-    
+
     Uses a single shared model across sessions with per-objective time_delta distributions.
     Reference and negative samples are shared across all objectives and sampled uniformly
     across sessions via UnifiedSampler. Positive samples are drawn per-objective using
@@ -192,7 +191,8 @@ class UnifiedContrastiveMultiObjectiveLoader(cebra_data.Loader):
 
     sampling_mode_contrastive: str = dataclasses.field(
         default="refneg_shared",
-        doc="""Type of sampling performed, re whether reference and negative samples
+        doc=
+        """Type of sampling performed, re whether reference and negative samples
             are shared. Only 'refneg_shared' is supported for unified multiobjective."""
     )
 
@@ -211,18 +211,16 @@ class UnifiedContrastiveMultiObjectiveLoader(cebra_data.Loader):
                 ``continuous_index``.
         """
         kwargs_distribution = config['kwargs']
-        
+
         if config['distribution'] != "unified_time_delta":
             raise NotImplementedError(
                 f"Only 'unified_time_delta' distribution is supported for unified multiobjective, "
-                f"got '{config['distribution']}'."
-            )
-        
+                f"got '{config['distribution']}'.")
+
         if not hasattr(self.dataset, 'continuous_index'):
             raise ValueError(
-                "UnifiedDataset must have 'continuous_index' attribute."
-            )
-        
+                "UnifiedDataset must have 'continuous_index' attribute.")
+
         distribution = cebra.distributions.UnifiedSampler(
             self.dataset,
             kwargs_distribution.get('time_delta', self.time_offset),
@@ -232,14 +230,14 @@ class UnifiedContrastiveMultiObjectiveLoader(cebra_data.Loader):
 
     def get_indices(self, num_samples: int):
         """Sample and return the specified number of indices for unified multiobjective.
-        
+
         Reference and negative indices are shared across all objectives and sampled
         uniformly across sessions. Positive indices are drawn per-objective using
         time_delta distributions with random shifts.
-        
+
         Args:
             num_samples: Batch size (number of samples per objective).
-            
+
         Returns:
             A BatchIndex with:
             - reference: shape (num_sessions, num_samples) tensor shared across objectives
@@ -250,7 +248,7 @@ class UnifiedContrastiveMultiObjectiveLoader(cebra_data.Loader):
             raise ValueError(
                 f"Sampling mode {self.sampling_mode_contrastive} is not implemented yet."
             )
-        
+
         # Sample shared reference and negative using the first distribution
         # These come back as numpy arrays from UnifiedSampler
         ref_idx_np = self.distributions[0].sample_prior(self.batch_size)

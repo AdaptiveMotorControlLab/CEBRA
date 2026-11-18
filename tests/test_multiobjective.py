@@ -139,13 +139,14 @@ def test_finalize(config):
 ])
 def test_unified_config_time_delta(time_offset, time_delta, expected_delta):
     dataset = cebra.data.UnifiedxCEBRADataset(
-        cebra.data.TensorDataset(
-            torch.randn(100, neurons),
-            continuous=torch.arange(100).float()[:, None])
+        cebra.data.TensorDataset(torch.randn(100, neurons),
+                                 continuous=torch.arange(100).float()[:, None])
         for neurons in (3, 5))
     loader_kwargs = {} if time_offset is None else {"time_offset": time_offset}
-    loader = cebra.data.UnifiedContrastiveMultiObjectiveLoader(
-        dataset=dataset, num_steps=1, batch_size=16, **loader_kwargs)
+    loader = cebra.data.UnifiedContrastiveMultiObjectiveLoader(dataset=dataset,
+                                                               num_steps=1,
+                                                               batch_size=16,
+                                                               **loader_kwargs)
     config = MultiObjectiveConfig(loader)
     config.set_slice(0, 3)
     config.set_loss("FixedCosineInfoNCE", temperature=1.)
@@ -158,8 +159,8 @@ def test_unified_config_time_delta(time_offset, time_delta, expected_delta):
 
     sampler = loader.distributions[0]
     differences = torch.from_numpy(sampler.time_difference)
-    torch.testing.assert_close(
-        differences, torch.full_like(differences, expected_delta))
+    torch.testing.assert_close(differences,
+                               torch.full_like(differences, expected_delta))
     reference = torch.arange(20, 36).repeat(2, 1)
     positive = torch.from_numpy(sampler.sample_conditional(reference.numpy()))
     torch.testing.assert_close(positive, reference + expected_delta)

@@ -197,7 +197,8 @@ class ConvTanhEncoder(cebra.models.Model, cebra.models.ConvolutionalModelMixin):
 def test_num_valid_rows():
     """One output per window of left + right samples; per-sample models give one per sample."""
     model = ConvTanhEncoder(4, 3, left=2, right=1)  # window of 3 samples
-    assert feature_map._num_valid_rows(model, 20) == 18  # outputs at samples 2..19
+    assert feature_map._num_valid_rows(model,
+                                       20) == 18  # outputs at samples 2..19
     assert feature_map._num_valid_rows(MLPEncoder(4, 3), 20) == 20
 
 
@@ -506,7 +507,8 @@ def test_unified_random_ties_seeded_and_global_rng_untouched():
                                                    session_id=0,
                                                    **kw)
 
-    torch_state, numpy_state = torch.random.get_rng_state(), np.random.get_state()[1].copy()
+    torch_state, numpy_state = torch.random.get_rng_state(
+    ), np.random.get_state()[1].copy()
     a = run(random_ties=True, seed=3)
     np.testing.assert_allclose(a, run(random_ties=True, seed=3))
     assert not np.allclose(a, run(random_ties=True, seed=4))
@@ -551,8 +553,14 @@ def test_feature_map_methods_agree_with_cebra_attribution(conv):
                                                       batch_size=7,
                                                       method=method)
         np.testing.assert_allclose(per_row, expected, rtol=1e-5, atol=1e-6)
-        mean = feature_map.feature_attribution_map(solver, neural, W, method=method)
-        np.testing.assert_allclose(mean, expected.mean(axis=0), rtol=1e-5, atol=1e-6)
+        mean = feature_map.feature_attribution_map(solver,
+                                                   neural,
+                                                   W,
+                                                   method=method)
+        np.testing.assert_allclose(mean,
+                                   expected.mean(axis=0),
+                                   rtol=1e-5,
+                                   atol=1e-6)
 
     with pytest.raises(ValueError, match="method must be one of"):
         feature_map.feature_attribution_map(solver,
@@ -564,10 +572,8 @@ def test_feature_map_methods_agree_with_cebra_attribution(conv):
 def test_neuron_gradient_backend_matches_jacobian():
     pytest.importorskip("captum")
     torch.manual_seed(0)
-    rng = np.random.default_rng(8)
     model = MLPEncoder(4, 5)
     neural = torch.randn(30, 4)
-    W = rng.normal(size=(5, 2))
     jacobian = cebra.attribution.init(
         "jacobian-based",
         model=model,

@@ -33,9 +33,7 @@ import cebra.models
 import cebra.solver
 from cebra.solver.supervised import SupervisedNNSolver
 
-
 # ---- helpers ----
-
 
 device = "cpu"
 
@@ -254,8 +252,9 @@ def test_single_session_hybrid(data_name, loader_initfunc, model_architecture,
                              criterion=criterion,
                              optimizer=optimizer)
     # StepLR with step_size=1 multiplies the learning rate by gamma at every training step.
-    solver.scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer, step_size=1, gamma=gamma)
+    solver.scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
+                                                       step_size=1,
+                                                       gamma=gamma)
 
     batch = next(iter(loader))
     inference = solver._inference(batch)
@@ -263,7 +262,8 @@ def test_single_session_hybrid(data_name, loader_initfunc, model_architecture,
     for n_steps in (1, 2):
         log = solver.step(batch)
         assert isinstance(log, dict)
-        assert optimizer.param_groups[0]["lr"] == pytest.approx(lr * gamma**n_steps)
+        assert optimizer.param_groups[0]["lr"] == pytest.approx(lr *
+                                                                gamma**n_steps)
 
     X = loader.dataset.neural
     with pytest.raises(ValueError, match="not.*fitted"):
@@ -426,13 +426,17 @@ def test_unified_session(data_name, model_architecture, loader_initfunc,
 # ---- checkpoint loading ----
 
 
-@pytest.mark.parametrize("variant", ["regularized", "multiobjective", "unified", "supervised"])
+@pytest.mark.parametrize(
+    "variant", ["regularized", "multiobjective", "unified", "supervised"])
 def test_custom_solver_steps_scheduler(variant, monkeypatch):
-    model = cebra.models.init("offset1-model", num_neurons=4, num_units=8,
+    model = cebra.models.init("offset1-model",
+                              num_neurons=4,
+                              num_units=8,
                               num_output=3)
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-    scheduler = torch.optim.lr_scheduler.StepLR(
-        optimizer, step_size=1, gamma=0.5)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer,
+                                                step_size=1,
+                                                gamma=0.5)
     kwargs = dict(model=model, optimizer=optimizer, scheduler=scheduler)
     batch = cebra.data.Batch(torch.randn(8, 4, 1), torch.randn(8, 4, 1),
                              torch.randn(8, 4, 1))
@@ -442,16 +446,23 @@ def test_custom_solver_steps_scheduler(variant, monkeypatch):
     elif variant in ("multiobjective", "unified"):
         criterion = cebra.models.MultiCriterions([{
             "indices": (0, 3),
-            "contrastive_loss": {"name": "InfoNCE", "kwargs": {}},
-        }], mode="contrastive")
+            "contrastive_loss": {
+                "name": "InfoNCE",
+                "kwargs": {}
+            },
+        }],
+                                                 mode="contrastive")
         solver_type = (cebra.solver.ContrastiveMultiobjectiveSolverxCEBRA
-                       if variant == "multiobjective" else cebra.solver.UnifiedSolverxCEBRA)
-        solver = solver_type(**kwargs, criterion=criterion,
-                             feature_ranges=[slice(0, 3)], renormalize=False)
+                       if variant == "multiobjective" else
+                       cebra.solver.UnifiedSolverxCEBRA)
+        solver = solver_type(**kwargs,
+                             criterion=criterion,
+                             feature_ranges=[slice(0, 3)],
+                             renormalize=False)
         batch.positive = [batch.positive]
     else:
-        solver = cebra.solver.SingleSessionSolver(
-            **kwargs, criterion=torch.nn.MSELoss())
+        solver = cebra.solver.SingleSessionSolver(**kwargs,
+                                                  criterion=torch.nn.MSELoss())
         monkeypatch.setattr(solver, "_inference",
                             lambda batch: solver.model(batch["neural"]))
         batch = {"neural": batch.reference, "label": torch.randn(8, 3)}
@@ -462,11 +473,13 @@ def test_custom_solver_steps_scheduler(variant, monkeypatch):
         else:
             solver.step(batch)
         assert scheduler.last_epoch == initial_epoch + iteration
-        assert optimizer.param_groups[0]["lr"] == pytest.approx(0.1 * 0.5**iteration)
+        assert optimizer.param_groups[0]["lr"] == pytest.approx(0.1 *
+                                                                0.5**iteration)
 
 
 @pytest.mark.parametrize("scheduler_type", ["lambda", "cosine"])
 def test_checkpoint_resumes_scheduler(tmp_path, scheduler_type):
+
     def make_solver():
         model = torch.nn.Linear(4, 3)
         optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
@@ -474,8 +487,8 @@ def test_checkpoint_resumes_scheduler(tmp_path, scheduler_type):
             scheduler = torch.optim.lr_scheduler.LambdaLR(
                 optimizer, lr_lambda=lambda epoch: 0.9**epoch)
         else:
-            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                optimizer, T_max=10)
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                                   T_max=10)
         return cebra.solver.SingleSessionSolver(
             model=model,
             criterion=cebra.models.InfoNCE(),
@@ -504,15 +517,14 @@ def test_checkpoint_resumes_scheduler(tmp_path, scheduler_type):
 def test_load_legacy_checkpoint_without_scheduler():
     model = torch.nn.Linear(4, 3)
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-    solver = cebra.solver.SingleSessionSolver(
-        model=model,
-        criterion=cebra.models.InfoNCE(),
-        optimizer=optimizer)
+    solver = cebra.solver.SingleSessionSolver(model=model,
+                                              criterion=cebra.models.InfoNCE(),
+                                              optimizer=optimizer)
     checkpoint = solver.state_dict()
     assert "scheduler" not in checkpoint
 
-    solver.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=10)
+    solver.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer,
+                                                                  T_max=10)
     scheduler_state = copy.deepcopy(solver.scheduler.state_dict())
     solver.load_state_dict(checkpoint)
     assert solver.scheduler.state_dict() == scheduler_state
@@ -535,17 +547,23 @@ def test_weights_only_checkpoint_with_numpy_scalar(tmp_path, dtype):
 def test_load_checkpoint_with_numpy_scalars(tmp_path):
     # Checkpoints of unified solvers saved before n_features was a Python int store it as a
     # numpy int64; torch>=2.6 loads with weights_only=True by default.
-    model = cebra.models.init("offset1-model", num_neurons=4, num_units=8, num_output=3)
-    solver = cebra.solver.SingleSessionSolver(
-        model=model,
-        criterion=cebra.models.InfoNCE(),
-        optimizer=torch.optim.Adam(model.parameters()))
+    model = cebra.models.init("offset1-model",
+                              num_neurons=4,
+                              num_units=8,
+                              num_output=3)
+    solver = cebra.solver.SingleSessionSolver(model=model,
+                                              criterion=cebra.models.InfoNCE(),
+                                              optimizer=torch.optim.Adam(
+                                                  model.parameters()))
     solver.n_features = np.int64(4)
     solver.log[("loss_val", 0)] = [np.float64(0.5)]
     solver.save(str(tmp_path), "model.pt")
 
     other = cebra.solver.SingleSessionSolver(
-        model=cebra.models.init("offset1-model", num_neurons=4, num_units=8, num_output=3),
+        model=cebra.models.init("offset1-model",
+                                num_neurons=4,
+                                num_units=8,
+                                num_output=3),
         criterion=cebra.models.InfoNCE(),
         optimizer=torch.optim.Adam(model.parameters()))
     other.load(str(tmp_path), "model.pt")
@@ -676,12 +694,16 @@ def test_unified_transform_session_shorter_than_window():
 def test_unified_resampling_transform_ignores_batch_size(wrapped, pad):
     inputs, labels = _tied_sessions(lengths=(60, 90, 75))
     module = cebra.models.init("offset40-model-4x-subsample",
-                               num_neurons=12, num_units=8, num_output=4)
-    kwargs = dict(model=module, criterion=cebra.models.InfoNCE(),
+                               num_neurons=12,
+                               num_units=8,
+                               num_output=4)
+    kwargs = dict(model=module,
+                  criterion=cebra.models.InfoNCE(),
                   optimizer=torch.optim.Adam(module.parameters()))
     if wrapped:
-        solver = cebra.solver.UnifiedSolverxCEBRA(
-            **kwargs, feature_ranges=[slice(0, 4)], renormalize=False)
+        solver = cebra.solver.UnifiedSolverxCEBRA(**kwargs,
+                                                  feature_ranges=[slice(0, 4)],
+                                                  renormalize=False)
     else:
         solver = cebra.solver.UnifiedSolver(**kwargs)
     solver.n_features, solver.num_sessions = 12, 3
@@ -689,13 +711,17 @@ def test_unified_resampling_transform_ignores_batch_size(wrapped, pad):
     module.eval()
     with torch.no_grad():
         expected = cebra.solver.base._not_batched_transform(
-            model=module, inputs=aligned, pad_before_transform=pad,
+            model=module,
+            inputs=aligned,
+            pad_before_transform=pad,
             offset=module.get_offset())
     assert expected.shape[0] < len(inputs[1])
     for batch_size in (None, 1, 7):
-        actual = solver.transform(
-            inputs, labels, session_id=1, batch_size=batch_size,
-            pad_before_transform=pad)
+        actual = solver.transform(inputs,
+                                  labels,
+                                  session_id=1,
+                                  batch_size=batch_size,
+                                  pad_before_transform=pad)
         torch.testing.assert_close(actual, expected)
 
 
@@ -732,7 +758,11 @@ def test_unified_transform_default_seed_and_random_ties_need_seed():
         solver.aligned_inputs(inputs, labels, 0, random_ties=True),
         solver.aligned_inputs(inputs, labels, 0, random_ties=True, seed=0))
     with pytest.raises(ValueError, match="needs a seed"):
-        solver.transform(inputs, labels, session_id=0, random_ties=True, seed=None)
+        solver.transform(inputs,
+                         labels,
+                         session_id=0,
+                         random_ties=True,
+                         seed=None)
 
 
 # ---- unified xCEBRA solver ----
@@ -762,7 +792,7 @@ def test_unified_xcebra_transform_concatenated_and_split_mode_restored(initial):
     assert torch.is_tensor(emb) and emb.shape == (90, 6)
     assert solver.model.split_outputs is initial
     with pytest.raises(Exception):
-        solver.transform(inputs, [l[:, :1] * 0 for l in labels][:2],
+        solver.transform(inputs, [label[:, :1] * 0 for label in labels][:2],
                          session_id=0)
     assert solver.model.split_outputs is initial
 
@@ -773,8 +803,8 @@ def test_unified_xcebra_transform_concatenated_and_split_mode_restored(initial):
 def test_unified_checkpoint_loads_with_weights_only(tmp_path):
     inputs, labels = _tied_sessions()
     dataset = cebra.data.UnifiedDataset(*[
-        cebra.data.TensorDataset(x, continuous=l)
-        for x, l in zip(inputs, labels)
+        cebra.data.TensorDataset(x, continuous=label)
+        for x, label in zip(inputs, labels)
     ])
     assert type(dataset.input_dimension) is int
     solver = _unified_solver(sum(x.shape[1] for x in inputs))

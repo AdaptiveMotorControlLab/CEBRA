@@ -68,14 +68,16 @@ def test_masked_mixin_no_masks():
 
 @pytest.mark.parametrize("entry", [
     ("RandomNeuronMask", 0.5),
-    {"RandomNeuronMask": 0.5},
+    {
+        "RandomNeuronMask": 0.5
+    },
 ])
 def test_list_masks_are_dataset_local(entry, monkeypatch):
     monkeypatch.setattr(cebra.data.masking.MaskedMixin, "_masks", [])
     train = cebra.data.TensorDataset(torch.ones((10, 20)),
-                                    continuous=torch.ones((10, 1)))
+                                     continuous=torch.ones((10, 1)))
     valid = cebra.data.TensorDataset(torch.ones((10, 20)),
-                                    continuous=torch.ones((10, 1)))
+                                     continuous=torch.ones((10, 1)))
 
     train.set_masks([entry])
     first_mask = train._masks[0]
@@ -85,7 +87,7 @@ def test_list_masks_are_dataset_local(entry, monkeypatch):
     assert train._masks[0] is first_mask
     assert valid._masks == []
     untouched = cebra.data.TensorDataset(torch.ones((10, 20)),
-                                        continuous=torch.ones((10, 1)))
+                                         continuous=torch.ones((10, 1)))
     assert untouched._masks == []
     data = torch.ones((10, 20, 30))
     assert torch.equal(valid.apply_mask(data.clone()), data)

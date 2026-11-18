@@ -96,7 +96,10 @@ class JacobianReg(nn.Module):
         R = (1 / 2) * J2
         return R
 
-    def _random_vector(self, C: int, B: int, device: torch.device = None) -> torch.Tensor:
+    def _random_vector(self,
+                       C: int,
+                       B: int,
+                       device: torch.device = None) -> torch.Tensor:
         """Creates a random vector of dimension C with a norm of C^(1/2).
 
         This is needed for the projection formula to work.

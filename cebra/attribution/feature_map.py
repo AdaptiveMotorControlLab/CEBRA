@@ -196,7 +196,8 @@ def _num_valid_rows(model, n_samples: int) -> int:
     n_valid = int(n_samples) - (left + right) + 1
     if n_valid < 1:
         raise ValueError(
-            f"{n_samples} input samples are too few for the model window ({left + right}).")
+            f"{n_samples} input samples are too few for the model window ({left + right})."
+        )
     return n_valid
 
 
@@ -519,8 +520,7 @@ def feature_attribution_map(
 
     if labels is not None or session_id is not None or random_ties:
         raise ValueError(
-            "labels, session_id and random_ties are only for unified solvers."
-        )
+            "labels, session_id and random_ties are only for unified solvers.")
     if isinstance(inputs, (list, tuple)):
         raise ValueError(
             "A single-session model needs inputs of shape (T, N), not a list.")
