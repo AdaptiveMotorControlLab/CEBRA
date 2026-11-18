@@ -21,7 +21,6 @@
 #
 import itertools
 
-import _reference_implementations
 import pytest
 import torch
 from torch import nn
@@ -30,6 +29,8 @@ import cebra.models
 import cebra.models.jacobian_regularizer as jacobian_regularizer
 import cebra.models.model
 import cebra.registry
+
+import _reference_implementations  # isort: skip
 
 
 def test_registry():
@@ -171,8 +172,7 @@ def test_version_check_dropout_available():
 
 # Tests for parametrized offset models backward compatibility
 
-
-@pytest.mark.parametrize("offset_n,reference_class", [
+_OFFSET_REFERENCE_MODELS = [
     (5, _reference_implementations.Offset5ModelReference),
     (10, _reference_implementations.Offset10ModelReference),
     (15, _reference_implementations.Offset15ModelReference),
@@ -180,7 +180,10 @@ def test_version_check_dropout_available():
     (36, _reference_implementations.Offset36Reference),
     (40, _reference_implementations.Offset40Reference),
     (50, _reference_implementations.Offset50Reference),
-])
+]
+
+
+@pytest.mark.parametrize("offset_n,reference_class", _OFFSET_REFERENCE_MODELS)
 def test_parametrized_offset_models_match_reference(offset_n, reference_class):
     """Test that parametrized offset models produce identical output to reference hardcoded models."""
 
@@ -256,15 +259,7 @@ def test_parametrized_offset_models_exist(offset_n):
     assert isinstance(model, cebra.models.ConvolutionalModelMixin)
 
 
-@pytest.mark.parametrize("offset_n,reference_class", [
-    (5, _reference_implementations.Offset5ModelReference),
-    (10, _reference_implementations.Offset10ModelReference),
-    (15, _reference_implementations.Offset15ModelReference),
-    (20, _reference_implementations.Offset20ModelReference),
-    (36, _reference_implementations.Offset36Reference),
-    (40, _reference_implementations.Offset40Reference),
-    (50, _reference_implementations.Offset50Reference),
-])
+@pytest.mark.parametrize("offset_n,reference_class", _OFFSET_REFERENCE_MODELS)
 def test_parametrized_offset_models_forward_pass_identical(
         offset_n, reference_class):
     """Test that parametrized and reference models produce identical forward pass outputs.
