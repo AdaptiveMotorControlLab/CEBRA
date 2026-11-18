@@ -803,8 +803,8 @@ def test_unified_xcebra_transform_concatenated_and_split_mode_restored(initial):
 def test_unified_checkpoint_loads_with_weights_only(tmp_path):
     inputs, labels = _tied_sessions()
     dataset = cebra.data.UnifiedDataset(*[
-        cebra.data.TensorDataset(x, continuous=label)
-        for x, label in zip(inputs, labels)
+        cebra.data.TensorDataset(neural, continuous=label)
+        for neural, label in zip(inputs, labels)
     ])
     assert type(dataset.input_dimension) is int
     solver = _unified_solver(sum(x.shape[1] for x in inputs))

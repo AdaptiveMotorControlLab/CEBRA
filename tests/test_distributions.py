@@ -527,8 +527,8 @@ def _tied_sessions(
 def _unified_sampler(labels, **kwargs):
     inputs = [torch.zeros(len(x), 1) for x in labels]
     dataset = cebra.data.UnifiedDataset(*[
-        cebra.data.TensorDataset(i, continuous=label)
-        for i, label in zip(inputs, labels)
+        cebra.data.TensorDataset(neural, continuous=label)
+        for neural, label in zip(inputs, labels)
     ])
     return cebra_distr.UnifiedSampler(dataset, time_offset=1, **kwargs)
 
