@@ -49,6 +49,7 @@ test_reduced: clean_test
 		--ignore tests/test_integration_xcebra.py \
 		--ignore tests/test_load.py \
 		--ignore tests/test_plotly.py \
+		--ignore tests/test_unified_demo.py \
 		--ignore cebra/attribution \
 		--ignore cebra/integrations \
 		-m "not requires_dataset" tests cebra --runfast
