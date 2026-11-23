@@ -103,6 +103,38 @@ def test_offset():
         offset = cebra.data.Offset(4, -2)
 
 
+def _expand_index_in_trial_old(dataset, index, trial_ids, trial_borders):
+    """Reference implementation of Dataset.expand_index_in_trial."""
+    offset = torch.arange(-dataset.offset.left,
+                          dataset.offset.right,
+                          device=index.device)
+    index = torch.tensor(
+        [
+            torch.clamp(
+                i,
+                trial_borders[trial_ids[i]] + dataset.offset.left,
+                trial_borders[trial_ids[i] + 1] - dataset.offset.right,
+            ) for i in index
+        ],
+        device=dataset.device,
+    )
+    return index[:, None] + offset[None, :]
+
+
+def test_expand_index_in_trial_matches_previous_implementation():
+    dataset = RandomDataset(N=12)
+    dataset.offset = cebra.data.Offset(2, 2)
+    index = torch.tensor([0, 2, 5, 7, 11])
+    trial_ids = np.repeat(np.arange(3), 4)
+    trial_borders = [0, 4, 8, 12]
+
+    expected = _expand_index_in_trial_old(dataset, index, trial_ids,
+                                          trial_borders)
+    actual = dataset.expand_index_in_trial(index, trial_ids, trial_borders)
+
+    torch.testing.assert_close(actual, expected)
+
+
 def _assert_dataset_on_correct_device(loader, device):
     assert hasattr(loader, "dataset")
     assert hasattr(loader, "device")
