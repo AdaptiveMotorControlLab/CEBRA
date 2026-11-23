@@ -37,7 +37,6 @@ import pathlib
 
 import joblib
 import numpy as np
-import pandas as pd
 import scipy.io
 import torch
 from numpy.random import Generator
@@ -181,6 +180,8 @@ class AllenCaMoviesDataset(cebra.data.SingleSessionDataset):
             area: The visual cortical area to sample the neurons. Possible options: VISp, VISpm, VISam, VISal, VISl, VISrl.
 
         """
+
+        import pandas as pd
 
         path = pathlib.Path(
             _DEFAULT_DATADIR
