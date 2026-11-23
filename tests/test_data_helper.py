@@ -359,3 +359,139 @@ def test_ensembling_performances(n_models=3):
     score = decoder.score(valid_embedding, valid_label)
 
     assert all(score_i < score for score_i in scores)
+
+
+def _original_orthogonal_procrustes_fit(model, ref_data, data, ref_label,
+                                        label):
+    """Pre-#309 ``OrthogonalProcrustesAlignment.fit``, copied verbatim.
+
+    Every line below is copied from the implementation in commit
+    ``d1842cc``, with ``self`` renamed to ``model`` and the transform
+    returned instead of stored. The input validation and ``subsample``
+    branches of the original are omitted: #309 leaves them untouched and
+    the tests here never exercise them (labels always given,
+    ``subsample=None``).
+    """
+    import scipy.linalg
+
+    if len(ref_label.shape) == 1:
+        ref_label = np.expand_dims(ref_label, axis=1)
+    if len(label.shape) == 1:
+        label = np.expand_dims(label, axis=1)
+
+    distance = model._distance(label, ref_label)
+
+    # keep indexes of the {self.top_k} labels the closest to the reference labels
+    target_idx = np.argsort(distance, axis=1)[:, :model.top_k]
+
+    # Get the whole data to align and only the selected closest samples
+    # from the reference data.
+    X = data[:, None].repeat(model.top_k, axis=1).reshape(-1, data.shape[1])
+    Y = ref_data[target_idx].reshape(-1, ref_data.shape[1])
+
+    # Compute orthogonal matrix that most closely maps X to Y using the orthogonal Procrustes problem.
+    transform, _ = scipy.linalg.orthogonal_procrustes(X, Y)
+
+    return transform
+
+
+@pytest.mark.parametrize(
+    "n_label, n_ref, dim, top_k",
+    [
+        (50, 40, 4, 5),
+        (37, 60, 3, 1),
+        (100, 20, 2, 10),
+        (23, 7, 3, 7),
+        # edge cases: single label row, single reference, tiny shapes
+        (1, 8, 3, 2),
+        (6, 1, 2, 1),
+        (2, 2, 2, 2),
+    ])
+@pytest.mark.parametrize("label_dim", [1, 2])
+def test_orthogonal_alignment_chunking_matches_full(n_label, n_ref, dim, top_k,
+                                                    label_dim, monkeypatch):
+    """Chunked top_k search reproduces the pre-#309 implementation."""
+    rng = np.random.RandomState(0)
+    ref_data = rng.uniform(0, 1, (n_ref, dim))
+    data = rng.uniform(0, 1, (n_label, dim))
+    # distinct (non-tie) labels so the reference ordering is unambiguous
+    ref_label = (rng.permutation(n_ref).astype(float) +
+                 rng.uniform(0, 1e-3, n_ref))[:, None]
+    label = (rng.permutation(n_label).astype(float) +
+             rng.uniform(0, 1e-3, n_label))[:, None]
+    if label_dim == 1:
+        ref_label, label = ref_label.ravel(), label.ravel()
+
+    # oracle: the verbatim pre-PR (full-matrix) implementation
+    oracle = cebra_data_helper.OrthogonalProcrustesAlignment(top_k=top_k)
+    ref_transform = _original_orthogonal_procrustes_fit(oracle, ref_data, data,
+                                                        ref_label, label)
+
+    # force many small chunks: 3 rows of `label` at a time
+    monkeypatch.setattr(cebra_data_helper, "_PROCRUSTES_MAX_DISTANCE_ELEMENTS",
+                        3 * n_ref)
+    chunked = cebra_data_helper.OrthogonalProcrustesAlignment(top_k=top_k)
+    chunked.fit(ref_data, data, ref_label, label)
+    np.testing.assert_array_equal(chunked._transform, ref_transform)
+
+    # force a single chunk: must also be bit-identical
+    monkeypatch.setattr(cebra_data_helper, "_PROCRUSTES_MAX_DISTANCE_ELEMENTS",
+                        n_label * n_ref + 1)
+    single = cebra_data_helper.OrthogonalProcrustesAlignment(top_k=top_k)
+    single.fit(ref_data, data, ref_label, label)
+    np.testing.assert_array_equal(single._transform, ref_transform)
+    np.testing.assert_array_equal(single.transform(data),
+                                  chunked.transform(data))
+
+
+def test_orthogonal_alignment_chunking_bit_identical_with_ties(monkeypatch):
+    """Row chunking is bit-identical, even with tied distances (#307)."""
+    rng = np.random.RandomState(1)
+    n_label, n_ref, dim, top_k = 60, 30, 3, 5
+    ref_data = rng.uniform(0, 1, (n_ref, dim))
+    data = rng.uniform(0, 1, (n_label, dim))
+    # integer labels with many duplicates -> tied distances
+    ref_label = rng.randint(0, 5, size=(n_ref, 1)).astype(float)
+    label = rng.randint(0, 5, size=(n_label, 1)).astype(float)
+
+    monkeypatch.setattr(cebra_data_helper, "_PROCRUSTES_MAX_DISTANCE_ELEMENTS",
+                        n_label * n_ref + 1)
+    single = cebra_data_helper.OrthogonalProcrustesAlignment(top_k=top_k)
+    single.fit(ref_data, data, ref_label, label)
+
+    monkeypatch.setattr(cebra_data_helper, "_PROCRUSTES_MAX_DISTANCE_ELEMENTS",
+                        4 * n_ref)
+    chunked = cebra_data_helper.OrthogonalProcrustesAlignment(top_k=top_k)
+    chunked.fit(ref_data, data, ref_label, label)
+    np.testing.assert_array_equal(single._transform, chunked._transform)
+
+
+def test_orthogonal_alignment_chunking_bounds_block_size(monkeypatch):
+    """The top_k search runs in bounded blocks, not one full matrix (#307)."""
+    rng = np.random.RandomState(2)
+    n_label, n_ref, dim, top_k = 50, 10, 3, 4
+    ref_data = rng.uniform(0, 1, (n_ref, dim))
+    data = rng.uniform(0, 1, (n_label, dim))
+    ref_label = rng.uniform(0, 1, (n_ref, 1))
+    label = rng.uniform(0, 1, (n_label, 1))
+
+    rows_per_call = []
+    original = cebra_data_helper.OrthogonalProcrustesAlignment._distance
+
+    def spy(self, label_i, label_j):
+        rows_per_call.append(label_i.shape[0])
+        return original(self, label_i, label_j)
+
+    # 3 rows of `label` per block
+    monkeypatch.setattr(cebra_data_helper, "_PROCRUSTES_MAX_DISTANCE_ELEMENTS",
+                        3 * n_ref)
+    monkeypatch.setattr(cebra_data_helper.OrthogonalProcrustesAlignment,
+                        "_distance", spy)
+
+    model = cebra_data_helper.OrthogonalProcrustesAlignment(top_k=top_k)
+    model.fit(ref_data, data, ref_label, label)
+
+    # the full (n_label, n_ref) distance matrix is never materialized
+    assert max(rows_per_call) <= 3
+    assert len(rows_per_call) == (n_label + 2) // 3
+    assert sum(rows_per_call) == n_label
