@@ -52,14 +52,16 @@ import cebra.solver
 # NOTE(stes): "numpy.dtypes.Int32DType" was added due to this issue with
 # windows (https://github.com/AdaptiveMotorControlLab/CEBRA/pull/281#issuecomment-3764185072)
 # on build (windows-latest, torch 2.6.0, python 3.12, latest sklearn)
+# NOTE(celia): Derive the same concrete dtype classes from instances to preserve that fix while also
+# supporting NumPy<1.25, where the ``np.dtypes`` namespace does not exist.
 CEBRA_LOAD_SAFE_GLOBALS = [
     cebra.data.Offset,
     torch.torch_version.TorchVersion,
     np.dtype,
-    np.dtypes.Int32DType,
-    np.dtypes.Int64DType,
-    np.dtypes.Float32DType,
-    np.dtypes.Float64DType,
+    type(np.dtype(np.int32)),
+    type(np.dtype(np.int64)),
+    type(np.dtype(np.float32)),
+    type(np.dtype(np.float64)),
 ]
 
 

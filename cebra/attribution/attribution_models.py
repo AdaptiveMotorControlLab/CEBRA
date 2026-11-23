@@ -22,21 +22,44 @@
 import dataclasses
 import time
 
-import cvxpy as cp
 import numpy as np
 import scipy.linalg
 import sklearn.metrics
 import torch
 import torch.nn as nn
 import tqdm
-from captum.attr import NeuronFeatureAblation
-from captum.attr import NeuronGradient
-from captum.attr import NeuronGradientShap
-from captum.attr import NeuronIntegratedGradients
 
 import cebra
 import cebra.attribution._jacobian
 from cebra.attribution import register
+
+
+_VALID_ATTRIBUTION_RESULT_KEYS = {
+    "jf",
+    "jf-convabs",
+    "jf-inv-lsq",
+    "jf-inv-svd",
+    "jf-convabs-inv-lsq",
+    "jf-convabs-inv-svd",
+}
+
+
+def _normalize_selected_result_keys(selected_keys):
+    """Map names as a set (``_`` read as ``-``), or ``None``; raise on unknown names."""
+    if selected_keys is None:
+        return None
+    normalized = []
+    for key in selected_keys:
+        key_str = str(key).strip().replace("_", "-")
+        if not key_str:
+            continue
+        if key_str not in _VALID_ATTRIBUTION_RESULT_KEYS:
+            raise ValueError(
+                f"Unknown attribution result key {key!r}. "
+                f"Valid keys: {sorted(_VALID_ATTRIBUTION_RESULT_KEYS)}"
+            )
+        normalized.append(key_str)
+    return set(normalized)
 
 
 @dataclasses.dataclass
@@ -255,6 +278,7 @@ class AttributionMap:
         Returns:
             np.ndarray: Least squares inverse matrix
         """
+        import cvxpy as cp
 
         matrix_param = cp.Parameter((matrix.shape[0], matrix.shape[1]))
         matrix_param.value = matrix
@@ -324,7 +348,7 @@ class AttributionMap:
 class JFMethodBased(AttributionMap):
     """Compute the attribution map using the Jacobian of the model encoder."""
 
-    def _compute_jacobian(self, input_data):
+    def _compute_jacobian(self, input_data, output_batch_size=None):
         return cebra.attribution._jacobian.compute_jacobian(
             self.model,
             input_vars=[input_data],
@@ -333,9 +357,11 @@ class JFMethodBased(AttributionMap):
             double_precision=False,
             convert_to_numpy=True,
             hybrid_solver=False,
+            output_batch_size=output_batch_size,
         )
 
-    def compute_attribution_map(self):
+    def compute_attribution_map(self, selected_keys=None):
+        selected_keys = _normalize_selected_result_keys(selected_keys)
 
         full_jacobian = self._compute_jacobian(self.input_data)
 
@@ -343,12 +369,16 @@ class JFMethodBased(AttributionMap):
         for key, value in self._reduce_attribution_map({
                 'jf': full_jacobian
         }).items():
-            result[key] = value
+            if selected_keys is None or key in selected_keys:
+                result[key] = value
             for method in ['lsq', 'svd']:
+                inv_key = f"{key}-inv-{method}"
+                if selected_keys is not None and inv_key not in selected_keys:
+                    continue
                 print(f"Computing inverse for {key} with method {method}")
-                result[f"{key}-inv-{method}"], result[
-                    f'time_inversion_{method}'] = self._inverse(value,
-                                                                method=method)
+                result[inv_key], result[f'time_inversion_{method}'] = self._inverse(
+                    value, method=method
+                )
                 # result[f"{key}-inv-{method}-conditions"] = self.check_moores_penrose_conditions(value, result[f"{key}-inv-{method}"])
 
         return result
@@ -363,7 +393,8 @@ class JFMethodBasedBatched(JFMethodBased):
         :py:class:`JFMethodBased`
     """
 
-    def compute_attribution_map(self, batch_size=1024):
+    def compute_attribution_map(self, batch_size=1024, selected_keys=None):
+        selected_keys = _normalize_selected_result_keys(selected_keys)
         if batch_size > self.input_data.shape[0]:
             raise ValueError(
                 f"Batch size ({batch_size}) is bigger than data ({self.input_data.shape[0]})"
@@ -380,12 +411,117 @@ class JFMethodBasedBatched(JFMethodBased):
         for key, value in self._reduce_attribution_map({
                 'jf': full_jacobian
         }).items():
-            result[key] = value
+            if selected_keys is None or key in selected_keys:
+                result[key] = value
             for method in ['lsq', 'svd']:
+                inv_key = f"{key}-inv-{method}"
+                if selected_keys is not None and inv_key not in selected_keys:
+                    continue
+                result[inv_key], result[f'time_inversion_{method}'] = self._inverse(
+                    value, method=method
+                )
 
-                result[f"{key}-inv-{method}"], result[
-                    f'time_inversion_{method}'] = self._inverse(value,
-                                                                method=method)
+        return result
+
+
+@dataclasses.dataclass
+@register("jacobian-based-batched-optimized")
+class JFMethodBasedBatchedOptimized(JFMethodBased):
+    """Jacobian-based attribution computed in mini-batches, with an optional running mean.
+
+    Same results as ``jacobian-based-batched``, with less memory.
+    """
+
+    def compute_attribution_map(
+        self,
+        batch_size=1024,
+        return_full=True,
+        selected_keys=None,
+        latent_batch_size=None,
+    ):
+        """Compute the attribution maps.
+
+        Args:
+            batch_size: Samples per Jacobian batch.
+            return_full: Return one map per sample. If ``False``, return the mean over samples.
+            selected_keys: Maps to compute, e.g. ``["jf"]``. ``None``: all of them.
+            latent_batch_size: Embedding dimensions per autograd pass. ``None``: all at once.
+
+        Returns:
+            Dict from map name to array, ``(T, D, N)`` per sample or ``(D, N)`` averaged.
+        """
+        selected_keys = _normalize_selected_result_keys(selected_keys)
+        if batch_size > self.input_data.shape[0]:
+            raise ValueError(
+                f"Batch size ({batch_size}) is bigger than data ({self.input_data.shape[0]})"
+            )
+
+        input_data_batches = torch.split(self.input_data, batch_size)
+        keys = sorted(_VALID_ATTRIBUTION_RESULT_KEYS if selected_keys is None else selected_keys)
+
+        if return_full:
+            per_key_chunks = {key: [] for key in keys}
+            running_sums = None
+            total_samples = None
+        else:
+            per_key_chunks = None
+            running_sums = {key: None for key in keys}
+            total_samples = 0
+
+        time_inversion = {'lsq': 0.0, 'svd': 0.0}
+
+        for input_data_batch in input_data_batches:
+            jacobian_batch = self._compute_jacobian(
+                input_data_batch, output_batch_size=latent_batch_size
+            )
+            reduced_batch = self._reduce_attribution_map({'jf': jacobian_batch})
+            batch_samples = next(iter(reduced_batch.values())).shape[0]
+
+            for key, value in reduced_batch.items():
+                if selected_keys is None or key in selected_keys:
+                    if return_full:
+                        per_key_chunks[key].append(value)
+                    else:
+                        if running_sums[key] is None:
+                            running_sums[key] = value.sum(axis=0)
+                        else:
+                            running_sums[key] += value.sum(axis=0)
+
+                for method in ['lsq', 'svd']:
+                    inv_key = f"{key}-inv-{method}"
+                    if selected_keys is not None and inv_key not in selected_keys:
+                        continue
+                    inv_value, dt = self._inverse(value, method=method)
+                    if return_full:
+                        per_key_chunks[inv_key].append(inv_value)
+                    else:
+                        if running_sums[inv_key] is None:
+                            running_sums[inv_key] = inv_value.sum(axis=0)
+                        else:
+                            running_sums[inv_key] += inv_value.sum(axis=0)
+
+                    time_inversion[method] += dt
+
+            if not return_full:
+                total_samples += batch_samples
+
+            del jacobian_batch
+            del reduced_batch
+
+        if return_full:
+            result = {
+                key: np.concatenate(chunks, axis=0)
+                for key, chunks in per_key_chunks.items()
+            }
+        else:
+            result = {
+                key: value / float(total_samples)
+                for key, value in running_sums.items()
+            }
+            result['num_samples'] = int(total_samples)
+
+        result['time_inversion_lsq'] = time_inversion['lsq']
+        result['time_inversion_svd'] = time_inversion['svd']
 
         return result
 
@@ -402,6 +538,8 @@ class NeuronGradientMethod(AttributionMap):
 
     def __post_init__(self):
         super().__post_init__()
+        from captum.attr import NeuronGradient
+
         self.captum_model = NeuronGradient(forward_func=self.model,
                                            layer=self.model)
 
@@ -476,6 +614,8 @@ class FeatureAblationMethod(AttributionMap):
 
     def __post_init__(self):
         super().__post_init__()
+        from captum.attr import NeuronFeatureAblation
+
         self.captum_model = NeuronFeatureAblation(forward_func=self.model,
                                                   layer=self.model)
 
@@ -549,6 +689,8 @@ class IntegratedGradientsMethod(AttributionMap):
 
     def __post_init__(self):
         super().__post_init__()
+        from captum.attr import NeuronIntegratedGradients
+
         self.captum_model = NeuronIntegratedGradients(forward_func=self.model,
                                                       layer=self.model)
 
@@ -631,6 +773,8 @@ class NeuronGradientShapMethod(AttributionMap):
 
     def __post_init__(self):
         super().__post_init__()
+        from captum.attr import NeuronGradientShap
+
         self.captum_model = NeuronGradientShap(forward_func=self.model,
                                                layer=self.model)
 
