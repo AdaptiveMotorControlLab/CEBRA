@@ -285,8 +285,15 @@ class DYSCO(CEBRA):
                 "Use alignment_ids for explicit aligned-trial metadata.")
         if alignment_ids is None:
             raise ValueError("alignment_ids must be supplied explicitly.")
-        return self._fit_trials(X, alignment_ids, controls, True, callback,
-                                callback_frequency)
+        # A fresh fit builds new modules and optimizer state. Keep the old
+        # references until the new loader and training loop have succeeded.
+        previous = vars(self).copy()
+        try:
+            return self._fit_trials(X, alignment_ids, controls, True, callback,
+                                    callback_frequency)
+        except Exception:
+            self.__dict__ = previous
+            raise
 
     def partial_fit(self,
                     X,
@@ -387,7 +394,9 @@ class DYSCO(CEBRA):
             controls, dtype=reference.dtype, device=self.device_)
         if direction == "backward" and controls is not None:
             controls = controls.flip(-2)
-        step = self.sample_interval if direction == "forward" else -self.sample_interval
+        step = self.dynamics_model_.dt
+        if direction == "backward":
+            step = -step
         with torch.no_grad():
             return self.dynamics_model_.rollout(states,
                                                 num_steps,

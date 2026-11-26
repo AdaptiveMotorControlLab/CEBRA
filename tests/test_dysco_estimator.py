@@ -220,3 +220,20 @@ def test_dysco_accelerator_and_cpu_checkpoint(tmp_path):
     model.to("cuda")
     model.partial_fit(trials, alignment_ids=[0, 1])
     assert model.solver_.criterion._sampling_state.device.type == "cpu"
+
+
+def test_failed_refit_preserves_learned_dynamics():
+    rng = np.random.default_rng(12)
+    trials = rng.normal(size=(2, 20, 4)).astype("float32")
+    model = cebra.DYSCO(device="cpu",
+                        batch_size=4,
+                        rollout_steps=2,
+                        max_iterations=2).fit(trials, alignment_ids=[0, 0])
+    before = model.transform(trials[0])
+    forecast = model.rollout(before[0], 2)
+    model.set_params(sample_interval=0.5)
+    np.testing.assert_array_equal(model.rollout(before[0], 2), forecast)
+    with pytest.raises(ValueError, match="num_views"):
+        model.fit(trials, alignment_ids=[0, 1])
+    np.testing.assert_array_equal(model.transform(trials[0]), before)
+    np.testing.assert_array_equal(model.rollout(before[0], 2), forecast)
