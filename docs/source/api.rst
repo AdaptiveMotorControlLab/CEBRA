@@ -9,8 +9,8 @@ CEBRA has two main APIs:
 - The low-level ``torch`` API exposes models, layers, loss functions and other components. The ``torch`` API exposes all low-level functions and classes used for training CEBRA models.
 
 For **day-to-day use of CEBRA**, it is sufficient to know the high-level ``scikit-learn`` API, which
-is currently limited to a single estimator class, :py:class:`cebra.CEBRA`. CEBRA's main
-functionalities are covered by this class.
+is centered on :py:class:`cebra.CEBRA`. Aligned repeated-trial dynamics learning
+is available through :py:class:`cebra.DYSCO`.
 
 For machine learning researchers, and everybody with **custom data analysis needs**, we expose
 all core functions of CEBRA via our ``torch`` API. This allows more fine-grained control over
@@ -23,6 +23,7 @@ these components in other contexts and research code bases.
    :caption: scikit-learn API
 
    api/sklearn/cebra
+   api/sklearn/dysco
    api/sklearn/metrics
    api/sklearn/decoder
    api/sklearn/helpers

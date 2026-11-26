@@ -32,11 +32,14 @@ import cebra.registry
 
 cebra.registry.add_helper_functions(__name__)
 
-from cebra.models.model import *
-from cebra.models.multiobjective import *
-from cebra.models.layers import *
 from cebra.models.criterions import *
-from cebra.models.multicriterions import *
+from cebra.models.dysco import DYSCOInfoNCE
+from cebra.models.dysco import KDEPotential
+from cebra.models.dysco import MLPPotential
 from cebra.models.jacobian_regularizer import *
+from cebra.models.layers import *
+from cebra.models.model import *
+from cebra.models.multicriterions import *
+from cebra.models.multiobjective import *
 
 cebra.registry.add_docstring(__name__)

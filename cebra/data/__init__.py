@@ -52,3 +52,5 @@ from cebra.data.multiobjective import *
 from cebra.data.datasets import *
 from cebra.data.helper import *
 from cebra.data.masking import *
+from cebra.data.aligned_trials import (AlignedTrialBatch, AlignedTrialDataset,
+                                      AlignedTrialLoader, AlignedWindowIndex)
