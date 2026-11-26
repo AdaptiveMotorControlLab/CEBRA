@@ -163,9 +163,9 @@ class MultiSessionLoader(cebra_data.Loader):
         neg_idx = self.sampler.sample_prior(self.batch_size)
         pos_idx, idx, idx_rev = self.sampler.sample_conditional(ref_idx)
 
-        ref_idx = torch.from_numpy(ref_idx)
-        neg_idx = torch.from_numpy(neg_idx)
-        pos_idx = torch.from_numpy(pos_idx)
+        ref_idx = torch.from_numpy(ref_idx).to(self.device)
+        neg_idx = torch.from_numpy(neg_idx).to(self.device)
+        pos_idx = torch.from_numpy(pos_idx).to(self.device)
 
         return BatchIndex(
             reference=ref_idx,
